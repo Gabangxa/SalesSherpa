@@ -39,29 +39,32 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-neutral-200 p-5">
+    <aside className="hidden lg:flex flex-col w-64 bg-card border-r border-border p-5">
       <div className="flex items-center mb-8">
-        <div className="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center shadow-md">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
           </svg>
         </div>
         <div className="ml-3">
-          <h1 className="text-xl font-bold text-neutral-900">FinSales</h1>
-          <p className="text-xs text-neutral-500">Virtual Sales Mentor</p>
+          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">FinSales</h1>
+          <p className="text-xs text-muted-foreground">Virtual Sales Mentor</p>
         </div>
       </div>
       
-      <nav className="flex-1">
+      <nav className="flex-1 mb-6">
+        <div className="text-xs uppercase text-muted-foreground font-semibold mb-3 ml-2">
+          Main Navigation
+        </div>
         <ul className="space-y-1">
           {navLinks.map((link) => (
             <li key={link.path}>
               <Link 
                 href={link.path} 
-                className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+                className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                   currentPath === link.path 
-                    ? "bg-primary-50 text-primary-700" 
-                    : "text-neutral-700 hover:bg-neutral-100"
+                    ? "bg-primary/10 text-primary" 
+                    : "text-foreground hover:bg-muted"
                 }`}
               >
                 {link.icon}
@@ -72,33 +75,33 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
         </ul>
       </nav>
       
-      <div className="border-t border-neutral-200 pt-4 mt-6">
-        <div className="flex items-center px-3 py-2">
-          <div className="w-8 h-8 rounded-full bg-neutral-300 flex items-center justify-center">
-            <span className="text-xs font-medium text-neutral-700">
+      <div className="border-t border-border pt-4 mt-auto">
+        <div className="flex items-center p-3 bg-muted/50 rounded-lg">
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shadow-sm">
+            <span className="text-sm font-medium text-primary">
               {userData?.name ? userData.name.split(" ").map(n => n[0]).join("") : "JD"}
             </span>
           </div>
-          <div className="ml-3">
-            <p className="text-sm font-medium text-neutral-900">{userData?.name || "Jordan Doe"}</p>
-            <p className="text-xs text-neutral-500">{userData?.role || "Fintech Sales Manager"}</p>
+          <div className="ml-3 flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{userData?.name || "Jordan Doe"}</p>
+            <p className="text-xs text-muted-foreground truncate">{userData?.role || "Fintech Sales Manager"}</p>
           </div>
           
           <DropdownMenu open={userMenuOpen} onOpenChange={setUserMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <button className="ml-auto text-neutral-400 hover:text-neutral-600 p-1 rounded-md hover:bg-neutral-100">
+              <button className="ml-auto flex-shrink-0 text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition-colors">
                 <Settings className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
+                  <span>Account Settings</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem 
-                className="flex items-center cursor-pointer text-red-600 focus:text-red-700"
+                className="flex items-center cursor-pointer text-destructive focus:text-destructive"
                 onClick={() => logoutMutation.mutate()}
               >
                 <LogOut className="mr-2 h-4 w-4" />

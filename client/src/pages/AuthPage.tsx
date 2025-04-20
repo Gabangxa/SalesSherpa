@@ -86,33 +86,44 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left section - Forms */}
-      <div className="w-full md:w-1/2 p-6 flex items-center justify-center">
+      <div className="w-full md:w-1/2 p-6 flex items-center justify-center bg-muted/20">
         <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              Welcome Back
+            </h2>
+            <p className="text-muted-foreground mt-2">Access your personalized sales coaching dashboard</p>
+          </div>
+          
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+              <TabsTrigger value="login" className="text-base py-3">Login</TabsTrigger>
+              <TabsTrigger value="register" className="text-base py-3">Register</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
-              <Card>
+              <Card className="border-border/40 shadow-lg">
                 <CardHeader>
-                  <CardTitle>Login</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-2xl">Login</CardTitle>
+                  <CardDescription className="text-base">
                     Sign in to access your sales coaching platform
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-5">
                       <FormField
                         control={loginForm.control}
                         name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Username</FormLabel>
+                            <FormLabel className="text-base">Username</FormLabel>
                             <FormControl>
-                              <Input placeholder="your.username" {...field} />
+                              <Input 
+                                placeholder="your.username" 
+                                {...field} 
+                                className="h-11" 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -123,9 +134,14 @@ export default function AuthPage() {
                         name="password"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Password</FormLabel>
+                            <FormLabel className="text-base">Password</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
+                              <Input 
+                                type="password" 
+                                placeholder="••••••••" 
+                                {...field} 
+                                className="h-11" 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -133,7 +149,7 @@ export default function AuthPage() {
                       />
                       <Button 
                         type="submit" 
-                        className="w-full" 
+                        className="w-full h-11 mt-4 shadow-md text-base font-medium" 
                         disabled={loginMutation.isPending}
                       >
                         {loginMutation.isPending ? (
@@ -148,12 +164,12 @@ export default function AuthPage() {
                     </form>
                   </Form>
                 </CardContent>
-                <CardFooter className="flex justify-center">
-                  <p className="text-sm text-gray-500">
+                <CardFooter className="flex justify-center pb-6">
+                  <p className="text-sm text-muted-foreground">
                     Don't have an account?{" "}
                     <Button 
                       variant="link" 
-                      className="p-0" 
+                      className="p-0 font-semibold text-primary" 
                       onClick={() => setActiveTab("register")}
                     >
                       Sign up
@@ -164,24 +180,28 @@ export default function AuthPage() {
             </TabsContent>
             
             <TabsContent value="register">
-              <Card>
+              <Card className="border-border/40 shadow-lg">
                 <CardHeader>
-                  <CardTitle>Create an Account</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-2xl">Create an Account</CardTitle>
+                  <CardDescription className="text-base">
                     Join the platform to start tracking your sales progress
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Form {...registerForm}>
-                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-5">
                       <FormField
                         control={registerForm.control}
                         name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Username</FormLabel>
+                            <FormLabel className="text-base">Username</FormLabel>
                             <FormControl>
-                              <Input placeholder="your.username" {...field} />
+                              <Input 
+                                placeholder="your.username" 
+                                {...field} 
+                                className="h-11" 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -192,9 +212,13 @@ export default function AuthPage() {
                         name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Full Name</FormLabel>
+                            <FormLabel className="text-base">Full Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="John Doe" {...field} />
+                              <Input 
+                                placeholder="John Doe" 
+                                {...field} 
+                                className="h-11" 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -205,9 +229,13 @@ export default function AuthPage() {
                         name="role"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Job Role</FormLabel>
+                            <FormLabel className="text-base">Job Role</FormLabel>
                             <FormControl>
-                              <Input placeholder="Fintech Sales Professional" {...field} />
+                              <Input 
+                                placeholder="Fintech Sales Professional" 
+                                {...field} 
+                                className="h-11" 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -218,9 +246,14 @@ export default function AuthPage() {
                         name="password"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Password</FormLabel>
+                            <FormLabel className="text-base">Password</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
+                              <Input 
+                                type="password" 
+                                placeholder="••••••••" 
+                                {...field} 
+                                className="h-11" 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -228,7 +261,7 @@ export default function AuthPage() {
                       />
                       <Button 
                         type="submit" 
-                        className="w-full" 
+                        className="w-full h-11 mt-4 shadow-md text-base font-medium" 
                         disabled={registerMutation.isPending}
                       >
                         {registerMutation.isPending ? (
@@ -243,12 +276,12 @@ export default function AuthPage() {
                     </form>
                   </Form>
                 </CardContent>
-                <CardFooter className="flex justify-center">
-                  <p className="text-sm text-gray-500">
+                <CardFooter className="flex justify-center pb-6">
+                  <p className="text-sm text-muted-foreground">
                     Already have an account?{" "}
                     <Button 
                       variant="link" 
-                      className="p-0" 
+                      className="p-0 font-semibold text-primary" 
                       onClick={() => setActiveTab("login")}
                     >
                       Login
@@ -262,31 +295,58 @@ export default function AuthPage() {
       </div>
       
       {/* Right section - Hero image and info */}
-      <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-primary-700 to-primary-900 flex-col justify-center items-center p-12 text-white">
-        <div className="max-w-md">
-          <h1 className="text-4xl font-bold mb-6">Sales Coaching Platform</h1>
-          <h2 className="text-2xl font-semibold mb-4">Elevate Your Fintech Sales Performance</h2>
-          <ul className="space-y-3">
+      <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-primary/90 to-primary flex-col justify-center items-center p-12 text-white relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 overflow-hidden z-0">
+          <div className="absolute -right-24 -top-24 w-96 h-96 bg-white/10 rounded-full blur-xl"></div>
+          <div className="absolute -left-32 top-1/3 w-72 h-72 bg-white/5 rounded-full blur-xl"></div>
+          <div className="absolute right-1/4 bottom-0 w-64 h-64 bg-white/5 rounded-full blur-xl"></div>
+        </div>
+        
+        <div className="max-w-md relative z-10">
+          <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent drop-shadow-sm">
+            Sales Coaching Platform
+          </h1>
+          <h2 className="text-2xl font-semibold mb-6 text-white/90">Elevate Your Fintech Sales Performance</h2>
+          <ul className="space-y-4">
             <li className="flex items-start">
-              <div className="mr-2">✓</div>
-              <div>Daily check-ins and accountability</div>
+              <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div className="text-lg">Daily check-ins and accountability</div>
             </li>
             <li className="flex items-start">
-              <div className="mr-2">✓</div>
-              <div>Performance metrics tracking</div>
+              <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div className="text-lg">Performance metrics tracking</div>
             </li>
             <li className="flex items-start">
-              <div className="mr-2">✓</div>
-              <div>Strategic guidance from AI sales coach</div>
+              <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div className="text-lg">Strategic guidance from AI sales coach</div>
             </li>
             <li className="flex items-start">
-              <div className="mr-2">✓</div>
-              <div>Time-off management that respects your boundaries</div>
+              <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div className="text-lg">Time-off management that respects your boundaries</div>
             </li>
           </ul>
-          <p className="mt-8 text-sm opacity-90">
-            Our platform helps fintech sales professionals stay accountable, track their progress, and receive strategic guidance to maximize their entrepreneurial potential.
-          </p>
+          <div className="mt-10 p-5 rounded-lg bg-white/10 backdrop-blur-sm shadow-xl border border-white/20">
+            <p className="text-base">
+              Our platform helps fintech sales professionals stay accountable, track their progress, and receive strategic guidance to maximize their entrepreneurial potential.
+            </p>
+          </div>
         </div>
       </div>
     </div>
