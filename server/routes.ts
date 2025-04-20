@@ -15,10 +15,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: "Unauthorized" });
     }
     
-    // Add userId to body for easy access in routes
-    if (req.user) {
-      req.body.userId = req.user.id;
-    }
+    // Since we've checked isAuthenticated, we know req.user exists
+    // TypeScript doesn't know this, so we need to assert it
+    req.body.userId = req.user!.id;
     
     next();
   };
@@ -234,6 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat messages routes
   app.get("/api/chat", authenticateUser, async (req, res) => {
     try {
+      // Use req.body.userId which is set by the authenticateUser middleware
       const messages = await storage.getChatMessages(req.body.userId);
       return res.status(200).json(messages);
     } catch (error) {
@@ -245,7 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertChatMessageSchema.parse({
         ...req.body,
-        userId: req.body.userId,
+        userId: req.body.userId, // Use req.body.userId which is set by the authenticateUser middleware
         timestamp: new Date()
       });
       
@@ -255,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validatedData.sender === 'user') {
         setTimeout(async () => {
           await storage.createChatMessage({
-            userId: req.body.userId,
+            userId: req.body.userId, // Use req.body.userId which is set by the authenticateUser middleware
             message: generateAssistantResponse(validatedData.message),
             sender: 'assistant',
             timestamp: new Date()
