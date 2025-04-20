@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { setupAuth } from "./auth";
+import { generateAIResponse } from "./openai";
 import { insertCheckInSchema, insertTaskSchema, insertGoalSchema, insertTimeOffSchema, insertChatMessageSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -251,16 +252,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const message = await storage.createChatMessage(validatedData);
       
-      // Simulate AI response
+      // Generate AI response if the message is from user
       if (validatedData.sender === 'user') {
+        // Get recent conversation history for context
+        const recentMessages = await storage.getChatMessages(req.body.userId);
+        
+        // Create an AI response in the background
         setTimeout(async () => {
-          await storage.createChatMessage({
-            userId: req.body.userId, // Use req.body.userId which is set by the authenticateUser middleware
-            message: generateAssistantResponse(validatedData.message),
-            sender: 'assistant',
-            timestamp: new Date()
-          });
-        }, 1000);
+          try {
+            // Generate AI response using OpenAI API
+            const aiResponse = await generateAIResponse(
+              validatedData.message, 
+              recentMessages.slice(-10) // Only use last 10 messages for context
+            );
+            
+            // Save the AI response
+            await storage.createChatMessage({
+              userId: req.body.userId,
+              message: aiResponse,
+              sender: 'assistant',
+              timestamp: new Date()
+            });
+          } catch (error) {
+            console.error("Error generating AI response:", error);
+            // Save a fallback response if AI generation fails
+            await storage.createChatMessage({
+              userId: req.body.userId,
+              message: "I encountered an issue processing your request. Could you please try again?",
+              sender: 'assistant',
+              timestamp: new Date()
+            });
+          }
+        }, 100); // Reduced delay for better user experience
       }
       
       return res.status(201).json(message);
@@ -312,26 +335,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Helper function to generate assistant responses
-function generateAssistantResponse(userMessage: string): string {
-  const lowerMessage = userMessage.toLowerCase();
-  
-  if (lowerMessage.includes('acme') || lowerMessage.includes('meeting') || lowerMessage.includes('client')) {
-    return "Great progress with that client! Remember to follow up within 24 hours to maintain momentum. What next steps have you planned?";
-  }
-  
-  if (lowerMessage.includes('goal') || lowerMessage.includes('target')) {
-    return "Setting clear targets is crucial. Let's break down this goal into weekly actionable steps. What's the first milestone you need to hit?";
-  }
-  
-  if (lowerMessage.includes('challenge') || lowerMessage.includes('problem') || lowerMessage.includes('difficult')) {
-    return "That sounds challenging. When facing obstacles, try reframing them as opportunities to demonstrate value. What specific concerns did they raise?";
-  }
-  
-  if (lowerMessage.includes('time off') || lowerMessage.includes('vacation') || lowerMessage.includes('break')) {
-    return "I've noted your time off. I'll pause reminders during this period. Remember to set up proper handoffs for any active deals.";
-  }
-  
-  // Default response
-  return "Thanks for the update! How can I help you strategize for your next steps? Are there any particular challenges you're facing today?";
-}
+
