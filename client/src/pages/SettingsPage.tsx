@@ -39,6 +39,28 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { calculatePercentage } from "@/lib/utils";
 
+// Sales metrics type definition
+interface SalesMetrics {
+  id: number;
+  userId: number;
+  newAccountsTarget: number;
+  newAccountsCurrent: number;
+  meetingsTarget: number;
+  meetingsCurrent: number;
+  tripsTarget: number;
+  tripsCurrent: number;
+  crmUpdatePercentage: number;
+  weeklyActivity: {
+    monday: number;
+    tuesday: number;
+    wednesday: number;
+    thursday: number;
+    friday: number;
+    saturday: number;
+    sunday: number;
+  };
+}
+
 // Form schema for performance metrics
 const formSchema = z.object({
   newAccountsTarget: z.coerce.number().int().min(1, "Must be at least 1"),
@@ -56,7 +78,7 @@ export default function SettingsPage() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Fetch current sales metrics
-  const { data: metrics, isLoading } = useQuery({
+  const { data: metrics, isLoading } = useQuery<SalesMetrics>({
     queryKey: ["/api/sales-metrics"],
     retry: 1,
   });
@@ -90,7 +112,6 @@ export default function SettingsPage() {
       toast({
         title: "Settings updated",
         description: "Your performance metrics have been updated successfully.",
-        variant: "success",
       });
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);

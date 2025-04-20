@@ -73,6 +73,17 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
                 </Link>
               </li>
             ))}
+            
+            <li className="mt-4">
+              <Separator className="mb-4" />
+              <button
+                onClick={() => logoutMutation.mutate()}
+                className="w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="w-5 h-5 mr-3" />
+                Logout
+              </button>
+            </li>
           </ul>
         </nav>
       </div>
