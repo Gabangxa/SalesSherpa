@@ -6,8 +6,12 @@ import {
   Swords, 
   BookOpen,
   Menu, 
-  X 
+  X,
+  LogOut,
+  Settings
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { Separator } from "@/components/ui/separator";
 
 interface MobileHeaderProps {
   isMenuOpen: boolean;
@@ -20,12 +24,15 @@ interface MobileHeaderProps {
 }
 
 export default function MobileHeader({ isMenuOpen, toggleMenu, userData, currentPath }: MobileHeaderProps) {
+  const { logoutMutation } = useAuth();
+  
   const navLinks = [
     { name: "Dashboard", path: "/", icon: <Home className="w-5 h-5 mr-3" /> },
     { name: "Goals & Targets", path: "/goals", icon: <Target className="w-5 h-5 mr-3" /> },
     { name: "Check-ins", path: "/check-ins", icon: <CalendarCheck className="w-5 h-5 mr-3" /> },
     { name: "Strategic Planning", path: "/strategy", icon: <Swords className="w-5 h-5 mr-3" /> },
     { name: "Resources", path: "/resources", icon: <BookOpen className="w-5 h-5 mr-3" /> },
+    { name: "Settings", path: "/settings", icon: <Settings className="w-5 h-5 mr-3" /> },
   ];
 
   return (

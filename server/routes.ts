@@ -286,6 +286,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Server error" });
     }
   });
+  
+  app.patch("/api/sales-metrics", authenticateUser, async (req, res) => {
+    try {
+      const userId = req.body.userId;
+      const updates = {
+        newAccountsTarget: req.body.newAccountsTarget,
+        meetingsTarget: req.body.meetingsTarget,
+        tripsTarget: req.body.tripsTarget,
+      };
+      
+      const metrics = await storage.updateSalesMetrics(userId, updates);
+      
+      if (!metrics) {
+        return res.status(404).json({ message: "Sales metrics not found" });
+      }
+      
+      return res.status(200).json(metrics);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

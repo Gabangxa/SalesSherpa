@@ -5,8 +5,17 @@ import {
   CalendarCheck, 
   Swords, 
   BookOpen,
-  Settings
+  Settings,
+  LogOut
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useState } from "react";
 
 interface SidebarProps {
   userData: {
@@ -17,12 +26,16 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ userData, currentPath }: SidebarProps) {
+  const { logoutMutation } = useAuth();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
   const navLinks = [
     { name: "Dashboard", path: "/", icon: <Home className="w-5 h-5 mr-3" /> },
     { name: "Goals & Targets", path: "/goals", icon: <Target className="w-5 h-5 mr-3" /> },
     { name: "Check-ins", path: "/check-ins", icon: <CalendarCheck className="w-5 h-5 mr-3" /> },
     { name: "Strategic Planning", path: "/strategy", icon: <Swords className="w-5 h-5 mr-3" /> },
     { name: "Resources", path: "/resources", icon: <BookOpen className="w-5 h-5 mr-3" /> },
+    { name: "Settings", path: "/settings", icon: <Settings className="w-5 h-5 mr-3" /> },
   ];
 
   return (
@@ -70,9 +83,29 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
             <p className="text-sm font-medium text-neutral-900">{userData?.name || "Jordan Doe"}</p>
             <p className="text-xs text-neutral-500">{userData?.role || "Fintech Sales Manager"}</p>
           </div>
-          <button className="ml-auto text-neutral-400 hover:text-neutral-600">
-            <Settings className="h-4 w-4" />
-          </button>
+          
+          <DropdownMenu open={userMenuOpen} onOpenChange={setUserMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <button className="ml-auto text-neutral-400 hover:text-neutral-600 p-1 rounded-md hover:bg-neutral-100">
+                <Settings className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link href="/settings" className="flex items-center cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="flex items-center cursor-pointer text-red-600 focus:text-red-700"
+                onClick={() => logoutMutation.mutate()}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Logout</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </aside>
