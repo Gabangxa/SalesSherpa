@@ -7,6 +7,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   BarChart,
@@ -143,24 +144,36 @@ export default function ProgressTracking() {
             </div>
           </div>
           
-          {/* Client Meetings */}
-          <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+          {/* Client Meetings - Highlighted with primary accent */}
+          <div className="bg-primary-50 rounded-lg p-4 border border-primary-200 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-neutral-600">Client Meetings</h3>
-              <Badge variant="secondary" className={`bg-${getBadgeColor(meetingsPercentage)}-100 text-${getBadgeColor(meetingsPercentage)}-800 hover:bg-${getBadgeColor(meetingsPercentage)}-100`}>
+              <h3 className="text-sm font-medium text-primary-700">Monthly Client Meetings</h3>
+              <Badge variant="secondary" className={cn("font-medium", 
+                meetingsPercentage >= 90 ? "bg-green-100 text-green-800" : 
+                meetingsPercentage >= 70 ? "bg-blue-100 text-blue-800" : 
+                "bg-amber-100 text-amber-800")}>
                 {meetingsPercentage}%
               </Badge>
             </div>
             <div className="mt-2">
-              <p className="text-2xl font-semibold text-neutral-900">
+              <p className="text-2xl font-semibold text-primary-900">
                 {metrics.meetingsCurrent}
               </p>
-              <p className="text-sm text-neutral-500">
-                of {metrics.meetingsTarget} target
+              <p className="text-sm text-primary-700 font-medium">
+                Target: <span className="text-primary-900 font-bold">{metrics.meetingsTarget}</span> meetings per month
               </p>
             </div>
             <div className="mt-3">
-              <Progress value={meetingsPercentage} className="h-2" />
+              <Progress 
+                value={meetingsPercentage} 
+                className="h-2.5 bg-primary-100" 
+                indicatorClassName="bg-primary-600" 
+              />
+            </div>
+            <div className="mt-2 text-xs text-primary-700">
+              {metrics.meetingsTarget - metrics.meetingsCurrent > 0 ? 
+                `${metrics.meetingsTarget - metrics.meetingsCurrent} more meetings needed this month` : 
+                'Monthly target achieved! Great job!'}
             </div>
           </div>
         </div>
