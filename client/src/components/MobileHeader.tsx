@@ -53,17 +53,16 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
           <ul className="space-y-1">
             {navLinks.map((link) => (
               <li key={link.path}>
-                <Link href={link.path}>
-                  <a 
-                    className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
-                      currentPath === link.path 
-                        ? "bg-primary-50 text-primary-700" 
-                        : "text-neutral-700 hover:bg-neutral-100"
-                    }`}
-                  >
-                    {link.icon}
-                    {link.name}
-                  </a>
+                <Link 
+                  href={link.path}
+                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+                    currentPath === link.path 
+                      ? "bg-primary-50 text-primary-700" 
+                      : "text-neutral-700 hover:bg-neutral-100"
+                  }`}
+                >
+                  {link.icon}
+                  {link.name}
                 </Link>
               </li>
             ))}
