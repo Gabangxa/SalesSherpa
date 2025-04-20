@@ -261,7 +261,7 @@ export default function ResourcesPage() {
             Recommended Reading
           </CardTitle>
           <CardDescription>
-            Essential books for fintech sales professionals
+            The five essential books every fintech sales professional should read
           </CardDescription>
         </CardHeader>
         
@@ -273,11 +273,11 @@ export default function ResourcesPage() {
                   <BookOpen className="h-8 w-8 text-neutral-500" />
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-base font-medium">The Fintech Revolution: How Financial Technology is Transforming Banking</h3>
-                  <p className="text-sm text-neutral-500 mt-1">By Michael Stevens</p>
+                  <h3 className="text-base font-medium">SPIN Selling</h3>
+                  <p className="text-sm text-neutral-500 mt-1">By Neil Rackham</p>
                   <p className="text-sm text-neutral-600 mt-2">
-                    A comprehensive overview of how fintech is disrupting traditional banking
-                    models and creating new opportunities for innovation.
+                    A groundbreaking methodology for asking the right questions in complex sales situations,
+                    helping fintech professionals identify and address client needs effectively.
                   </p>
                   <div className="mt-2">
                     <Button variant="link" className="h-auto p-0 text-primary-600">
@@ -292,11 +292,11 @@ export default function ResourcesPage() {
                   <BookOpen className="h-8 w-8 text-neutral-500" />
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-base font-medium">Challenger Sale: Taking Control of the Customer Conversation</h3>
-                  <p className="text-sm text-neutral-500 mt-1">By Matthew Dixon & Brent Adamson</p>
+                  <h3 className="text-base font-medium">To Sell Is Human</h3>
+                  <p className="text-sm text-neutral-500 mt-1">By Daniel H. Pink</p>
                   <p className="text-sm text-neutral-600 mt-2">
-                    Based on an extensive study of thousands of sales reps, this book challenges
-                    conventional sales wisdom and introduces a new approach for complex B2B sales.
+                    Explores how selling has changed in the digital age and offers a fresh approach to moving
+                    others through attunement, buoyancy, and clarity – essential skills for fintech sales.
                   </p>
                   <div className="mt-2">
                     <Button variant="link" className="h-auto p-0 text-primary-600">
@@ -311,11 +311,11 @@ export default function ResourcesPage() {
                   <BookOpen className="h-8 w-8 text-neutral-500" />
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-base font-medium">Value-Based Selling: The Art of Building High-Trust Client Relationships</h3>
-                  <p className="text-sm text-neutral-500 mt-1">By Tom Williams</p>
+                  <h3 className="text-base font-medium">The Psychology of Selling</h3>
+                  <p className="text-sm text-neutral-500 mt-1">By Brian Tracy</p>
                   <p className="text-sm text-neutral-600 mt-2">
-                    A practical guide for shifting conversations from price to value,
-                    especially relevant for complex fintech solutions with significant ROI potential.
+                    Provides practical strategies for overcoming psychological barriers to successful selling,
+                    with techniques for building confidence and consistently achieving sales goals.
                   </p>
                   <div className="mt-2">
                     <Button variant="link" className="h-auto p-0 text-primary-600">
@@ -330,11 +330,30 @@ export default function ResourcesPage() {
                   <BookOpen className="h-8 w-8 text-neutral-500" />
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-base font-medium">The Entrepreneurial Mindset: Strategies for Continuously Creating Opportunity</h3>
-                  <p className="text-sm text-neutral-500 mt-1">By Rita Gunther McGrath & Ian MacMillan</p>
+                  <h3 className="text-base font-medium">Never Split the Difference</h3>
+                  <p className="text-sm text-neutral-500 mt-1">By Chris Voss</p>
                   <p className="text-sm text-neutral-600 mt-2">
-                    Explores how to develop an entrepreneurial approach to business challenges,
-                    helping sales professionals think more strategically about client solutions.
+                    Written by a former FBI hostage negotiator, this book reveals powerful negotiation techniques
+                    that can transform your approach to complex fintech sales conversations and objection handling.
+                  </p>
+                  <div className="mt-2">
+                    <Button variant="link" className="h-auto p-0 text-primary-600">
+                      View Summary
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-start">
+                <div className="h-24 w-16 bg-neutral-200 rounded flex-shrink-0 flex items-center justify-center">
+                  <BookOpen className="h-8 w-8 text-neutral-500" />
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-base font-medium">The New Strategic Selling</h3>
+                  <p className="text-sm text-neutral-500 mt-1">By Robert B. Miller & Stephen E. Heiman</p>
+                  <p className="text-sm text-neutral-600 mt-2">
+                    A comprehensive framework for navigating complex enterprise sales by identifying key players,
+                    understanding buying influences, and crafting strategic approaches to win major accounts.
                   </p>
                   <div className="mt-2">
                     <Button variant="link" className="h-auto p-0 text-primary-600">
