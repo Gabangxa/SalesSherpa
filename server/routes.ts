@@ -2,64 +2,26 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import { setupAuth } from "./auth";
 import { insertCheckInSchema, insertTaskSchema, insertGoalSchema, insertTimeOffSchema, insertChatMessageSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Authentication helper (simplified for demo)
-  const authenticateUser = async (req: Request, res: Response, next: Function) => {
-    // In a real app, this would use sessions or tokens
-    // For this demo, we'll use a fixed user ID
-    req.body.userId = 1;
+  // Setup authentication with Passport.js
+  setupAuth(app);
+  
+  // Authentication middleware using Passport
+  const authenticateUser = (req: Request, res: Response, next: Function) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Add userId to body for easy access in routes
+    if (req.user) {
+      req.body.userId = req.user.id;
+    }
+    
     next();
   };
-
-  // Login route (simplified for demo)
-  app.post("/api/login", async (req, res) => {
-    const { username, password } = req.body;
-    
-    if (!username || !password) {
-      return res.status(400).json({ message: "Username and password are required" });
-    }
-    
-    try {
-      const user = await storage.getUserByUsername(username);
-      
-      if (!user || user.password !== password) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-      
-      // In a real app, we would create a session or token here
-      
-      return res.status(200).json({
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        role: user.role
-      });
-    } catch (error) {
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Current user route
-  app.get("/api/user", authenticateUser, async (req, res) => {
-    try {
-      const user = await storage.getUser(req.body.userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      return res.status(200).json({
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        role: user.role
-      });
-    } catch (error) {
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
 
   // Goals routes
   app.get("/api/goals", authenticateUser, async (req, res) => {
