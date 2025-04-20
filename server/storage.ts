@@ -734,12 +734,13 @@ export class DatabaseStorage implements IStorage {
       await this.createSalesMetrics({
         userId,
         date: new Date(),
-        monthlyTarget: 150000,
-        monthlyCurrent: 127500,
         newAccountsTarget: 10,
         newAccountsCurrent: 7,
         meetingsTarget: 30,
         meetingsCurrent: 28,
+        tripsTarget: 10,
+        tripsCurrent: 6,
+        crmUpdatePercentage: 75,
         weeklyActivity: {
           monday: 4,
           tuesday: 6,

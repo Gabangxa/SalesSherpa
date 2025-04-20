@@ -20,12 +20,13 @@ import {
 } from "recharts";
 
 interface SalesMetrics {
-  monthlyTarget: number;
-  monthlyCurrent: number;
   newAccountsTarget: number;
   newAccountsCurrent: number;
   meetingsTarget: number;
   meetingsCurrent: number;
+  tripsTarget: number;
+  tripsCurrent: number;
+  crmUpdatePercentage: number;
   weeklyActivity: {
     monday: number;
     tuesday: number;
@@ -90,9 +91,10 @@ export default function ProgressTracking() {
   }
 
   // Calculate percentages
-  const monthlyPercentage = calculatePercentage(metrics.monthlyCurrent, metrics.monthlyTarget);
   const accountsPercentage = calculatePercentage(metrics.newAccountsCurrent, metrics.newAccountsTarget);
   const meetingsPercentage = calculatePercentage(metrics.meetingsCurrent, metrics.meetingsTarget);
+  const tripsPercentage = calculatePercentage(metrics.tripsCurrent, metrics.tripsTarget);
+  const crmPercentage = metrics.crmUpdatePercentage || 0;
 
   return (
     <Card className="col-span-1 lg:col-span-2">
@@ -102,45 +104,69 @@ export default function ProgressTracking() {
       
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Monthly Target */}
-          <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+          {/* Field Trips Target */}
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-neutral-600">Monthly Target</h3>
-              <Badge variant="secondary" className={`bg-${getBadgeColor(monthlyPercentage)}-100 text-${getBadgeColor(monthlyPercentage)}-800 hover:bg-${getBadgeColor(monthlyPercentage)}-100`}>
-                {monthlyPercentage}%
+              <h3 className="text-sm font-medium text-blue-700">Field Trips</h3>
+              <Badge variant="secondary" className={cn("font-medium", 
+                tripsPercentage >= 90 ? "bg-green-100 text-green-800" : 
+                tripsPercentage >= 70 ? "bg-blue-100 text-blue-800" : 
+                "bg-amber-100 text-amber-800")}>
+                {tripsPercentage}%
               </Badge>
             </div>
             <div className="mt-2">
-              <p className="text-2xl font-semibold text-neutral-900">
-                {formatCurrency(metrics.monthlyCurrent)}
+              <p className="text-2xl font-semibold text-blue-900">
+                {metrics.tripsCurrent}
               </p>
-              <p className="text-sm text-neutral-500">
-                of {formatCurrency(metrics.monthlyTarget)}
+              <p className="text-sm text-blue-700 font-medium">
+                Target: <span className="text-blue-900 font-bold">{metrics.tripsTarget}</span> field trips per month
               </p>
             </div>
             <div className="mt-3">
-              <Progress value={monthlyPercentage} className="h-2" />
+              <Progress 
+                value={tripsPercentage} 
+                className="h-2.5 bg-blue-100" 
+                indicatorClassName="bg-blue-600" 
+              />
+            </div>
+            <div className="mt-2 text-xs text-blue-700">
+              {metrics.tripsTarget - metrics.tripsCurrent > 0 ? 
+                `${metrics.tripsTarget - metrics.tripsCurrent} more field trips needed` : 
+                'Field trips target achieved!'}
             </div>
           </div>
           
-          {/* New Accounts */}
-          <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+          {/* CRM Update Level */}
+          <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-neutral-600">New Accounts</h3>
-              <Badge variant="secondary" className={`bg-${getBadgeColor(accountsPercentage)}-100 text-${getBadgeColor(accountsPercentage)}-800 hover:bg-${getBadgeColor(accountsPercentage)}-100`}>
-                {accountsPercentage}%
+              <h3 className="text-sm font-medium text-emerald-700">CRM Updated</h3>
+              <Badge variant="secondary" className={cn("font-medium", 
+                crmPercentage >= 90 ? "bg-green-100 text-green-800" : 
+                crmPercentage >= 70 ? "bg-emerald-100 text-emerald-800" : 
+                "bg-amber-100 text-amber-800")}>
+                {crmPercentage}%
               </Badge>
             </div>
             <div className="mt-2">
-              <p className="text-2xl font-semibold text-neutral-900">
-                {metrics.newAccountsCurrent}
+              <p className="text-2xl font-semibold text-emerald-900">
+                {crmPercentage}%
               </p>
-              <p className="text-sm text-neutral-500">
-                of {metrics.newAccountsTarget} target
+              <p className="text-sm text-emerald-700 font-medium">
+                Customer data completeness
               </p>
             </div>
             <div className="mt-3">
-              <Progress value={accountsPercentage} className="h-2" />
+              <Progress 
+                value={crmPercentage} 
+                className="h-2.5 bg-emerald-100" 
+                indicatorClassName="bg-emerald-600" 
+              />
+            </div>
+            <div className="mt-2 text-xs text-emerald-700">
+              {crmPercentage < 80 ? 
+                "Update customer records to reach 80% target" : 
+                "Good job keeping records updated!"}
             </div>
           </div>
           

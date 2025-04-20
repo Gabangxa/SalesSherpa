@@ -134,24 +134,26 @@ export const salesMetrics = pgTable("sales_metrics", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   date: timestamp("date").notNull(),
-  monthlyTarget: integer("monthly_target").notNull(),
-  monthlyCurrent: integer("monthly_current").notNull(),
   newAccountsTarget: integer("new_accounts_target").notNull(),
   newAccountsCurrent: integer("new_accounts_current").notNull(),
   meetingsTarget: integer("meetings_target").notNull(),
   meetingsCurrent: integer("meetings_current").notNull(),
+  tripsTarget: integer("trips_target").notNull().default(10),
+  tripsCurrent: integer("trips_current").notNull().default(6),
+  crmUpdatePercentage: integer("crm_update_percentage").notNull().default(75),
   weeklyActivity: json("weekly_activity").notNull(),
 });
 
 export const insertSalesMetricsSchema = createInsertSchema(salesMetrics).pick({
   userId: true,
   date: true,
-  monthlyTarget: true,
-  monthlyCurrent: true,
   newAccountsTarget: true,
   newAccountsCurrent: true,
   meetingsTarget: true,
   meetingsCurrent: true,
+  tripsTarget: true,
+  tripsCurrent: true,
+  crmUpdatePercentage: true,
   weeklyActivity: true,
 });
 
