@@ -1,12 +1,14 @@
 import { 
-  User, InsertUser, 
-  Goal, InsertGoal, 
-  Task, InsertTask, 
-  CheckIn, InsertCheckIn, 
-  TimeOff, InsertTimeOff, 
-  ChatMessage, InsertChatMessage,
-  SalesMetrics, InsertSalesMetrics
+  users, User, InsertUser, 
+  goals, Goal, InsertGoal, 
+  tasks, Task, InsertTask, 
+  checkIns, CheckIn, InsertCheckIn, 
+  timeOff, TimeOff, InsertTimeOff, 
+  chatMessages, ChatMessage, InsertChatMessage,
+  salesMetrics, SalesMetrics, InsertSalesMetrics
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -402,4 +404,355 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  // Goal operations
+  async getGoals(userId: number): Promise<Goal[]> {
+    return db.select().from(goals).where(eq(goals.userId, userId));
+  }
+
+  async getGoal(id: number): Promise<Goal | undefined> {
+    const [goal] = await db.select().from(goals).where(eq(goals.id, id));
+    return goal || undefined;
+  }
+
+  async createGoal(insertGoal: InsertGoal): Promise<Goal> {
+    const [goal] = await db
+      .insert(goals)
+      .values(insertGoal)
+      .returning();
+    return goal;
+  }
+
+  async updateGoal(id: number, updates: Partial<Goal>): Promise<Goal | undefined> {
+    const [updatedGoal] = await db
+      .update(goals)
+      .set(updates)
+      .where(eq(goals.id, id))
+      .returning();
+    return updatedGoal || undefined;
+  }
+
+  async deleteGoal(id: number): Promise<boolean> {
+    const result = await db
+      .delete(goals)
+      .where(eq(goals.id, id));
+    return !!result;
+  }
+
+  // Task operations
+  async getTasks(userId: number): Promise<Task[]> {
+    return db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.userId, userId))
+      .orderBy(
+        // First by priority (custom logic in query)
+        // Then by due date
+        asc(tasks.dueDate)
+      );
+  }
+
+  async getTask(id: number): Promise<Task | undefined> {
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+    return task || undefined;
+  }
+
+  async createTask(insertTask: InsertTask): Promise<Task> {
+    const [task] = await db
+      .insert(tasks)
+      .values(insertTask)
+      .returning();
+    return task;
+  }
+
+  async updateTask(id: number, updates: Partial<Task>): Promise<Task | undefined> {
+    const [updatedTask] = await db
+      .update(tasks)
+      .set(updates)
+      .where(eq(tasks.id, id))
+      .returning();
+    return updatedTask || undefined;
+  }
+
+  async deleteTask(id: number): Promise<boolean> {
+    const result = await db
+      .delete(tasks)
+      .where(eq(tasks.id, id));
+    return !!result;
+  }
+
+  // Check-in operations
+  async getCheckIns(userId: number): Promise<CheckIn[]> {
+    return db
+      .select()
+      .from(checkIns)
+      .where(eq(checkIns.userId, userId))
+      .orderBy(desc(checkIns.date)); // Sort by date descending
+  }
+
+  async getCheckIn(id: number): Promise<CheckIn | undefined> {
+    const [checkIn] = await db.select().from(checkIns).where(eq(checkIns.id, id));
+    return checkIn || undefined;
+  }
+
+  async createCheckIn(insertCheckIn: InsertCheckIn): Promise<CheckIn> {
+    const [checkIn] = await db
+      .insert(checkIns)
+      .values(insertCheckIn)
+      .returning();
+    return checkIn;
+  }
+
+  // Time off operations
+  async getTimeOffPeriods(userId: number): Promise<TimeOff[]> {
+    return db
+      .select()
+      .from(timeOff)
+      .where(eq(timeOff.userId, userId))
+      .orderBy(asc(timeOff.startDate));
+  }
+
+  async createTimeOff(insertTimeOff: InsertTimeOff): Promise<TimeOff> {
+    const [timeOffPeriod] = await db
+      .insert(timeOff)
+      .values(insertTimeOff)
+      .returning();
+    return timeOffPeriod;
+  }
+
+  // Chat messages operations
+  async getChatMessages(userId: number): Promise<ChatMessage[]> {
+    return db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.userId, userId))
+      .orderBy(asc(chatMessages.timestamp));
+  }
+
+  async createChatMessage(insertChatMessage: InsertChatMessage): Promise<ChatMessage> {
+    const [chatMessage] = await db
+      .insert(chatMessages)
+      .values(insertChatMessage)
+      .returning();
+    return chatMessage;
+  }
+
+  // Sales metrics operations
+  async getSalesMetrics(userId: number): Promise<SalesMetrics | undefined> {
+    const [metrics] = await db
+      .select()
+      .from(salesMetrics)
+      .where(eq(salesMetrics.userId, userId))
+      .orderBy(desc(salesMetrics.date))
+      .limit(1);
+    return metrics || undefined;
+  }
+
+  async createSalesMetrics(insertSalesMetrics: InsertSalesMetrics): Promise<SalesMetrics> {
+    const [metrics] = await db
+      .insert(salesMetrics)
+      .values(insertSalesMetrics)
+      .returning();
+    return metrics;
+  }
+
+  async updateSalesMetrics(userId: number, updates: Partial<SalesMetrics>): Promise<SalesMetrics | undefined> {
+    // First find the metric record for this user
+    const [metric] = await db
+      .select()
+      .from(salesMetrics)
+      .where(eq(salesMetrics.userId, userId))
+      .orderBy(desc(salesMetrics.date))
+      .limit(1);
+    
+    if (!metric) return undefined;
+    
+    // Then update it
+    const [updatedMetric] = await db
+      .update(salesMetrics)
+      .set(updates)
+      .where(eq(salesMetrics.id, metric.id))
+      .returning();
+      
+    return updatedMetric || undefined;
+  }
+  
+  // Setup demo data - only for initial setup
+  async setupInitialData() {
+    // Check if we have a demo user
+    const existingUser = await this.getUserByUsername("demo");
+    
+    if (!existingUser) {
+      // Create demo user
+      const user = await this.createUser({
+        username: "demo",
+        password: "password",
+        name: "Jordan Doe",
+        role: "Fintech Sales Manager"
+      });
+      
+      // Create demo data
+      const userId = user.id;
+      
+      // Create demo goals
+      await this.createGoal({
+        userId,
+        title: "Monthly Sales Target",
+        targetAmount: 150000,
+        currentAmount: 127500,
+        deadline: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+        category: "revenue"
+      });
+      
+      await this.createGoal({
+        userId,
+        title: "New Accounts",
+        targetAmount: 10,
+        currentAmount: 7,
+        deadline: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+        category: "accounts"
+      });
+      
+      await this.createGoal({
+        userId,
+        title: "Client Meetings",
+        targetAmount: 30,
+        currentAmount: 28,
+        deadline: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+        category: "activities"
+      });
+      
+      // Create demo tasks
+      await this.createTask({
+        userId,
+        title: "Follow up with Acme Financial",
+        description: "Send proposal by 3 PM",
+        priority: "high",
+        completed: false,
+        dueDate: new Date(new Date().setHours(15, 0, 0, 0))
+      });
+      
+      await this.createTask({
+        userId,
+        title: "Prepare for TeamPay demo",
+        description: "Review product updates and features",
+        priority: "medium",
+        completed: false,
+        dueDate: new Date(new Date().setHours(17, 0, 0, 0))
+      });
+      
+      await this.createTask({
+        userId,
+        title: "Call back GlobalPay prospect",
+        description: "Discuss integration requirements",
+        priority: "medium",
+        completed: false,
+        dueDate: new Date(new Date().setHours(16, 0, 0, 0))
+      });
+      
+      await this.createTask({
+        userId,
+        title: "Update sales forecast",
+        description: "Include Acme Financial opportunity",
+        priority: "low",
+        completed: false,
+        dueDate: new Date(new Date().setHours(17, 30, 0, 0))
+      });
+      
+      // Create demo check-ins
+      const today = new Date();
+      
+      await this.createCheckIn({
+        userId,
+        date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2),
+        achievements: "Contract signed with TechFinance",
+        challenges: "No major challenges",
+        goals: "Contact 5 cold leads from conference",
+        reflection: "Productive day with a big win"
+      });
+      
+      await this.createCheckIn({
+        userId,
+        date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1),
+        achievements: "Secured meeting with Acme Financial",
+        challenges: "Price objection from FastPay prospect",
+        goals: "Prepare custom demo for Acme",
+        reflection: "Good progress despite some obstacles"
+      });
+      
+      await this.createCheckIn({
+        userId,
+        date: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+        achievements: "Demo to GlobalTech completed, positive feedback",
+        challenges: "Delays in product roadmap affecting pitch",
+        goals: "Follow up with 3 new leads",
+        reflection: "Overall positive but need to address roadmap concerns"
+      });
+      
+      // Create demo chat messages
+      await this.createChatMessage({
+        userId,
+        message: "Hi Jordan! I noticed you haven't checked in yet today. How did your client meetings go? Let's update your progress toward your weekly targets.",
+        sender: "assistant",
+        timestamp: new Date(new Date().setHours(10, 34, 0, 0))
+      });
+      
+      await this.createChatMessage({
+        userId,
+        message: "The meeting with Acme Financial went well! They're interested in our payment processing solution. I think we'll close next week.",
+        sender: "user",
+        timestamp: new Date(new Date().setHours(10, 38, 0, 0))
+      });
+      
+      await this.createChatMessage({
+        userId,
+        message: "That's excellent news about Acme Financial! This puts you at 85% of your monthly target. What's your follow-up strategy to ensure the deal closes next week?",
+        sender: "assistant",
+        timestamp: new Date(new Date().setHours(10, 40, 0, 0))
+      });
+      
+      // Create sales metrics
+      await this.createSalesMetrics({
+        userId,
+        date: new Date(),
+        monthlyTarget: 150000,
+        monthlyCurrent: 127500,
+        newAccountsTarget: 10,
+        newAccountsCurrent: 7,
+        meetingsTarget: 30,
+        meetingsCurrent: 28,
+        weeklyActivity: {
+          monday: 4,
+          tuesday: 6,
+          wednesday: 5,
+          thursday: 8,
+          friday: 5,
+          saturday: 0,
+          sunday: 0
+        }
+      });
+    }
+  }
+}
+
+// Use DatabaseStorage instead of MemStorage
+export const storage = new DatabaseStorage();

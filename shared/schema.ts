@@ -1,6 +1,7 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, primaryKey, foreignKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // User schema
 export const users = pgTable("users", {
@@ -156,3 +157,55 @@ export const insertSalesMetricsSchema = createInsertSchema(salesMetrics).pick({
 
 export type InsertSalesMetrics = z.infer<typeof insertSalesMetricsSchema>;
 export type SalesMetrics = typeof salesMetrics.$inferSelect;
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  goals: many(goals),
+  tasks: many(tasks),
+  checkIns: many(checkIns),
+  timeOffs: many(timeOff),
+  chatMessages: many(chatMessages),
+  salesMetrics: many(salesMetrics),
+}));
+
+export const goalsRelations = relations(goals, ({ one }) => ({
+  user: one(users, {
+    fields: [goals.userId],
+    references: [users.id],
+  }),
+}));
+
+export const tasksRelations = relations(tasks, ({ one }) => ({
+  user: one(users, {
+    fields: [tasks.userId],
+    references: [users.id],
+  }),
+}));
+
+export const checkInsRelations = relations(checkIns, ({ one }) => ({
+  user: one(users, {
+    fields: [checkIns.userId],
+    references: [users.id],
+  }),
+}));
+
+export const timeOffRelations = relations(timeOff, ({ one }) => ({
+  user: one(users, {
+    fields: [timeOff.userId],
+    references: [users.id],
+  }),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  user: one(users, {
+    fields: [chatMessages.userId],
+    references: [users.id],
+  }),
+}));
+
+export const salesMetricsRelations = relations(salesMetrics, ({ one }) => ({
+  user: one(users, {
+    fields: [salesMetrics.userId],
+    references: [users.id],
+  }),
+}));

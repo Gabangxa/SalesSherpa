@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { storage, DatabaseStorage } from "./storage";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +38,17 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  try {
+    // Initialize database with demo data
+    if (storage instanceof DatabaseStorage) {
+      log("Initializing database with demo data...");
+      await storage.setupInitialData();
+      log("Database initialization complete");
+    }
+  } catch (error) {
+    log(`Database initialization error: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
