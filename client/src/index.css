@@ -13,12 +13,30 @@
   
   /* Improve text contrast in dark mode */
   .dark .text-muted-foreground {
-    @apply text-opacity-80;
+    @apply text-slate-300;
+  }
+  
+  .dark .text-gray-500 {
+    @apply text-slate-300;
+  }
+  
+  /* Improve form descriptions in dark mode */
+  .dark .text-gray-500, .dark .text-muted-foreground {
+    @apply text-opacity-90;
   }
   
   /* Make headings more visible */
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold text-primary-foreground;
+  }
+  
+  /* Fix spacing throughout the app */
+  .container {
+    @apply px-4 py-4;
+  }
+  
+  .card + .card {
+    @apply mt-4;
   }
   
   /* Reduce whitespace between sections */
@@ -27,17 +45,42 @@
   }
   
   /* Improved card styling */
-  .card {
-    @apply bg-card border border-border rounded-lg shadow-md;
+  .card, [class*="Card"] {
+    @apply bg-card border border-border rounded-lg shadow-md overflow-hidden;
+  }
+  
+  /* Better scrolling experience */
+  html {
+    @apply scroll-smooth;
   }
   
   /* Better input contrast */
   input, textarea, select {
-    @apply bg-muted border-border focus:border-primary;
+    @apply bg-background border-border focus:border-primary;
   }
   
   /* Enhanced button contrast */
-  .button-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  .button-primary, .bg-primary {
+    @apply text-primary-foreground hover:bg-primary/90;
+  }
+  
+  /* Improve progress bar contrast */
+  .dark .bg-gray-200 {
+    @apply bg-gray-700;
+  }
+  
+  /* Fix card padding and spacing */
+  .CardContent {
+    @apply p-4;
+  }
+  
+  /* Improve dialog contrast in dark mode */
+  .dark .bg-gray-100 {
+    @apply bg-gray-800 text-gray-200;
+  }
+  
+  /* Fix any flickering during dark mode transitions */
+  * {
+    @apply transition-colors duration-150;
   }
 }
