@@ -5,9 +5,16 @@ import ProgressTracking from "@/components/dashboard/ProgressTracking";
 import TodosAndReminders from "@/components/dashboard/TodosAndReminders";
 import RecentCheckIns from "@/components/dashboard/RecentCheckIns";
 
+interface User {
+  id: number;
+  username: string;
+  name: string;
+  role: string;
+}
+
 export default function Dashboard() {
   // Fetch user data
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<User>({
     queryKey: ['/api/user'],
   });
 
