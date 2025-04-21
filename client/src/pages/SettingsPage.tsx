@@ -180,12 +180,12 @@ export default function SettingsPage() {
                     name="newAccountsTarget"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>New Accounts Target (Monthly)</FormLabel>
+                        <FormLabel>Prospect Engagements (Monthly)</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
                         <FormDescription>
-                          Number of new accounts you aim to acquire each month
+                          Number of meaningful prospect engagements you aim to achieve each month
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -269,7 +269,7 @@ export default function SettingsPage() {
                 <div className="space-y-6">
                   <div>
                     <div className="flex justify-between mb-2">
-                      <p className="text-sm font-medium">New Accounts: {metrics.newAccountsCurrent} of {metrics.newAccountsTarget}</p>
+                      <p className="text-sm font-medium">Prospect Engagements: {metrics.newAccountsCurrent} of {metrics.newAccountsTarget}</p>
                       <p className="text-sm text-gray-500">{calculatePercentage(metrics.newAccountsCurrent, metrics.newAccountsTarget)}%</p>
                     </div>
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -400,7 +400,7 @@ export default function SettingsPage() {
                 <>
                   {pendingChanges.newAccountsTarget !== metrics.newAccountsTarget && (
                     <p className="text-sm">
-                      <span className="font-medium">New Accounts Target:</span>{" "}
+                      <span className="font-medium">Prospect Engagements:</span>{" "}
                       <span className="text-gray-600">{metrics.newAccountsTarget}</span>{" "}
                       <span className="text-gray-400">→</span>{" "}
                       <span className="text-primary font-medium">{pendingChanges.newAccountsTarget}</span>
