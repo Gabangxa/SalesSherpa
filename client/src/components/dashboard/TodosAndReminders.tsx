@@ -88,27 +88,27 @@ export default function TodosAndReminders() {
 
   return (
     <div className="col-span-1">
-      <Card className="mb-8">
-        <CardHeader>
+      <Card className="mb-6 overflow-hidden">
+        <CardHeader className="py-3 px-4 border-b border-border">
           <CardTitle>Today's Focus</CardTitle>
         </CardHeader>
         
         {isLoading ? (
-          <CardContent>
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-600"></div>
+          <CardContent className="py-4 px-0">
+            <div className="flex justify-center py-6">
+              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
             </div>
           </CardContent>
         ) : (
           <>
-            <div className="divide-y divide-neutral-200">
+            <div className="divide-y divide-border">
               {tasks.length === 0 ? (
-                <CardContent>
-                  <p className="text-center text-neutral-500 py-4">No tasks for today</p>
-                </CardContent>
+                <div className="p-4">
+                  <p className="text-center text-muted-foreground py-3">No tasks for today</p>
+                </div>
               ) : (
                 tasks.map((task) => (
-                  <div key={task.id} className="px-6 py-4">
+                  <div key={task.id} className="px-4 py-3">
                     <div className="flex items-start">
                       <div className="flex-shrink-0 mt-0.5">
                         <Checkbox 
@@ -119,14 +119,15 @@ export default function TodosAndReminders() {
                               completed: checked as boolean 
                             });
                           }}
+                          className="border-primary/70"
                         />
                       </div>
-                      <div className="ml-3">
-                        <p className={`text-sm font-medium ${task.completed ? 'line-through text-neutral-400' : 'text-neutral-900'}`}>
+                      <div className="ml-3 flex-grow">
+                        <p className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground/80' : 'text-foreground'}`}>
                           {task.title}
                         </p>
                         {task.description && (
-                          <p className="text-xs text-neutral-500 mt-1">{task.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
                         )}
                       </div>
                       <div className="ml-auto">
@@ -138,7 +139,7 @@ export default function TodosAndReminders() {
               )}
             </div>
             
-            <CardFooter className="border-t border-neutral-200 p-6">
+            <CardFooter className="border-t border-border p-4">
               <div className="space-y-3 w-full">
                 <Input
                   placeholder="Add a new task..." 
@@ -155,7 +156,7 @@ export default function TodosAndReminders() {
                 />
                 <Button 
                   onClick={handleAddTask} 
-                  className="w-full bg-primary-50 text-primary-700 hover:bg-primary-100"
+                  className="w-full bg-primary hover:bg-primary/90 text-white"
                   disabled={newTaskTitle.trim() === '' || addTask.isPending}
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -167,45 +168,42 @@ export default function TodosAndReminders() {
         )}
       </Card>
       
-      <Card>
-        <CardHeader>
+      <Card className="overflow-hidden">
+        <CardHeader className="py-3 px-4 border-b border-border">
           <CardTitle>Schedule Time Off</CardTitle>
         </CardHeader>
         
-        <CardContent>
-          <div className="flex flex-col space-y-4">
+        <CardContent className="p-4">
+          <div className="flex flex-col space-y-3">
             <div>
-              <Label htmlFor="start-date">Start Date</Label>
+              <Label htmlFor="start-date" className="text-sm font-medium mb-1 block">Start Date</Label>
               <Input 
                 type="date" 
-                id="start-date" 
-                className="mt-1" 
+                id="start-date"
                 min={format(new Date(), 'yyyy-MM-dd')}
               />
             </div>
             
             <div>
-              <Label htmlFor="end-date">End Date</Label>
+              <Label htmlFor="end-date" className="text-sm font-medium mb-1 block">End Date</Label>
               <Input 
                 type="date" 
-                id="end-date" 
-                className="mt-1" 
+                id="end-date"
                 min={format(new Date(), 'yyyy-MM-dd')}
               />
             </div>
             
             <div>
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes" className="text-sm font-medium mb-1 block">Notes</Label>
               <Textarea 
                 id="notes" 
-                rows={2} 
-                className="mt-1" 
+                rows={2}
                 placeholder="Reason for time off (optional)"
               />
             </div>
             
             <Button 
-              className="bg-secondary-600 hover:bg-secondary-700"
+              className="bg-primary hover:bg-primary/90 text-white w-full mt-1"
               onClick={() => setTimeOffDialogOpen(true)}
             >
               Schedule Time Off

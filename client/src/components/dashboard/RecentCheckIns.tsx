@@ -54,48 +54,48 @@ export default function RecentCheckIns() {
   };
   
   return (
-    <Card className="mt-8">
-      <CardHeader>
+    <Card className="overflow-hidden">
+      <CardHeader className="py-3 px-4">
         <CardTitle>Recent Check-ins</CardTitle>
       </CardHeader>
       
       {isLoading ? (
-        <CardContent>
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
+        <CardContent className="p-0">
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
           </div>
         </CardContent>
       ) : (
         <>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="border-collapse w-full">
               <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Achievements</TableHead>
-                  <TableHead>Challenges</TableHead>
-                  <TableHead>Goals Set</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="py-2 px-3">Date</TableHead>
+                  <TableHead className="py-2 px-3">Achievements</TableHead>
+                  <TableHead className="py-2 px-3">Challenges</TableHead>
+                  <TableHead className="py-2 px-3">Goals Set</TableHead>
+                  <TableHead className="py-2 px-3 text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedCheckIns.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-neutral-500">
+                    <TableCell colSpan={5} className="text-center p-4 text-muted-foreground">
                       No check-ins recorded yet
                     </TableCell>
                   </TableRow>
                 ) : (
                   paginatedCheckIns.map((checkIn) => (
-                    <TableRow key={checkIn.id}>
-                      <TableCell className="font-medium whitespace-nowrap">
+                    <TableRow key={checkIn.id} className="border-b border-border">
+                      <TableCell className="font-medium whitespace-nowrap py-2 px-3">
                         {formatDate(checkIn.date)}
                       </TableCell>
-                      <TableCell className="max-w-xs truncate">{checkIn.achievements}</TableCell>
-                      <TableCell className="max-w-xs truncate">{checkIn.challenges}</TableCell>
-                      <TableCell className="max-w-xs truncate">{checkIn.goals}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="link" className="text-primary-600 hover:text-primary-900">
+                      <TableCell className="max-w-xs truncate py-2 px-3">{checkIn.achievements}</TableCell>
+                      <TableCell className="max-w-xs truncate py-2 px-3">{checkIn.challenges}</TableCell>
+                      <TableCell className="max-w-xs truncate py-2 px-3">{checkIn.goals}</TableCell>
+                      <TableCell className="text-right py-2 px-3">
+                        <Button variant="link" className="p-1 h-auto text-primary hover:text-primary/90">
                           View
                         </Button>
                       </TableCell>
