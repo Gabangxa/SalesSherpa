@@ -73,7 +73,7 @@ export default function CheckInAlerts() {
     setIsDeleteDialogOpen(true);
   };
 
-  const formatDays = (days: string[]) => {
+  const formatDays = (days: string[]): string => {
     if (days.length === 7) return 'Every day';
     if (days.length === 5 && 
         days.includes('monday') && 

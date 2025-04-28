@@ -10,11 +10,11 @@ export function useCheckInAlerts() {
   const [selectedAlert, setSelectedAlert] = useState<CheckInAlert | null>(null);
 
   const {
-    data: alerts = [],
+    data: alerts = [] as CheckInAlert[],
     isLoading,
     error,
     refetch
-  } = useQuery({
+  } = useQuery<CheckInAlert[]>({
     queryKey: ['/api/check-in-alerts'],
     retry: 1,
   });
