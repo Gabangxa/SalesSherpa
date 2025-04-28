@@ -4,7 +4,14 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { setupAuth } from "./auth";
 import { generateAIResponse } from "./openai";
-import { insertCheckInSchema, insertTaskSchema, insertGoalSchema, insertTimeOffSchema, insertChatMessageSchema } from "@shared/schema";
+import { 
+  insertCheckInSchema, 
+  insertTaskSchema, 
+  insertGoalSchema, 
+  insertTimeOffSchema, 
+  insertChatMessageSchema, 
+  insertCheckInAlertSchema 
+} from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication with Passport.js
@@ -326,6 +333,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       return res.status(200).json(metrics);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Check-in alerts routes
+  app.get("/api/check-in-alerts", authenticateUser, async (req, res) => {
+    try {
+      const alerts = await storage.getCheckInAlerts(req.body.userId);
+      return res.status(200).json(alerts);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  app.post("/api/check-in-alerts", authenticateUser, async (req, res) => {
+    try {
+      const validatedData = insertCheckInAlertSchema.parse({
+        ...req.body,
+        userId: req.body.userId,
+        enabled: req.body.enabled ?? true
+      });
+      
+      const alert = await storage.createCheckInAlert(validatedData);
+      return res.status(201).json(alert);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid alert data", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  app.get("/api/check-in-alerts/:id", authenticateUser, async (req, res) => {
+    try {
+      const alertId = parseInt(req.params.id);
+      const alert = await storage.getCheckInAlert(alertId);
+      
+      if (!alert) {
+        return res.status(404).json({ message: "Alert not found" });
+      }
+      
+      if (alert.userId !== req.body.userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      return res.status(200).json(alert);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  app.patch("/api/check-in-alerts/:id", authenticateUser, async (req, res) => {
+    try {
+      const alertId = parseInt(req.params.id);
+      const alert = await storage.getCheckInAlert(alertId);
+      
+      if (!alert) {
+        return res.status(404).json({ message: "Alert not found" });
+      }
+      
+      if (alert.userId !== req.body.userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const updatedAlert = await storage.updateCheckInAlert(alertId, req.body);
+      return res.status(200).json(updatedAlert);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  app.delete("/api/check-in-alerts/:id", authenticateUser, async (req, res) => {
+    try {
+      const alertId = parseInt(req.params.id);
+      const alert = await storage.getCheckInAlert(alertId);
+      
+      if (!alert) {
+        return res.status(404).json({ message: "Alert not found" });
+      }
+      
+      if (alert.userId !== req.body.userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      await storage.deleteCheckInAlert(alertId);
+      return res.status(204).send();
     } catch (error) {
       return res.status(500).json({ message: "Server error" });
     }

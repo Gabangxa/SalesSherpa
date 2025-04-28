@@ -673,6 +673,46 @@ export class DatabaseStorage implements IStorage {
     return updatedMetric || undefined;
   }
   
+  // Check-in alerts operations
+  async getCheckInAlerts(userId: number): Promise<CheckInAlert[]> {
+    return db
+      .select()
+      .from(checkInAlerts)
+      .where(eq(checkInAlerts.userId, userId));
+  }
+  
+  async getCheckInAlert(id: number): Promise<CheckInAlert | undefined> {
+    const [alert] = await db
+      .select()
+      .from(checkInAlerts)
+      .where(eq(checkInAlerts.id, id));
+    return alert || undefined;
+  }
+  
+  async createCheckInAlert(insertCheckInAlert: InsertCheckInAlert): Promise<CheckInAlert> {
+    const [alert] = await db
+      .insert(checkInAlerts)
+      .values(insertCheckInAlert)
+      .returning();
+    return alert;
+  }
+  
+  async updateCheckInAlert(id: number, updates: Partial<CheckInAlert>): Promise<CheckInAlert | undefined> {
+    const [updatedAlert] = await db
+      .update(checkInAlerts)
+      .set(updates)
+      .where(eq(checkInAlerts.id, id))
+      .returning();
+    return updatedAlert || undefined;
+  }
+  
+  async deleteCheckInAlert(id: number): Promise<boolean> {
+    const result = await db
+      .delete(checkInAlerts)
+      .where(eq(checkInAlerts.id, id));
+    return !!result;
+  }
+  
   // Setup demo data - only for initial setup
   async setupInitialData() {
     // Check if we have a demo user
