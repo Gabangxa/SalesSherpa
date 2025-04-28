@@ -5,7 +5,8 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Loader2, Check, Info, CheckCircle2 } from "lucide-react";
+import { Loader2, Check, Info, CheckCircle2, Bell } from "lucide-react";
+import CheckInAlerts from "@/components/settings/CheckInAlerts";
 
 import {
   Form,
@@ -258,7 +259,7 @@ export default function SettingsPage() {
           </Card>
 
           {metrics && (
-            <Card>
+            <Card className="mb-8">
               <CardHeader>
                 <CardTitle>Current Progress</CardTitle>
                 <CardDescription>
@@ -322,6 +323,9 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           )}
+          
+          {/* Check-in Alerts Management */}
+          <CheckInAlerts />
         </div>
 
         <div>
