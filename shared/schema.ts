@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, primaryKey, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, time, primaryKey, foreignKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -160,6 +160,29 @@ export const insertSalesMetricsSchema = createInsertSchema(salesMetrics).pick({
 export type InsertSalesMetrics = z.infer<typeof insertSalesMetricsSchema>;
 export type SalesMetrics = typeof salesMetrics.$inferSelect;
 
+// Check-in Alerts schema
+export const checkInAlerts = pgTable("check_in_alerts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  time: time("alert_time").notNull(),
+  days: text("days").array().notNull(), // Array of days: ['monday', 'tuesday', etc]
+  enabled: boolean("enabled").notNull().default(true),
+  title: text("title").notNull().default('Daily Check-in'),
+  message: text("message").notNull().default('Time to complete your daily check-in'),
+});
+
+export const insertCheckInAlertSchema = createInsertSchema(checkInAlerts).pick({
+  userId: true,
+  time: true,
+  days: true,
+  enabled: true,
+  title: true,
+  message: true,
+});
+
+export type InsertCheckInAlert = z.infer<typeof insertCheckInAlertSchema>;
+export type CheckInAlert = typeof checkInAlerts.$inferSelect;
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   goals: many(goals),
@@ -168,6 +191,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   timeOffs: many(timeOff),
   chatMessages: many(chatMessages),
   salesMetrics: many(salesMetrics),
+  checkInAlerts: many(checkInAlerts),
 }));
 
 export const goalsRelations = relations(goals, ({ one }) => ({
@@ -208,6 +232,13 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
 export const salesMetricsRelations = relations(salesMetrics, ({ one }) => ({
   user: one(users, {
     fields: [salesMetrics.userId],
+    references: [users.id],
+  }),
+}));
+
+export const checkInAlertsRelations = relations(checkInAlerts, ({ one }) => ({
+  user: one(users, {
+    fields: [checkInAlerts.userId],
     references: [users.id],
   }),
 }));

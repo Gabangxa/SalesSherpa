@@ -5,7 +5,8 @@ import {
   checkIns, CheckIn, InsertCheckIn, 
   timeOff, TimeOff, InsertTimeOff, 
   chatMessages, ChatMessage, InsertChatMessage,
-  salesMetrics, SalesMetrics, InsertSalesMetrics
+  salesMetrics, SalesMetrics, InsertSalesMetrics,
+  checkInAlerts, CheckInAlert, InsertCheckInAlert
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc } from "drizzle-orm";
@@ -52,6 +53,13 @@ export interface IStorage {
   getSalesMetrics(userId: number): Promise<SalesMetrics | undefined>;
   createSalesMetrics(metrics: InsertSalesMetrics): Promise<SalesMetrics>;
   updateSalesMetrics(userId: number, updates: Partial<SalesMetrics>): Promise<SalesMetrics | undefined>;
+  
+  // Check-in alerts operations
+  getCheckInAlerts(userId: number): Promise<CheckInAlert[]>;
+  getCheckInAlert(id: number): Promise<CheckInAlert | undefined>;
+  createCheckInAlert(alert: InsertCheckInAlert): Promise<CheckInAlert>;
+  updateCheckInAlert(id: number, updates: Partial<CheckInAlert>): Promise<CheckInAlert | undefined>;
+  deleteCheckInAlert(id: number): Promise<boolean>;
 }
 
 import createMemoryStore from "memorystore";
@@ -67,6 +75,7 @@ export class MemStorage implements IStorage {
   private timeOffs: Map<number, TimeOff>;
   private chatMessages: Map<number, ChatMessage>;
   private salesMetrics: Map<number, SalesMetrics>;
+  private checkInAlerts: Map<number, CheckInAlert>;
   
   private currentId: { 
     users: number; 
@@ -76,6 +85,7 @@ export class MemStorage implements IStorage {
     timeOffs: number; 
     chatMessages: number; 
     salesMetrics: number;
+    checkInAlerts: number;
   };
 
   constructor() {
@@ -91,6 +101,7 @@ export class MemStorage implements IStorage {
     this.timeOffs = new Map();
     this.chatMessages = new Map();
     this.salesMetrics = new Map();
+    this.checkInAlerts = new Map();
     
     this.currentId = {
       users: 1,
@@ -99,7 +110,8 @@ export class MemStorage implements IStorage {
       checkIns: 1,
       timeOffs: 1,
       chatMessages: 1,
-      salesMetrics: 1
+      salesMetrics: 1,
+      checkInAlerts: 1
     };
     
     // Create a default user
@@ -416,6 +428,42 @@ export class MemStorage implements IStorage {
     const updatedMetrics = { ...metrics, ...updates };
     this.salesMetrics.set(metrics.id, updatedMetrics);
     return updatedMetrics;
+  }
+  
+  // Check-in alerts operations
+  async getCheckInAlerts(userId: number): Promise<CheckInAlert[]> {
+    return Array.from(this.checkInAlerts.values())
+      .filter(alert => alert.userId === userId)
+      .sort((a, b) => {
+        // Sort by time
+        const timeA = a.time.toString();
+        const timeB = b.time.toString();
+        return timeA.localeCompare(timeB);
+      });
+  }
+  
+  async getCheckInAlert(id: number): Promise<CheckInAlert | undefined> {
+    return this.checkInAlerts.get(id);
+  }
+  
+  async createCheckInAlert(insertAlert: InsertCheckInAlert): Promise<CheckInAlert> {
+    const id = this.currentId.checkInAlerts++;
+    const alert: CheckInAlert = { ...insertAlert, id };
+    this.checkInAlerts.set(id, alert);
+    return alert;
+  }
+  
+  async updateCheckInAlert(id: number, updates: Partial<CheckInAlert>): Promise<CheckInAlert | undefined> {
+    const alert = this.checkInAlerts.get(id);
+    if (!alert) return undefined;
+    
+    const updatedAlert = { ...alert, ...updates };
+    this.checkInAlerts.set(id, updatedAlert);
+    return updatedAlert;
+  }
+  
+  async deleteCheckInAlert(id: number): Promise<boolean> {
+    return this.checkInAlerts.delete(id);
   }
 }
 
