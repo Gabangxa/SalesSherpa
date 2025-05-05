@@ -377,7 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Alert not found" });
       }
       
-      if (alert.userId !== req.user.id) {
+      if (alert.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
       
@@ -397,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Alert not found" });
       }
       
-      if (alert.userId !== req.user.id) {
+      if (alert.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
       
@@ -418,7 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Alert not found" });
       }
       
-      if (alert.userId !== req.user.id) {
+      if (alert.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
       
