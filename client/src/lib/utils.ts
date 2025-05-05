@@ -10,8 +10,12 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Formats a number as currency
+ * Safely handles undefined, null, NaN values
  */
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number | undefined | null): string {
+  // Default to 0 for falsy or NaN values
+  if (!amount || isNaN(amount)) amount = 0;
+  
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -22,10 +26,15 @@ export function formatCurrency(amount: number): string {
 
 /**
  * Calculate percentage completion
+ * Safely handles undefined, null, NaN values and prevents division by zero
  */
-export function calculatePercentage(current: number, target: number): number {
-  if (target === 0) return 0;
-  return Math.round((current / target) * 100);
+export function calculatePercentage(current: number | undefined | null, target: number | undefined | null): number {
+  // Handle undefined, null, NaN, or zero values
+  if (!current || isNaN(current)) return 0;
+  if (!target || isNaN(target) || target === 0) return 0;
+  
+  const percentage = (current / target) * 100;
+  return isNaN(percentage) ? 0 : Math.round(percentage);
 }
 
 /**
