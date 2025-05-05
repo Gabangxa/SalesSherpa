@@ -6,7 +6,8 @@ import {
   Swords, 
   BookOpen,
   Settings,
-  LogOut
+  LogOut,
+  Radio
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { 
@@ -36,6 +37,11 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
     { name: "Strategic Planning", path: "/strategy", icon: <Swords className="w-5 h-5 mr-3" /> },
     { name: "Resources", path: "/resources", icon: <BookOpen className="w-5 h-5 mr-3" /> },
     { name: "Settings", path: "/settings", icon: <Settings className="w-5 h-5 mr-3" /> },
+  ];
+  
+  // Development and testing links - would be removed in production
+  const devLinks = [
+    { name: "WebSocket Test", path: "/websocket-test", icon: <Radio className="w-5 h-5 mr-3" /> },
   ];
 
   return (

@@ -83,7 +83,7 @@ export function useApiMutation<T, V>(
           return null as unknown as T;
         }
         
-        return await response.json();
+        return await response.json() as T;
       } catch (error) {
         throw handleApiError(error);
       }
@@ -92,7 +92,7 @@ export function useApiMutation<T, V>(
       // Invalidate related queries when the mutation is successful
       if (invalidateQueries.length > 0) {
         invalidateQueries.forEach(query => {
-          queryClient.invalidateQueries({ queryKey: [query] });
+          queryClient.invalidateQueries({ queryKey: [query] as unknown as QueryKey });
         });
       }
       
