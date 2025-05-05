@@ -31,7 +31,11 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { getTimezones, getUserTimezone, formatTimeWithTimezone } from '@/lib/timezoneUtils';
+import { 
+  getBrowserTimezone,
+  getAvailableTimezones,
+  formatDateInTimezone
+} from '@/lib/luxonTimezoneUtils';
 
 // Create a schema for form validation
 const alertFormSchema = z.object({
@@ -77,7 +81,7 @@ export default function CheckInAlertForm({
       message: alert?.message || '',
       time: alert?.time || '09:00',
       days: alert?.days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-      timezone: alert?.timezone || getUserTimezone(),
+      timezone: alert?.timezone || getBrowserTimezone(),
       enabled: alert?.enabled ?? true,
     },
   });

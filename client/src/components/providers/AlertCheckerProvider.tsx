@@ -92,6 +92,7 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
         console.log(`  Alert time in user timezone: ${alertTimeInUserTimezone}`);
         
         // Check if it's time to trigger the alert using Luxon
+        // Pass the timestring and timezone with a 2-minute margin
         if (isTimeWithinMargin(alertTimeInUserTimezone, userTimezone, 2)) {
           console.log('  ✓ TIME MATCH FOUND - TRIGGERING ALERT');
           
@@ -131,10 +132,15 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const triggerAlert = useCallback((alertId: number) => {
     const alert = alerts.find(a => a.id === alertId);
     if (alert) {
-      console.log(`Manually triggering alert: ${alert.id} - ${alert.title}`);
+      // Get user timezone for displaying in the notification
+      const userTimezone = getBrowserTimezone();
+      const formattedTime = getCurrentTimeInTimezone(userTimezone).toFormat('HH:mm');
+      
+      console.log(`Manually triggering alert: ${alert.id} - ${alert.title} at ${formattedTime}`);
+      
       showNotification({
         title: alert.title,
-        description: alert.message,
+        description: `${alert.message} (Manual trigger at ${formattedTime})`,
         variant: 'alert',
         duration: 15000, // Show for 15 seconds - longer for test alerts
         position: 'topLeft', // Ensure it always appears on the left
@@ -160,9 +166,12 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Reset triggered alerts on day change
   useEffect(() => {
     const resetTriggeredAlerts = () => {
-      const now = new Date();
+      // Use Luxon for better timezone handling
+      const now = getCurrentTimeInTimezone(getBrowserTimezone());
+      
       // Reset at midnight
-      if (now.getHours() === 0 && now.getMinutes() === 0) {
+      if (now.hour === 0 && now.minute === 0) {
+        console.log('Midnight detected, resetting all triggered alerts');
         setTriggeredAlerts([]);
       }
     };
