@@ -195,12 +195,71 @@ export default function CheckInAlertForm({
                       <SelectTrigger>
                         <SelectValue placeholder="Select timezone" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {getTimezones().map(timezone => (
-                          <SelectItem key={timezone.value} value={timezone.value}>
-                            {timezone.label}
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="max-h-80">
+                        <div className="p-1 text-xs text-muted-foreground font-semibold">
+                          Universal
+                        </div>
+                        <SelectItem value="UTC">UTC (Coordinated Universal Time)</SelectItem>
+                        
+                        <div className="pt-3 pb-1 text-xs text-muted-foreground font-semibold">
+                          Africa
+                        </div>
+                        {getTimezones()
+                          .filter(tz => tz.value.startsWith('Africa/'))
+                          .map(timezone => (
+                            <SelectItem key={timezone.value} value={timezone.value}>
+                              {timezone.label}
+                            </SelectItem>
+                          ))
+                        }
+                        
+                        <div className="pt-3 pb-1 text-xs text-muted-foreground font-semibold">
+                          Americas
+                        </div>
+                        {getTimezones()
+                          .filter(tz => tz.value.startsWith('America/') || tz.value.startsWith('Pacific/Honolulu'))
+                          .map(timezone => (
+                            <SelectItem key={timezone.value} value={timezone.value}>
+                              {timezone.label}
+                            </SelectItem>
+                          ))
+                        }
+                        
+                        <div className="pt-3 pb-1 text-xs text-muted-foreground font-semibold">
+                          Europe
+                        </div>
+                        {getTimezones()
+                          .filter(tz => tz.value.startsWith('Europe/'))
+                          .map(timezone => (
+                            <SelectItem key={timezone.value} value={timezone.value}>
+                              {timezone.label}
+                            </SelectItem>
+                          ))
+                        }
+                        
+                        <div className="pt-3 pb-1 text-xs text-muted-foreground font-semibold">
+                          Asia
+                        </div>
+                        {getTimezones()
+                          .filter(tz => tz.value.startsWith('Asia/'))
+                          .map(timezone => (
+                            <SelectItem key={timezone.value} value={timezone.value}>
+                              {timezone.label}
+                            </SelectItem>
+                          ))
+                        }
+                        
+                        <div className="pt-3 pb-1 text-xs text-muted-foreground font-semibold">
+                          Australia & Pacific
+                        </div>
+                        {getTimezones()
+                          .filter(tz => tz.value.startsWith('Australia/') || tz.value.startsWith('Pacific/Auckland'))
+                          .map(timezone => (
+                            <SelectItem key={timezone.value} value={timezone.value}>
+                              {timezone.label}
+                            </SelectItem>
+                          ))
+                        }
                       </SelectContent>
                     </Select>
                   </FormControl>
