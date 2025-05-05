@@ -1,163 +1,288 @@
-import { queryClient } from '@/lib/queryClient';
+/**
+ * Centralized error handling service
+ * 
+ * This service provides utilities for consistent error handling,
+ * processing, and reporting throughout the application.
+ */
 
-// Error types to categorize different errors
+// Different error types the app can encounter
 export enum ErrorType {
-  NETWORK = 'NETWORK',
-  AUTHENTICATION = 'AUTHENTICATION',
-  AUTHORIZATION = 'AUTHORIZATION',
-  NOT_FOUND = 'NOT_FOUND',
-  VALIDATION = 'VALIDATION',
-  SERVER = 'SERVER',
-  UNKNOWN = 'UNKNOWN'
+  API = 'API Error',
+  NETWORK = 'Network Error',
+  VALIDATION = 'Validation Error',
+  AUTH = 'Authentication Error',
+  NOT_FOUND = 'Not Found Error',
+  SERVER = 'Server Error',
+  UNKNOWN = 'Unknown Error',
+  WEBSOCKET = 'WebSocket Error',
+  TIMEOUT = 'Timeout Error',
 }
 
-// Structure for API errors
-export interface ApiError {
+// Error severity levels
+export enum ErrorSeverity {
+  FATAL = 'fatal',  // App can't continue, requires reload/restart
+  ERROR = 'error',  // Critical error but app can continue
+  WARNING = 'warning',  // Non-critical issue
+  INFO = 'info',    // Informational error
+}
+
+// Interface for processed error objects
+export interface ProcessedError extends Error {
   type: ErrorType;
-  message: string;
+  severity: ErrorSeverity;
   status?: number;
-  details?: Record<string, any>;
-  originalError?: any;
+  timestamp: number;
+  originalError?: unknown;
+  details?: Record<string, unknown>;
+  isHandled?: boolean;
 }
 
-/**
- * Categorizes an error based on status code or message
- */
-export function categorizeError(error: any): ErrorType {
-  if (!error) return ErrorType.UNKNOWN;
-
-  // Check if it's a network error
-  if (!navigator.onLine || error.message?.includes('network') || error.message?.includes('connect')) {
-    return ErrorType.NETWORK;
+// Log an error with proper formatting and context
+export function logError(error: ProcessedError): void {
+  // Different logging based on severity
+  if (error.severity === ErrorSeverity.FATAL || error.severity === ErrorSeverity.ERROR) {
+    console.error(
+      `[${error.type}] ${error.message}`,
+      error.details ? { details: error.details } : '',
+      error.originalError || ''
+    );
+  } else if (error.severity === ErrorSeverity.WARNING) {
+    console.warn(
+      `[${error.type}] ${error.message}`,
+      error.details ? { details: error.details } : ''
+    );
+  } else {
+    console.info(
+      `[${error.type}] ${error.message}`,
+      error.details ? { details: error.details } : ''
+    );
   }
-
-  // Get status code if available
-  const status = error.status || error.statusCode || (error.response && error.response.status);
-
-  if (status) {
-    if (status === 401) return ErrorType.AUTHENTICATION;
-    if (status === 403) return ErrorType.AUTHORIZATION;
-    if (status === 404) return ErrorType.NOT_FOUND;
-    if (status >= 400 && status < 500) return ErrorType.VALIDATION;
-    if (status >= 500) return ErrorType.SERVER;
-  }
-
-  // Check error message for clues
-  const message = error.message || '';
-  if (message.includes('unauthorized') || message.includes('unauthenticated') || message.includes('login')) {
-    return ErrorType.AUTHENTICATION;
-  }
-  if (message.includes('permission') || message.includes('forbidden')) {
-    return ErrorType.AUTHORIZATION;
-  }
-  if (message.includes('not found') || message.includes('404')) {
-    return ErrorType.NOT_FOUND;
-  }
-  if (message.includes('validation') || message.includes('invalid')) {
-    return ErrorType.VALIDATION;
-  }
-
-  return ErrorType.UNKNOWN;
 }
 
-/**
- * Processes an error and returns a standardized ApiError
- */
-export function processError(error: any): ApiError {
-  const type = categorizeError(error);
-  
-  // Get HTTP status if available
-  const status = error.status || error.statusCode || (error.response && error.response.status);
-  
-  // Get or create appropriate error message
-  let message = error.message || 'An unexpected error occurred';
-  if (error.response && error.response.data && error.response.data.message) {
-    message = error.response.data.message;
-  }
+// Process errors into a consistent format
+export function processError(error: unknown, additionalInfo?: Record<string, unknown>): ProcessedError {
+  let processedError: ProcessedError;
 
-  // Create user-friendly error messages based on type
-  switch (type) {
-    case ErrorType.NETWORK:
-      message = 'Network connection error. Please check your internet connection and try again.';
-      break;
-    case ErrorType.AUTHENTICATION:
-      message = 'Authentication required. Please log in to continue.';
-      break;
-    case ErrorType.AUTHORIZATION:
-      message = 'You do not have permission to perform this action.';
-      break;
-    case ErrorType.NOT_FOUND:
-      message = 'The requested resource was not found.';
-      break;
-    case ErrorType.SERVER:
-      message = 'Server error. Please try again later.';
-      break;
-  }
+  // Process error into a standardized format based on type
+  if (error instanceof Error) {
+    const errorMessage = error.message || 'An error occurred';
 
-  // Extract additional details if available
-  const details: Record<string, any> = {};
-  if (error.response && error.response.data) {
-    if (error.response.data.errors) {
-      details.errors = error.response.data.errors;
+    // Check for network errors
+    if (errorMessage.includes('network') || 
+        errorMessage.includes('Network') || 
+        errorMessage.toLowerCase().includes('internet') ||
+        !navigator.onLine) {
+      processedError = {
+        ...error,
+        name: 'NetworkError',
+        type: ErrorType.NETWORK,
+        severity: ErrorSeverity.WARNING,
+        message: 'Network connection issue. Please check your internet connection.',
+        timestamp: Date.now(),
+        originalError: error,
+      };
+    } 
+    // Check for timeout errors
+    else if (errorMessage.toLowerCase().includes('timeout') || 
+             errorMessage.toLowerCase().includes('timed out')) {
+      processedError = {
+        ...error,
+        name: 'TimeoutError',
+        type: ErrorType.TIMEOUT,
+        severity: ErrorSeverity.WARNING,
+        message: 'The request timed out. Please try again.',
+        timestamp: Date.now(),
+        originalError: error,
+      };
     }
-    if (error.response.data.details) {
-      details.details = error.response.data.details;
+    // Handle authentication errors
+    else if (errorMessage.toLowerCase().includes('unauthorized') || 
+             errorMessage.toLowerCase().includes('authentication') ||
+             (error as any).status === 401) {
+      processedError = {
+        ...error,
+        name: 'AuthenticationError',
+        type: ErrorType.AUTH,
+        severity: ErrorSeverity.ERROR,
+        message: 'You are not authenticated. Please log in again.',
+        timestamp: Date.now(),
+        originalError: error,
+      };
     }
+    // Handle validation errors
+    else if (errorMessage.toLowerCase().includes('validation') || 
+             errorMessage.toLowerCase().includes('invalid') || 
+             (error as any).status === 400) {
+      processedError = {
+        ...error,
+        name: 'ValidationError',
+        type: ErrorType.VALIDATION,
+        severity: ErrorSeverity.WARNING,
+        message: 'There was an issue with the data provided. Please check your inputs.',
+        timestamp: Date.now(),
+        originalError: error,
+      };
+    }
+    // Handle not found errors
+    else if (errorMessage.toLowerCase().includes('not found') || 
+             (error as any).status === 404) {
+      processedError = {
+        ...error,
+        name: 'NotFoundError',
+        type: ErrorType.NOT_FOUND,
+        severity: ErrorSeverity.WARNING,
+        message: 'The requested resource was not found.',
+        timestamp: Date.now(),
+        originalError: error,
+      };
+    }
+    // Handle server errors
+    else if ((error as any).status >= 500) {
+      processedError = {
+        ...error,
+        name: 'ServerError',
+        type: ErrorType.SERVER,
+        severity: ErrorSeverity.ERROR,
+        message: 'The server encountered an error. Please try again later.',
+        timestamp: Date.now(),
+        originalError: error,
+      };
+    }
+    // Default case for other Error instances
+    else {
+      processedError = {
+        ...error,
+        name: error.name || 'ApplicationError',
+        type: ErrorType.UNKNOWN,
+        severity: ErrorSeverity.ERROR,
+        message: errorMessage,
+        timestamp: Date.now(),
+        originalError: error,
+      };
+    }
+  } 
+  // For non-Error objects
+  else {
+    let errorMessage = 'An unknown error occurred';
+    let status: number | undefined = undefined;
+    
+    // Try to extract message and status if possible
+    if (typeof error === 'object' && error !== null) {
+      const errorObj = error as Record<string, any>;
+      errorMessage = errorObj.message || errorObj.error || errorMessage;
+      status = errorObj.status || errorObj.statusCode || undefined;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
+    processedError = {
+      name: 'ApplicationError',
+      message: errorMessage,
+      type: ErrorType.UNKNOWN,
+      severity: ErrorSeverity.ERROR,
+      timestamp: Date.now(),
+      originalError: error,
+      status,
+    } as ProcessedError;
   }
-
-  return {
-    type,
-    message,
-    status,
-    details: Object.keys(details).length > 0 ? details : undefined,
-    originalError: error
-  };
-}
-
-/**
- * Function to handle API errors globally
- */
-export function handleApiError(error: any): ApiError {
-  const processedError = processError(error);
   
-  // Log the error for debugging
-  console.error('API Error:', processedError);
-  
-  // Handle authentication errors by redirecting to login
-  if (processedError.type === ErrorType.AUTHENTICATION) {
-    // Clear any authenticated queries
-    queryClient.clear();
-    // Redirect to login page if not already there
-    if (window.location.pathname !== '/auth') {
-      window.location.href = '/auth';
-    }
+  // Add any additional info to the error
+  if (additionalInfo) {
+    processedError.details = {
+      ...processedError.details,
+      ...additionalInfo,
+    };
   }
   
   return processedError;
 }
 
-/**
- * Get a user-friendly error message from any error object
- */
-export function getErrorMessage(error: any): string {
-  if (!error) return 'An unknown error occurred';
+// Handle API-specific errors from fetch responses
+export function handleApiError(error: unknown): Error {
+  // Process the error
+  const processedError = processError(error);
   
-  if (typeof error === 'string') return error;
+  // Log it
+  logError(processedError);
   
-  if (error.message) return error.message;
+  // Mark that we've handled this error
+  processedError.isHandled = true;
   
-  if (error.response && error.response.data) {
-    if (error.response.data.message) return error.response.data.message;
-    if (error.response.data.error) return error.response.data.error;
-  }
-  
-  return 'An unexpected error occurred';
+  // Return for propagation
+  return processedError;
 }
 
-export default {
-  processError,
-  handleApiError,
-  getErrorMessage,
-  categorizeError,
-  ErrorType
-};
+// Global error handler for unexpected errors
+export function setupGlobalErrorHandler() {
+  // Capture unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    const processedError = processError(event.reason, {
+      type: 'unhandledRejection',
+      at: new Date().toISOString(),
+    });
+    
+    logError(processedError);
+    
+    // We could also send these to a monitoring service here
+  });
+  
+  // Capture uncaught exceptions
+  window.addEventListener('error', (event) => {
+    const processedError = processError(event.error || event.message, {
+      type: 'uncaughtException',
+      at: new Date().toISOString(),
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    });
+    
+    logError(processedError);
+    
+    // We could also send these to a monitoring service here
+  });
+}
+
+// Combine or present multiple errors
+export function combineErrors(errors: Error[]): Error {
+  if (errors.length === 0) {
+    return new Error('No errors provided');
+  }
+  
+  if (errors.length === 1) {
+    return errors[0];
+  }
+  
+  const messages = errors.map((err, index) => `${index + 1}. ${err.message}`);
+  const combinedMessage = `Multiple errors occurred:\n${messages.join('\n')}`;
+  
+  return new Error(combinedMessage);
+}
+
+// Create a user-friendly error message
+export function getUserFriendlyMessage(error: ProcessedError): string {
+  switch (error.type) {
+    case ErrorType.NETWORK:
+      return 'Network connection issue. Please check your internet connection and try again.';
+    
+    case ErrorType.VALIDATION:
+      return 'There was an issue with the information provided. Please check your inputs and try again.';
+    
+    case ErrorType.AUTH:
+      return 'Your session may have expired. Please log in again.';
+    
+    case ErrorType.NOT_FOUND:
+      return 'The requested information could not be found.';
+    
+    case ErrorType.SERVER:
+      return 'The server encountered an issue. Please try again later.';
+    
+    case ErrorType.TIMEOUT:
+      return 'The request took too long to complete. Please try again.';
+    
+    case ErrorType.WEBSOCKET:
+      return 'Connection issue. Real-time updates may be delayed.';
+    
+    default:
+      return 'Something went wrong. Please try again or contact support if the problem persists.';
+  }
+}

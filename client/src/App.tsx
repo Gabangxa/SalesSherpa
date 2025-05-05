@@ -9,7 +9,7 @@ import { NotificationProvider } from "@/hooks/use-notifications";
 import { AlertCheckerProvider } from "@/components/providers/AlertCheckerProvider";
 import { ProtectedRoute } from "@/lib/protected-route";
 import ErrorBoundary from "@/components/ui/error-boundary";
-import { PageLoading } from "@/components/ui/loading";
+import { PageLoading, LoadingOverlay } from "@/components/ui/loading";
 
 // Lazy load page components for performance
 import Dashboard from "@/pages/Dashboard";

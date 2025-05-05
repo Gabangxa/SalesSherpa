@@ -1,38 +1,49 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { processError, ErrorType, logError, getUserFriendlyMessage } from '@/lib/errorService';
 
-interface Props {
+interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
-  onReset?: () => void;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  resetKey?: any; // Component will reset when this key changes
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
 }
 
 /**
- * Error Boundary component that catches JavaScript errors anywhere in its child component tree,
- * logs those errors, and displays a fallback UI instead of the component tree that crashed.
+ * Error Boundary component that catches and displays errors in a user-friendly way
+ * 
+ * This component:
+ * - Catches errors in any descendant components
+ * - Prevents the entire app from crashing
+ * - Shows a user-friendly error message
+ * - Allows users to retry or report the error
  */
-class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    // Update state so the next render will show the fallback UI
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    // Update state so the next render shows the fallback UI
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log the error to an error reporting service
-    console.error('Error caught by ErrorBoundary:', error, errorInfo);
+    // Process the error
+    const processedError = processError(error, {
+      componentStack: errorInfo.componentStack,
+    });
+    
+    // Log the error
+    logError(processedError);
     
     // Call the onError callback if provided
     if (this.props.onError) {
@@ -40,38 +51,57 @@ class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  resetErrorBoundary = (): void => {
-    // Reset the error boundary state
-    this.setState({ hasError: false, error: null });
-    
-    // Call the onReset callback if provided
-    if (this.props.onReset) {
-      this.props.onReset();
+  componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    // Reset the error state when resetKey changes
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, error: null });
     }
+  }
+
+  handleRefresh = () => {
+    // Reset the error state
+    this.setState({ hasError: false, error: null });
   };
 
-  render(): ReactNode {
+  render() {
     if (this.state.hasError) {
-      // If a custom fallback is provided, use it
+      // Use a custom fallback if provided
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      // Otherwise, use the default fallback
+      // Otherwise use our default fallback UI
+      const error = this.state.error;
+      const processedError = error ? processError(error) : null;
+      const errorMessage = processedError ? getUserFriendlyMessage(processedError) : 'Something went wrong.';
+      const isNetworkError = processedError?.type === ErrorType.NETWORK;
+
       return (
-        <div className="p-4 rounded-lg border bg-background">
+        <div className="relative p-4 rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 shadow-sm">
           <Alert variant="destructive" className="mb-4">
-            <AlertTriangle className="h-5 w-5 mr-2" />
-            <AlertTitle>Something went wrong</AlertTitle>
-            <AlertDescription>
-              {this.state.error?.message || 'An unexpected error occurred'}
-            </AlertDescription>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
-          <div className="mt-4 flex justify-end">
-            <Button onClick={this.resetErrorBoundary}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Try again
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-end">
+            <Button 
+              variant="outline" 
+              onClick={this.handleRefresh}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              {isNetworkError ? 'Try Again' : 'Reload Component'}
             </Button>
+
+            {!isNetworkError && (
+              <Button 
+                variant="default" 
+                onClick={() => window.location.reload()}
+              >
+                Reload Page
+              </Button>
+            )}
           </div>
         </div>
       );
@@ -79,6 +109,28 @@ class ErrorBoundary extends Component<Props, State> {
 
     return this.props.children;
   }
+}
+
+/**
+ * A higher-order component that wraps a component with an ErrorBoundary
+ */
+export function withErrorBoundary<P extends object>(
+  Component: React.ComponentType<P>,
+  errorBoundaryProps?: Omit<ErrorBoundaryProps, 'children'>
+): React.FC<P> {
+  const displayName = Component.displayName || Component.name || 'Component';
+  
+  const ComponentWithErrorBoundary = (props: P) => {
+    return (
+      <ErrorBoundary {...errorBoundaryProps}>
+        <Component {...props} />
+      </ErrorBoundary>
+    );
+  };
+  
+  ComponentWithErrorBoundary.displayName = `withErrorBoundary(${displayName})`;
+  
+  return ComponentWithErrorBoundary;
 }
 
 export default ErrorBoundary;

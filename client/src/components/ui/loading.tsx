@@ -1,96 +1,208 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
-export interface LoadingProps extends React.HTMLAttributes<HTMLDivElement> {
-  size?: 'sm' | 'md' | 'lg';
-  text?: string;
-  fullPage?: boolean;
-  transparent?: boolean;
-}
-
-/**
- * Loading component to be used throughout the application
- * for consistent loading states
- */
-const Loading = React.forwardRef<HTMLDivElement, LoadingProps>(
-  ({ 
-    size = 'md', 
-    text,
-    fullPage = false,
-    transparent = false,
-    className,
-    ...props 
-  }, ref) => {
-    const sizeMap = {
-      sm: 'h-4 w-4',
-      md: 'h-8 w-8',
-      lg: 'h-12 w-12'
-    };
-
-    const containerClasses = cn(
-      'flex flex-col items-center justify-center',
-      fullPage && 'fixed inset-0 z-50',
-      !transparent && fullPage && 'bg-background/80',
-      className
-    );
-
-    return (
-      <div 
-        ref={ref} 
-        className={containerClasses}
-        {...props}
-      >
-        <Loader2 
-          className={cn(
-            'animate-spin text-primary',
-            sizeMap[size]
-          )}
-        />
-        {text && (
-          <p className={cn(
-            'mt-2 text-muted-foreground',
-            size === 'sm' && 'text-xs',
-            size === 'md' && 'text-sm',
-            size === 'lg' && 'text-base'
-          )}>
-            {text}
-          </p>
-        )}
-      </div>
-    );
+// Define variants for the loading component
+const loadingVariants = cva(
+  'animate-spin text-muted-foreground',
+  {
+    variants: {
+      size: {
+        default: 'h-5 w-5',
+        sm: 'h-4 w-4',
+        lg: 'h-6 w-6',
+        xl: 'h-8 w-8',
+      },
+    },
+    defaultVariants: {
+      size: 'default',
+    },
   }
 );
 
-Loading.displayName = 'Loading';
-
-export { Loading };
+// Props for inline LoadingSpinner component
+interface LoadingSpinnerProps extends VariantProps<typeof loadingVariants> {
+  className?: string;
+}
 
 /**
- * Component for section/card loading states
+ * Inline spinner component for showing loading state within UI elements
  */
-export function SectionLoading() {
+export function LoadingSpinner({ size, className }: LoadingSpinnerProps) {
   return (
-    <div className="p-8 flex justify-center items-center">
-      <Loading size="md" text="Loading..." />
+    <Loader2 className={cn(loadingVariants({ size }), className)} />
+  );
+}
+
+// Props for full LoadingOverlay component
+interface LoadingOverlayProps {
+  isLoading: boolean;
+  text?: string;
+  fullScreen?: boolean;
+  transparent?: boolean;
+  spinnerSize?: VariantProps<typeof loadingVariants>['size'];
+  className?: string;
+}
+
+/**
+ * Loading overlay that covers a section or entire screen during loading
+ */
+export function LoadingOverlay({
+  isLoading,
+  text = 'Loading...',
+  fullScreen = false,
+  transparent = false,
+  spinnerSize = 'lg',
+  className,
+}: LoadingOverlayProps) {
+  const [show, setShow] = useState(false);
+  
+  // Add a small delay before showing the loading indicator to prevent flicker
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    
+    if (isLoading) {
+      timeout = setTimeout(() => setShow(true), 300);
+    } else {
+      setShow(false);
+    }
+    
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [isLoading]);
+  
+  if (!isLoading && !show) return null;
+  
+  return (
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center',
+        fullScreen ? 'fixed inset-0 z-50' : 'absolute inset-0 z-10',
+        transparent 
+          ? 'bg-background/60 backdrop-blur-sm' 
+          : 'bg-background/95',
+        className
+      )}
+    >
+      <LoadingSpinner size={spinnerSize} className="text-primary" />
+      {text && (
+        <p className="mt-3 text-sm font-medium text-muted-foreground">{text}</p>
+      )}
     </div>
   );
 }
 
+// Props for LoadingButton component
+interface LoadingButtonProps {
+  isLoading: boolean;
+  children: React.ReactNode;
+  className?: string;
+  spinnerSize?: VariantProps<typeof loadingVariants>['size'];
+}
+
 /**
- * Component for inline loading (to be used inline with text/content)
+ * Wrapper for buttons to show loading state with spinner
  */
-export function InlineLoading() {
+export function LoadingButton({
+  isLoading,
+  children,
+  className,
+  spinnerSize = 'sm',
+}: LoadingButtonProps) {
   return (
-    <Loader2 className="h-4 w-4 animate-spin inline-block ml-2 text-primary" />
+    <div className={cn('relative inline-flex items-center', className)}>
+      {children}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-md">
+          <LoadingSpinner size={spinnerSize} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Props for LoadingContainer component
+interface LoadingContainerProps {
+  isLoading: boolean;
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+  delay?: number;
+  className?: string;
+}
+
+/**
+ * Container that shows children or fallback based on loading state
+ */
+export function LoadingContainer({
+  isLoading,
+  children,
+  fallback,
+  delay = 300,
+  className,
+}: LoadingContainerProps) {
+  const [showLoading, setShowLoading] = useState(false);
+  
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    
+    if (isLoading) {
+      timeout = setTimeout(() => setShowLoading(true), delay);
+    } else {
+      setShowLoading(false);
+    }
+    
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [isLoading, delay]);
+  
+  return (
+    <div className={className}>
+      {(isLoading && showLoading) ? (
+        fallback || (
+          <div className="flex items-center justify-center p-6">
+            <LoadingSpinner size="lg" className="text-primary" />
+          </div>
+        )
+      ) : (
+        children
+      )}
+    </div>
+  );
+}
+
+// Props for LoadingSkeleton component
+interface LoadingSkeletonProps {
+  className?: string;
+}
+
+/**
+ * Skeleton loader component for content placeholders
+ */
+export function LoadingSkeleton({ className }: LoadingSkeletonProps) {
+  return (
+    <div 
+      className={cn(
+        'animate-pulse rounded-md bg-muted/50', 
+        className
+      )} 
+    />
   );
 }
 
 /**
- * Component for full page loading overlay
+ * Full-page loading component for initial application loading
  */
 export function PageLoading({ text = 'Loading...' }: { text?: string }) {
   return (
-    <Loading fullPage size="lg" text={text} />
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-background z-50">
+      <LoadingSpinner size="xl" className="text-primary" />
+      <p className="mt-4 text-sm font-medium text-muted-foreground">{text}</p>
+    </div>
   );
 }
+
+// Default export for simplicity
+export default LoadingSpinner;
