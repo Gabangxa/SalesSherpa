@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { X } from 'lucide-react';
+import { X, Bell, AlertTriangle, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const notificationVariants = cva(
-  'fixed transition-all duration-300 ease-in-out shadow-lg rounded-lg p-4 flex flex-col gap-1',
+  'fixed z-50 transition-all duration-300 ease-in-out shadow-xl rounded-lg p-4 flex flex-col gap-1 min-w-[300px] border border-l-4 animate-in fade-in-50 slide-in-from-left-10',
   {
     variants: {
       variant: {
-        default: 'bg-background border text-foreground',
-        alert: 'bg-amber-100 border-amber-300 text-amber-800',
-        destructive: 'bg-destructive border-destructive text-destructive-foreground',
+        default: 'bg-white text-foreground border-primary',
+        alert: 'bg-amber-50 border-amber-500 text-amber-900 font-medium',
+        destructive: 'bg-red-50 border-red-500 text-red-900',
       },
       position: {
         topRight: 'top-4 right-4',
@@ -21,7 +21,7 @@ const notificationVariants = cva(
     },
     defaultVariants: {
       variant: 'default',
-      position: 'topRight',
+      position: 'topLeft',
     },
   }
 );
@@ -90,14 +90,25 @@ const Notification = React.forwardRef<HTMLDivElement, NotificationProps>(
         {...props}
       >
         <div className="flex justify-between items-start w-full">
-          <div className="flex-1">
-            {title && <h3 className="font-medium">{title}</h3>}
-            {description && (
-              <div className="text-sm mt-1">{description}</div>
+          <div className="flex items-start gap-3">
+            {variant === 'alert' && (
+              <Bell className="h-6 w-6 mt-0.5 text-amber-600" />
             )}
+            {variant === 'destructive' && (
+              <AlertTriangle className="h-6 w-6 mt-0.5 text-red-600" />
+            )}
+            {variant === 'default' && (
+              <CheckCircle className="h-6 w-6 mt-0.5 text-primary" />
+            )}
+            <div className="flex-1">
+              {title && <h3 className="font-semibold text-base">{title}</h3>}
+              {description && (
+                <div className="text-sm mt-1">{description}</div>
+              )}
+            </div>
           </div>
           <button
-            className="text-foreground/70 hover:text-foreground p-1 rounded-full hover:bg-muted ml-2"
+            className="text-foreground/70 hover:text-foreground p-1.5 rounded-full hover:bg-muted/30 ml-2"
             onClick={() => setIsVisible(false)}
             aria-label="Close notification"
           >

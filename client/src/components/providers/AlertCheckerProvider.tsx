@@ -5,16 +5,28 @@ import { CheckInAlert } from '@shared/schema';
 import { formatTimeWithTimezone, getUserTimezone, convertTimeToTimezone } from '@/lib/timezoneUtils';
 
 // Function to check if time is within a window (current time +/- margin in minutes)
-const isTimeInWindow = (targetTime: string, currentTime: string, marginMinutes = 1): boolean => {
-  const [targetHour, targetMinute] = targetTime.split(':').map(Number);
-  const [currentHour, currentMinute] = currentTime.split(':').map(Number);
-  
-  // Convert both times to minutes since midnight
-  const targetMinutes = targetHour * 60 + targetMinute;
-  const currentMinutes = currentHour * 60 + currentMinute;
-  
-  // Check if the current time is within the margin of the target time
-  return Math.abs(targetMinutes - currentMinutes) <= marginMinutes;
+const isTimeInWindow = (targetTime: string, currentTime: string, marginMinutes = 2): boolean => {
+  try {
+    const [targetHour, targetMinute] = targetTime.split(':').map(Number);
+    const [currentHour, currentMinute] = currentTime.split(':').map(Number);
+    
+    // Convert both times to minutes since midnight
+    const targetMinutes = targetHour * 60 + targetMinute;
+    const currentMinutes = currentHour * 60 + currentMinute;
+    
+    // Log for debugging
+    console.log(`Checking time: Target=${targetHour}:${targetMinute} (${targetMinutes} mins), Current=${currentHour}:${currentMinute} (${currentMinutes} mins), Margin=${marginMinutes} mins`);
+    
+    // Check if the current time is within the margin of the target time
+    const isWithinWindow = Math.abs(targetMinutes - currentMinutes) <= marginMinutes;
+    if (isWithinWindow) {
+      console.log('Time match found! Alert should trigger.');
+    }
+    return isWithinWindow;
+  } catch (error) {
+    console.error('Error in isTimeInWindow:', error);
+    return false;
+  }
 };
 
 // Day of week mapping
@@ -58,38 +70,75 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const currentDay = dayMapping[now.getDay()];
       const userTimezone = getUserTimezone();
       
-      // Format current time as HH:MM
-      const currentTime = now.toTimeString().substring(0, 5); // HH:MM format
+      // Get the current time in the user's timezone in HH:MM format
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const currentTime = `${hours}:${minutes}`;
+      
+      console.log(`Current check time: ${currentTime}, Day: ${currentDay}, User timezone: ${userTimezone}`);
+      console.log(`Current alerts to check: ${alerts.length}`);
+      console.log(`Already triggered alerts: ${triggeredAlerts.join(', ') || 'none'}`);
+      console.log('---------------------');
       
       alerts.forEach(alert => {
+        console.log(`Checking alert: ${alert.id} - ${alert.title}`);
+        console.log(`  Status: ${alert.enabled ? 'Enabled' : 'Disabled'}`);
+        console.log(`  Time: ${alert.time} (Timezone: ${alert.timezone || 'not set'})`);
+        console.log(`  Days: ${alert.days.join(', ')}`);
+        
         // Skip if not enabled or already triggered
-        if (!alert.enabled || triggeredAlerts.includes(alert.id)) return;
+        if (!alert.enabled) {
+          console.log('  Skipping: Alert not enabled');
+          return;
+        }
+        
+        if (triggeredAlerts.includes(alert.id)) {
+          console.log('  Skipping: Alert already triggered recently');
+          return;
+        }
         
         // Skip if the current day is not in the alert's days
-        if (!alert.days.includes(currentDay)) return;
+        if (!alert.days.includes(currentDay)) {
+          console.log(`  Skipping: Current day (${currentDay}) not in alert days`);
+          return;
+        }
         
         // Convert alert time to user's timezone if needed
         const alertTimeInUserTimezone = alert.timezone !== userTimezone 
           ? convertTimeToTimezone(alert.time, alert.timezone, userTimezone)
           : alert.time;
         
+        console.log(`  Alert time in user timezone: ${alertTimeInUserTimezone}`);
+        
         // Check if it's time to trigger the alert
         if (isTimeInWindow(alertTimeInUserTimezone, currentTime)) {
+          console.log('  ✓ TIME MATCH FOUND - TRIGGERING ALERT');
+          
           // Show notification
           showNotification({
             title: alert.title,
             description: alert.message,
             variant: 'alert',
-            duration: 10000, // Show for 10 seconds
+            duration: 15000, // Show for 15 seconds
+            position: 'topLeft', // Ensure it always appears on the left
           });
           
           // Mark as triggered to avoid repeated notifications
           setTriggeredAlerts(prev => [...prev, alert.id]);
+          console.log(`  Alert ${alert.id} marked as triggered`);
           
-          // After 2 minutes, allow this alert to trigger again (to handle system sleep/hibernate)
+          // After 3 minutes, allow this alert to trigger again
+          const resetTimeMs = 3 * 60 * 1000; // 3 minutes
+          console.log(`  Will reset triggered status in ${resetTimeMs/1000} seconds`);
+          
           setTimeout(() => {
-            setTriggeredAlerts(prev => prev.filter(id => id !== alert.id));
-          }, 120000);
+            setTriggeredAlerts(prev => {
+              console.log(`Removing alert ${alert.id} from triggered list`);
+              return prev.filter(id => id !== alert.id);
+            });
+          }, resetTimeMs);
+        } else {
+          console.log('  ✗ Time does not match current time');
         }
       });
     } finally {
@@ -101,11 +150,13 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const triggerAlert = useCallback((alertId: number) => {
     const alert = alerts.find(a => a.id === alertId);
     if (alert) {
+      console.log(`Manually triggering alert: ${alert.id} - ${alert.title}`);
       showNotification({
         title: alert.title,
         description: alert.message,
         variant: 'alert',
-        duration: 10000,
+        duration: 15000, // Show for 15 seconds - longer for test alerts
+        position: 'topLeft', // Ensure it always appears on the left
       });
     }
   }, [alerts, showNotification]);
