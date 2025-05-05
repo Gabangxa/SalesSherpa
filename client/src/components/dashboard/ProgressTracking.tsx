@@ -49,16 +49,39 @@ export default function ProgressTracking() {
     queryKey: ['/api/sales-metrics'],
   });
 
-  // Transform the weekly activity data for the chart
-  const chartData = metrics ? [
-    { day: 'Mon', value: metrics.weeklyActivity.monday },
-    { day: 'Tue', value: metrics.weeklyActivity.tuesday },
-    { day: 'Wed', value: metrics.weeklyActivity.wednesday },
-    { day: 'Thu', value: metrics.weeklyActivity.thursday },
-    { day: 'Fri', value: metrics.weeklyActivity.friday },
-    { day: 'Sat', value: metrics.weeklyActivity.saturday },
-    { day: 'Sun', value: metrics.weeklyActivity.sunday },
-  ] : [];
+  // Default values for metrics when data is missing
+  const defaultMetrics: SalesMetrics = {
+    newAccountsTarget: 0,
+    newAccountsCurrent: 0,
+    meetingsTarget: 10,
+    meetingsCurrent: 0,
+    tripsTarget: 5,
+    tripsCurrent: 0,
+    crmUpdatePercentage: 0,
+    weeklyActivity: {
+      monday: 0,
+      tuesday: 0,
+      wednesday: 0,
+      thursday: 0,
+      friday: 0,
+      saturday: 0,
+      sunday: 0
+    }
+  };
+
+  // Use fallback when metrics is undefined or null
+  const safeMetrics = metrics || defaultMetrics;
+
+  // Transform the weekly activity data for the chart - with safe access
+  const chartData = [
+    { day: 'Mon', value: safeMetrics.weeklyActivity?.monday || 0 },
+    { day: 'Tue', value: safeMetrics.weeklyActivity?.tuesday || 0 },
+    { day: 'Wed', value: safeMetrics.weeklyActivity?.wednesday || 0 },
+    { day: 'Thu', value: safeMetrics.weeklyActivity?.thursday || 0 },
+    { day: 'Fri', value: safeMetrics.weeklyActivity?.friday || 0 },
+    { day: 'Sat', value: safeMetrics.weeklyActivity?.saturday || 0 },
+    { day: 'Sun', value: safeMetrics.weeklyActivity?.sunday || 0 },
+  ];
 
   if (isLoading) {
     return (
@@ -90,11 +113,11 @@ export default function ProgressTracking() {
     );
   }
 
-  // Calculate percentages
-  const accountsPercentage = calculatePercentage(metrics.newAccountsCurrent, metrics.newAccountsTarget);
-  const meetingsPercentage = calculatePercentage(metrics.meetingsCurrent, metrics.meetingsTarget);
-  const tripsPercentage = calculatePercentage(metrics.tripsCurrent, metrics.tripsTarget);
-  const crmPercentage = metrics.crmUpdatePercentage || 0;
+  // Calculate percentages using safeMetrics
+  const accountsPercentage = calculatePercentage(safeMetrics.newAccountsCurrent, safeMetrics.newAccountsTarget);
+  const meetingsPercentage = calculatePercentage(safeMetrics.meetingsCurrent, safeMetrics.meetingsTarget);
+  const tripsPercentage = calculatePercentage(safeMetrics.tripsCurrent, safeMetrics.tripsTarget);
+  const crmPercentage = safeMetrics.crmUpdatePercentage || 0;
 
   return (
     <Card className="col-span-1 lg:col-span-2">
@@ -117,10 +140,10 @@ export default function ProgressTracking() {
             </div>
             <div className="mt-2">
               <p className="text-2xl font-semibold text-blue-900">
-                {metrics.tripsCurrent}
+                {safeMetrics.tripsCurrent}
               </p>
               <p className="text-sm text-blue-700 font-medium">
-                Target: <span className="text-blue-900 font-bold">{metrics.tripsTarget}</span> field trips per month
+                Target: <span className="text-blue-900 font-bold">{safeMetrics.tripsTarget}</span> field trips per month
               </p>
             </div>
             <div className="mt-3">
@@ -131,8 +154,8 @@ export default function ProgressTracking() {
               />
             </div>
             <div className="mt-2 text-xs text-blue-700">
-              {metrics.tripsTarget - metrics.tripsCurrent > 0 ? 
-                `${metrics.tripsTarget - metrics.tripsCurrent} more field trips needed` : 
+              {safeMetrics.tripsTarget - safeMetrics.tripsCurrent > 0 ? 
+                `${safeMetrics.tripsTarget - safeMetrics.tripsCurrent} more field trips needed` : 
                 'Field trips target achieved!'}
             </div>
           </div>
@@ -183,10 +206,10 @@ export default function ProgressTracking() {
             </div>
             <div className="mt-2">
               <p className="text-2xl font-semibold text-primary-900">
-                {metrics.meetingsCurrent}
+                {safeMetrics.meetingsCurrent}
               </p>
               <p className="text-sm text-primary-700 font-medium">
-                Target: <span className="text-primary-900 font-bold">{metrics.meetingsTarget}</span> meetings per month
+                Target: <span className="text-primary-900 font-bold">{safeMetrics.meetingsTarget}</span> meetings per month
               </p>
             </div>
             <div className="mt-3">
@@ -197,8 +220,8 @@ export default function ProgressTracking() {
               />
             </div>
             <div className="mt-2 text-xs text-primary-700">
-              {metrics.meetingsTarget - metrics.meetingsCurrent > 0 ? 
-                `${metrics.meetingsTarget - metrics.meetingsCurrent} more meetings needed this month` : 
+              {safeMetrics.meetingsTarget - safeMetrics.meetingsCurrent > 0 ? 
+                `${safeMetrics.meetingsTarget - safeMetrics.meetingsCurrent} more meetings needed this month` : 
                 'Monthly target achieved! Great job!'}
             </div>
           </div>

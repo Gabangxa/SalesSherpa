@@ -138,9 +138,6 @@ const queryClientConfig: DefaultOptions = {
       // Retry network errors up to 3 times
       return failureCount < 3;
     },
-    // Better loading/error UI experience
-    suspense: false,
-    useErrorBoundary: false,
   },
   mutations: {
     // Don't retry mutations except for network errors
