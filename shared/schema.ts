@@ -164,7 +164,7 @@ export type SalesMetrics = typeof salesMetrics.$inferSelect;
 export const checkInAlerts = pgTable("check_in_alerts", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  time: time("alert_time").notNull(),
+  time: time("time").notNull(),
   days: text("days").array().notNull(), // Array of days: ['monday', 'tuesday', etc]
   enabled: boolean("enabled").notNull().default(true),
   title: text("title").notNull().default('Daily Check-in'),
