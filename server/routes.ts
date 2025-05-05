@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { setupAuth } from "./auth";
 import { generateAIResponse } from "./openai";
+import { WebSocketServer, WebSocket } from 'ws';
+import { log } from "./vite";
 import { 
   insertCheckInSchema, 
   insertTaskSchema, 
@@ -12,6 +14,23 @@ import {
   insertChatMessageSchema, 
   insertCheckInAlertSchema 
 } from "@shared/schema";
+
+// WebSocket message types
+enum WebSocketMessageType {
+  CONNECT = 'CONNECT',
+  DISCONNECT = 'DISCONNECT',
+  MESSAGE = 'MESSAGE',
+  ALERT = 'ALERT',
+  NOTIFICATION = 'NOTIFICATION',
+  ERROR = 'ERROR',
+}
+
+// Interface for WebSocket messages
+interface WebSocketMessage {
+  type: WebSocketMessageType;
+  payload: any;
+  timestamp: number;
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication with Passport.js
@@ -431,6 +450,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Set up WebSocket server on a distinct path so it doesn't conflict with Vite's HMR
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+  // Handle WebSocket connections
+  wss.on('connection', (ws: WebSocket) => {
+    log('WebSocket client connected');
+    
+    // Send welcome message
+    const welcomeMessage: WebSocketMessage = {
+      type: WebSocketMessageType.CONNECT,
+      payload: { message: 'Connected to server' },
+      timestamp: Date.now()
+    };
+    
+    ws.send(JSON.stringify(welcomeMessage));
+    
+    // Handle incoming messages
+    ws.on('message', async (data: string) => {
+      try {
+        const message = JSON.parse(data) as WebSocketMessage;
+        
+        // Process message based on type
+        switch (message.type) {
+          case WebSocketMessageType.MESSAGE:
+            // Echo the message back for now
+            ws.send(JSON.stringify({
+              type: WebSocketMessageType.MESSAGE,
+              payload: { 
+                message: 'Echo: ' + message.payload.message,
+                originalMessage: message.payload 
+              },
+              timestamp: Date.now()
+            }));
+            break;
+            
+          case WebSocketMessageType.ALERT:
+            // Broadcast alert to all connected clients
+            wss.clients.forEach(client => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: WebSocketMessageType.ALERT,
+                  payload: message.payload,
+                  timestamp: Date.now()
+                }));
+              }
+            });
+            break;
+            
+          default:
+            // Unknown message type
+            ws.send(JSON.stringify({
+              type: WebSocketMessageType.ERROR,
+              payload: { error: 'Unknown message type' },
+              timestamp: Date.now()
+            }));
+        }
+      } catch (error) {
+        // Send error response for invalid messages
+        ws.send(JSON.stringify({
+          type: WebSocketMessageType.ERROR,
+          payload: { error: 'Invalid message format' },
+          timestamp: Date.now()
+        }));
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', () => {
+      log('WebSocket client disconnected');
+    });
+    
+    // Handle errors
+    ws.on('error', (error) => {
+      log(`WebSocket error: ${error.message}`);
+    });
+  });
+  
   return httpServer;
 }
 

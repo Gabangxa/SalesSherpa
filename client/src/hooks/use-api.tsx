@@ -1,4 +1,11 @@
-import { useQuery, useMutation, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import { 
+  useQuery, 
+  useMutation, 
+  UseMutationResult, 
+  UseQueryResult, 
+  QueryKey, 
+  QueryFunctionContext 
+} from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
 import { handleApiError } from '@/lib/errorService';
@@ -17,8 +24,6 @@ export function useApiQuery<T>(
     enabled?: boolean;
     refetchInterval?: number;
     staleTime?: number;
-    onSuccess?: (data: T) => void;
-    onError?: (error: Error) => void;
     queryKey?: string[];
   } = {}
 ): UseQueryResult<T, Error> {
@@ -26,8 +31,6 @@ export function useApiQuery<T>(
     enabled = true, 
     refetchInterval, 
     staleTime,
-    onSuccess,
-    onError,
     queryKey = [],
   } = options;
 
@@ -35,11 +38,11 @@ export function useApiQuery<T>(
   const fullQueryKey = [endpoint, ...queryKey];
 
   return useQuery<T, Error>({
-    queryKey: fullQueryKey,
-    queryFn: async () => {
+    queryKey: fullQueryKey as unknown as QueryKey,
+    queryFn: async ({ signal }: QueryFunctionContext) => {
       try {
-        const response = await apiRequest('GET', endpoint);
-        return await response.json();
+        const response = await apiRequest('GET', endpoint, undefined, { signal });
+        return await response.json() as T;
       } catch (error) {
         throw handleApiError(error);
       }
@@ -47,8 +50,6 @@ export function useApiQuery<T>(
     enabled,
     refetchInterval,
     staleTime,
-    onSuccess,
-    onError,
   });
 }
 
