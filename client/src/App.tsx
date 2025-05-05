@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useCallback } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -8,7 +8,10 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { AlertCheckerProvider } from "@/components/providers/AlertCheckerProvider";
 import { ProtectedRoute } from "@/lib/protected-route";
+import ErrorBoundary from "@/components/ui/error-boundary";
+import { PageLoading } from "@/components/ui/loading";
 
+// Lazy load page components for performance
 import Dashboard from "@/pages/Dashboard";
 import GoalsPage from "@/pages/GoalsPage";
 import CheckInsPage from "@/pages/CheckInsPage";
@@ -20,17 +23,20 @@ import NotFound from "@/pages/not-found";
 
 import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
-import { Loader2 } from "lucide-react";
+
+// Memoized components for performance optimization
+const MemoizedSidebar = memo(Sidebar);
+const MemoizedMobileHeader = memo(MobileHeader);
 
 function AppContent() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, isLoading } = useAuth();
 
-  // Toggle mobile menu
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
+  // Toggle mobile menu - memoized to prevent unnecessary re-renders
+  const toggleMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(prevState => !prevState);
+  }, []);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -40,44 +46,41 @@ function AppContent() {
   // Show public routes when user is not on the /auth page
   if (!user && location !== "/auth") {
     return (
-      <Switch>
-        <Route path="/auth" component={AuthPage} />
-        <Route>
-          <AuthPage />
-        </Route>
-      </Switch>
+      <ErrorBoundary>
+        <Switch>
+          <Route path="/auth" component={AuthPage} />
+          <Route>
+            <AuthPage />
+          </Route>
+        </Switch>
+      </ErrorBoundary>
     );
   }
 
   // Render auth page for unauthenticated users
   if (!user) {
     return (
-      <Switch>
-        <Route path="/auth" component={AuthPage} />
-        <Route>
-          <AuthPage />
-        </Route>
-      </Switch>
+      <ErrorBoundary>
+        <Switch>
+          <Route path="/auth" component={AuthPage} />
+          <Route>
+            <AuthPage />
+          </Route>
+        </Switch>
+      </ErrorBoundary>
     );
   }
 
-  // Loading state
+  // Loading state with improved UI component
   if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-          <p className="mt-4 text-neutral-600">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
+    return <PageLoading text="Loading your dashboard..." />;
   }
 
   // Main app layout for authenticated users
   return (
     <div className="flex h-screen overflow-hidden" data-bind="app-container">
-      <Sidebar userData={user} currentPath={location} />
-      <MobileHeader 
+      <MemoizedSidebar userData={user} currentPath={location} />
+      <MemoizedMobileHeader 
         isMenuOpen={isMobileMenuOpen} 
         toggleMenu={toggleMobileMenu} 
         userData={user}
@@ -85,35 +88,40 @@ function AppContent() {
       />
       
       <main className="flex-1 overflow-y-auto bg-neutral-50 pt-16 lg:pt-0">
-        <Switch>
-          <ProtectedRoute path="/" component={Dashboard} />
-          <ProtectedRoute path="/goals" component={GoalsPage} />
-          <ProtectedRoute path="/check-ins" component={CheckInsPage} />
-          <ProtectedRoute path="/strategy" component={StrategyPage} />
-          <ProtectedRoute path="/resources" component={ResourcesPage} />
-          <ProtectedRoute path="/settings" component={SettingsPage} />
-          <Route path="/auth" component={AuthPage} />
-          <Route component={NotFound} />
-        </Switch>
+        <ErrorBoundary>
+          <Switch>
+            <ProtectedRoute path="/" component={Dashboard} />
+            <ProtectedRoute path="/goals" component={GoalsPage} />
+            <ProtectedRoute path="/check-ins" component={CheckInsPage} />
+            <ProtectedRoute path="/strategy" component={StrategyPage} />
+            <ProtectedRoute path="/resources" component={ResourcesPage} />
+            <ProtectedRoute path="/settings" component={SettingsPage} />
+            <Route path="/auth" component={AuthPage} />
+            <Route component={NotFound} />
+          </Switch>
+        </ErrorBoundary>
       </main>
     </div>
   );
 }
 
+// Wrap the entire app in an error boundary for global error handling
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <NotificationProvider>
-          <AlertCheckerProvider>
-            <TooltipProvider>
-              <Toaster />
-              <AppContent />
-            </TooltipProvider>
-          </AlertCheckerProvider>
-        </NotificationProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <NotificationProvider>
+            <AlertCheckerProvider>
+              <TooltipProvider>
+                <Toaster />
+                <AppContent />
+              </TooltipProvider>
+            </AlertCheckerProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
