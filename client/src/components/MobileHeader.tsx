@@ -8,7 +8,8 @@ import {
   Menu, 
   X,
   LogOut,
-  Settings
+  Settings,
+  Radio
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Separator } from "@/components/ui/separator";
@@ -33,6 +34,11 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
     { name: "Strategic Planning", path: "/strategy", icon: <Swords className="w-5 h-5 mr-3" /> },
     { name: "Resources", path: "/resources", icon: <BookOpen className="w-5 h-5 mr-3" /> },
     { name: "Settings", path: "/settings", icon: <Settings className="w-5 h-5 mr-3" /> },
+  ];
+  
+  // Development and testing links
+  const devLinks = [
+    { name: "WebSocket Test", path: "/websocket-test", icon: <Radio className="w-5 h-5 mr-3" /> },
   ];
 
   return (
@@ -82,6 +88,29 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
           <nav>
             <ul className="space-y-1 mb-6">
               {navLinks.map((link) => (
+                <li key={link.path}>
+                  <Link 
+                    href={link.path}
+                    onClick={toggleMenu}
+                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
+                      currentPath === link.path 
+                        ? "bg-primary/10 text-primary" 
+                        : "text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {link.icon}
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            
+            {/* Development section */}
+            <div className="text-xs uppercase text-muted-foreground font-semibold mt-6 mb-2 px-2">
+              Development
+            </div>
+            <ul className="space-y-1 mb-6">
+              {devLinks.map((link) => (
                 <li key={link.path}>
                   <Link 
                     href={link.path}

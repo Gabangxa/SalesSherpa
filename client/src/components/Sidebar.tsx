@@ -79,6 +79,28 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
             </li>
           ))}
         </ul>
+        
+        {/* Development section */}
+        <div className="text-xs uppercase text-muted-foreground font-semibold mt-6 mb-3 ml-2">
+          Development
+        </div>
+        <ul className="space-y-1">
+          {devLinks.map((link) => (
+            <li key={link.path}>
+              <Link 
+                href={link.path} 
+                className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                  currentPath === link.path 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-foreground hover:bg-muted"
+                }`}
+              >
+                {link.icon}
+                {link.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </nav>
       
       <div className="border-t border-border pt-4 mt-auto">

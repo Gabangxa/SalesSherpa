@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useWebSocket, WebSocketMessageType } from '@/lib/websocketService';
+import { useWebSocket, WebSocketMessageType, WebSocketStatus } from '@/lib/websocketService';
 
 export function WebSocketTester() {
   const { toast } = useToast();
@@ -23,7 +23,7 @@ export function WebSocketTester() {
     toast({
       title: `WebSocket ${status}`,
       description: `Connection is now ${status.toLowerCase()}`,
-      variant: status === 'OPEN' ? 'default' : 'destructive',
+      variant: status === WebSocketStatus.OPEN ? 'default' : 'destructive',
     });
   }, [status, toast]);
 
