@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Notification } from '@/components/ui/notification';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -18,24 +18,32 @@ type NotificationContextType = {
   clearAllNotifications: () => void;
 };
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NotificationContext = createContext<NotificationContextType | null>(null);
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
 
-  const showNotification = useCallback((notification: Omit<NotificationType, 'id'>) => {
+  const showNotification = (notification: Omit<NotificationType, 'id'>) => {
     const id = uuidv4();
-    setNotifications((prev) => [...prev, { ...notification, id }]);
+    const newNotification = { ...notification, id };
+    
+    setNotifications(prevNotifications => [
+      ...prevNotifications,
+      newNotification,
+    ]);
+    
     return id;
-  }, []);
+  };
 
-  const hideNotification = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((notification) => notification.id !== id));
-  }, []);
+  const hideNotification = (id: string) => {
+    setNotifications(prevNotifications =>
+      prevNotifications.filter(notification => notification.id !== id)
+    );
+  };
 
-  const clearAllNotifications = useCallback(() => {
+  const clearAllNotifications = () => {
     setNotifications([]);
-  }, []);
+  };
 
   return (
     <NotificationContext.Provider
@@ -47,7 +55,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       }}
     >
       {children}
-      {notifications.map((notification) => (
+      
+      {/* Render all active notifications */}
+      {notifications.map(notification => (
         <Notification
           key={notification.id}
           title={notification.title}
@@ -64,8 +74,10 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
-  if (context === undefined) {
+  
+  if (!context) {
     throw new Error('useNotifications must be used within a NotificationProvider');
   }
+  
   return context;
 };

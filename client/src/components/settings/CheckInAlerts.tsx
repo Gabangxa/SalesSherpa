@@ -32,7 +32,9 @@ export default function CheckInAlerts() {
     updateAlertMutation,
     deleteAlertMutation,
   } = useCheckInAlerts();
-
+  
+  const { triggerAlert } = useAlertChecker();
+  
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -183,6 +185,7 @@ export default function CheckInAlerts() {
                     variant="ghost" 
                     size="icon" 
                     onClick={() => openEditForm(alert)}
+                    title="Edit alert"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -190,8 +193,19 @@ export default function CheckInAlerts() {
                     variant="ghost" 
                     size="icon" 
                     onClick={() => openDeleteDialog(alert)}
+                    title="Delete alert"
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    title="Test alert notification"
+                    onClick={() => {
+                      if (alert && triggerAlert) triggerAlert(alert.id);
+                    }}
+                  >
+                    <Play className="h-4 w-4 text-green-600" />
                   </Button>
                 </div>
               </div>

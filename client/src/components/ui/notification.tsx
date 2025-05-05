@@ -1,32 +1,30 @@
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { X } from "lucide-react"
-
-import { cn } from "@/lib/utils"
+import React, { useEffect, useState } from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const notificationVariants = cva(
-  "fixed shadow-lg rounded-lg border p-4 w-96 transition-all data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-right-full",
+  'fixed transition-all duration-300 ease-in-out shadow-lg rounded-lg p-4 flex flex-col gap-1',
   {
     variants: {
       variant: {
-        default: "bg-background border",
-        alert: "bg-amber-50 border-amber-200 text-amber-900",
-        destructive:
-          "destructive group border-destructive bg-destructive text-destructive-foreground",
+        default: 'bg-background border text-foreground',
+        alert: 'bg-amber-100 border-amber-300 text-amber-800',
+        destructive: 'bg-destructive border-destructive text-destructive-foreground',
       },
       position: {
-        topRight: "top-4 right-4",
-        topLeft: "top-4 left-4", 
-        bottomRight: "bottom-4 right-4",
-        bottomLeft: "bottom-4 left-4",
-      }
+        topRight: 'top-4 right-4',
+        topLeft: 'top-4 left-4',
+        bottomRight: 'bottom-4 right-4',
+        bottomLeft: 'bottom-4 left-4',
+      },
     },
     defaultVariants: {
-      variant: "default",
-      position: "topRight",
+      variant: 'default',
+      position: 'topRight',
     },
   }
-)
+);
 
 export interface NotificationProps
   extends React.HTMLAttributes<HTMLDivElement>,
@@ -39,53 +37,78 @@ export interface NotificationProps
 }
 
 const Notification = React.forwardRef<HTMLDivElement, NotificationProps>(
-  ({ className, variant, position, open = true, title, description, onClose, duration = 5000, ...props }, ref) => {
-    const [isOpen, setIsOpen] = React.useState(open);
-    
-    React.useEffect(() => {
-      setIsOpen(open);
-    }, [open]);
+  (
+    {
+      className,
+      variant,
+      position,
+      open = true,
+      title,
+      description,
+      onClose,
+      duration = 5000,
+      ...props
+    },
+    ref
+  ) => {
+    const [isVisible, setIsVisible] = useState(open);
+    const [isMounted, setIsMounted] = useState(false);
 
-    React.useEffect(() => {
-      if (isOpen && duration > 0) {
-        const timeout = setTimeout(() => {
-          setIsOpen(false);
-          if (onClose) onClose();
+    // Handle auto-close timer
+    useEffect(() => {
+      if (open && duration > 0) {
+        setIsMounted(true);
+        const timer = setTimeout(() => {
+          setIsVisible(false);
         }, duration);
-        
-        return () => clearTimeout(timeout);
-      }
-    }, [isOpen, duration, onClose]);
 
-    if (!isOpen) return null;
+        return () => clearTimeout(timer);
+      }
+    }, [open, duration]);
+
+    // Handle animation and unmounting
+    useEffect(() => {
+      if (!isVisible && isMounted) {
+        const timer = setTimeout(() => {
+          if (onClose) onClose();
+        }, 300); // Match the CSS transition duration
+        
+        return () => clearTimeout(timer);
+      }
+    }, [isVisible, onClose, isMounted]);
+
+    // If not open, don't render
+    if (!open && !isMounted) return null;
 
     return (
       <div
+        className={cn(
+          notificationVariants({ variant, position, className }),
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        )}
         ref={ref}
-        className={cn(notificationVariants({ variant, position, className }))}
-        data-state={isOpen ? "open" : "closed"}
         {...props}
       >
-        <div className="flex justify-between items-start gap-2">
+        <div className="flex justify-between items-start w-full">
           <div className="flex-1">
-            {title && <div className="font-semibold text-sm">{title}</div>}
-            {description && <div className="text-sm opacity-90 mt-1">{description}</div>}
+            {title && <h3 className="font-medium">{title}</h3>}
+            {description && (
+              <div className="text-sm mt-1">{description}</div>
+            )}
           </div>
           <button
-            className="rounded-full h-5 w-5 inline-flex items-center justify-center text-foreground/60 hover:text-foreground"
-            onClick={() => {
-              setIsOpen(false);
-              if (onClose) onClose();
-            }}
+            className="text-foreground/70 hover:text-foreground p-1 rounded-full hover:bg-muted ml-2"
+            onClick={() => setIsVisible(false)}
+            aria-label="Close notification"
           >
-            <X className="h-3 w-3" />
-            <span className="sr-only">Close</span>
+            <X className="h-4 w-4" />
           </button>
         </div>
       </div>
-    )
+    );
   }
-)
-Notification.displayName = "Notification"
+);
 
-export { Notification }
+Notification.displayName = 'Notification';
+
+export { Notification, notificationVariants };
