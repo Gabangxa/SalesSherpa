@@ -1,203 +1,269 @@
-import { apiRequest } from '@/lib/queryClient';
-import { queryClient } from '@/lib/queryClient';
-import { ErrorType, handleApiError } from '@/lib/errorService';
-
-// Type for API responses
-export interface ApiResponse<T> {
-  data: T | null;
-  error: Error | null;
-  loading: boolean;
-}
-
 /**
- * Generic type-safe API service for making requests
+ * API Service
  * 
- * This service abstracts away the details of making API requests and error handling,
- * providing a clean interface for the rest of the application.
+ * A centralized service for making API requests with consistent error handling,
+ * caching, and configuration.
  */
-export class ApiService {
-  /**
-   * Fetch data from the API
-   * @param endpoint The API endpoint to fetch from
-   * @returns Promise with typed response
-   */
-  static async get<T>(endpoint: string): Promise<T> {
-    try {
-      const response = await apiRequest('GET', endpoint);
-      return await response.json();
-    } catch (error) {
-      throw handleApiError(error);
-    }
-  }
+import { processError, ErrorType, handleApiError } from './errorService';
 
-  /**
-   * Create data via the API
-   * @param endpoint The API endpoint to post to
-   * @param data The data to send
-   * @returns Promise with typed response
-   */
-  static async create<T, U>(endpoint: string, data: U): Promise<T> {
-    try {
-      const response = await apiRequest('POST', endpoint, data);
-      return await response.json();
-    } catch (error) {
-      throw handleApiError(error);
-    }
-  }
+// Default request timeout in milliseconds
+const DEFAULT_TIMEOUT = 10000;
 
-  /**
-   * Update data via the API
-   * @param endpoint The API endpoint to update
-   * @param data The data to send
-   * @returns Promise with typed response
-   */
-  static async update<T, U>(endpoint: string, data: U): Promise<T> {
-    try {
-      const response = await apiRequest('PATCH', endpoint, data);
-      return await response.json();
-    } catch (error) {
-      throw handleApiError(error);
-    }
-  }
+// Default headers for API requests
+const DEFAULT_HEADERS = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+};
 
-  /**
-   * Delete data via the API
-   * @param endpoint The API endpoint for deletion
-   * @returns Promise with success status
-   */
-  static async delete(endpoint: string): Promise<boolean> {
-    try {
-      await apiRequest('DELETE', endpoint);
-      return true;
-    } catch (error) {
-      throw handleApiError(error);
-    }
-  }
+// Configuration for all API requests
+interface ApiRequestConfig extends RequestInit {
+  timeout?: number;
+  retries?: number;
+  retryDelay?: number;
+}
 
-  /**
-   * Invalidate specific query caches to refresh data
-   * @param queryKeys The query keys to invalidate
-   */
-  static invalidateQueries(queryKeys: string | string[]): void {
-    const keysArray = Array.isArray(queryKeys) ? queryKeys : [queryKeys];
+// API response with status and data
+interface ApiResponse<T> {
+  status: number;
+  data: T;
+  headers: Headers;
+}
+
+/**
+ * Enhanced fetch with timeout, error handling, and retries
+ * 
+ * @param url API endpoint URL
+ * @param config Request configuration
+ * @returns Promise with the response
+ */
+export async function fetchWithTimeout<T>(
+  url: string,
+  config: ApiRequestConfig = {}
+): Promise<ApiResponse<T>> {
+  // Configure request parameters
+  const {
+    timeout = DEFAULT_TIMEOUT,
+    retries = 0,
+    retryDelay = 1000,
+    ...fetchConfig
+  } = config;
+  
+  // Set up timer for request timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeout);
+  
+  try {
+    // Add abort signal to fetch config
+    const fetchConfigWithSignal = {
+      ...fetchConfig,
+      signal: controller.signal,
+      headers: {
+        ...DEFAULT_HEADERS,
+        ...fetchConfig.headers,
+      },
+    };
     
-    keysArray.forEach(key => {
-      queryClient.invalidateQueries({ queryKey: [key] });
-    });
-  }
-
-  /**
-   * Prefetch data to improve perceived performance
-   * @param endpoint The API endpoint to prefetch
-   */
-  static async prefetch<T>(endpoint: string): Promise<void> {
     try {
-      await queryClient.prefetchQuery({
-        queryKey: [endpoint],
-        queryFn: async () => {
-          const response = await apiRequest('GET', endpoint);
-          return await response.json() as T;
+      // Make the API request
+      const response = await fetch(url, fetchConfigWithSignal);
+      
+      // Handle HTTP errors
+      if (!response.ok) {
+        // Attempt to parse error response
+        let errorData: any;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { message: response.statusText };
         }
-      });
+        
+        const errorMessage = errorData.message || `HTTP error ${response.status}`;
+        const error = new Error(errorMessage);
+        (error as any).status = response.status;
+        (error as any).data = errorData;
+        throw error;
+      }
+      
+      // Parse response data
+      let responseData;
+      const contentType = response.headers.get('Content-Type') || '';
+      
+      if (contentType.includes('application/json')) {
+        responseData = await response.json();
+      } else if (contentType.includes('text/')) {
+        responseData = await response.text();
+      } else {
+        responseData = await response.blob();
+      }
+      
+      // Return structured API response
+      return {
+        status: response.status,
+        data: responseData as T,
+        headers: response.headers,
+      };
     } catch (error) {
-      // Silent fail for prefetch - just log to console
-      console.error('Prefetch error:', error);
+      // Handle request errors
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('Request timeout');
+      }
+      
+      // Check if retries are available
+      if (retries > 0) {
+        // Delay before retry
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        
+        // Attempt a retry with one less retry count
+        return fetchWithTimeout<T>(url, {
+          ...config,
+          retries: retries - 1,
+          retryDelay: retryDelay * 1.5, // Exponential backoff
+        });
+      }
+      
+      // No retries left, throw the error
+      throw error;
     }
+  } finally {
+    // Clean up timeout
+    clearTimeout(timeoutId);
   }
 }
 
-// Domain-specific API services that use the generic ApiService
-
 /**
- * Service for Check-In related API operations
+ * Main API service with methods for different request types
  */
-export const CheckInService = {
+export const apiService = {
   /**
-   * Get all check-ins for the current user
+   * Make a GET request
+   * 
+   * @param url API endpoint
+   * @param config Additional request configuration
+   * @returns Promise with typed response data
    */
-  getCheckIns: () => ApiService.get('/api/check-ins'),
+  async get<T>(url: string, config?: ApiRequestConfig): Promise<T> {
+    try {
+      const response = await fetchWithTimeout<T>(url, {
+        method: 'GET',
+        ...config,
+      });
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
   
   /**
-   * Create a new check-in
+   * Make a POST request
+   * 
+   * @param url API endpoint
+   * @param data Request body data
+   * @param config Additional request configuration
+   * @returns Promise with typed response data
    */
-  createCheckIn: (data: any) => ApiService.create('/api/check-ins', data),
+  async post<T>(url: string, data?: any, config?: ApiRequestConfig): Promise<T> {
+    try {
+      const response = await fetchWithTimeout<T>(url, {
+        method: 'POST',
+        body: data ? JSON.stringify(data) : undefined,
+        ...config,
+      });
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
   
   /**
-   * Get check-in alerts for the current user
+   * Make a PUT request
+   * 
+   * @param url API endpoint
+   * @param data Request body data
+   * @param config Additional request configuration
+   * @returns Promise with typed response data
    */
-  getCheckInAlerts: () => ApiService.get('/api/check-in-alerts'),
+  async put<T>(url: string, data?: any, config?: ApiRequestConfig): Promise<T> {
+    try {
+      const response = await fetchWithTimeout<T>(url, {
+        method: 'PUT',
+        body: data ? JSON.stringify(data) : undefined,
+        ...config,
+      });
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
   
   /**
-   * Create a new check-in alert
+   * Make a PATCH request
+   * 
+   * @param url API endpoint
+   * @param data Request body data
+   * @param config Additional request configuration
+   * @returns Promise with typed response data
    */
-  createCheckInAlert: (data: any) => ApiService.create('/api/check-in-alerts', data),
+  async patch<T>(url: string, data?: any, config?: ApiRequestConfig): Promise<T> {
+    try {
+      const response = await fetchWithTimeout<T>(url, {
+        method: 'PATCH',
+        body: data ? JSON.stringify(data) : undefined,
+        ...config,
+      });
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
   
   /**
-   * Update a check-in alert
+   * Make a DELETE request
+   * 
+   * @param url API endpoint
+   * @param config Additional request configuration
+   * @returns Promise with typed response data
    */
-  updateCheckInAlert: (id: number, data: any) => 
-    ApiService.update(`/api/check-in-alerts/${id}`, data),
-    
-  /**
-   * Delete a check-in alert
-   */
-  deleteCheckInAlert: (id: number) => 
-    ApiService.delete(`/api/check-in-alerts/${id}`),
+  async delete<T>(url: string, config?: ApiRequestConfig): Promise<T> {
+    try {
+      const response = await fetchWithTimeout<T>(url, {
+        method: 'DELETE',
+        ...config,
+      });
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
   
   /**
-   * Invalidate the check-ins cache
+   * Upload a file or form data
+   * 
+   * @param url API endpoint
+   * @param formData Form data with files
+   * @param config Additional request configuration
+   * @returns Promise with typed response data
    */
-  invalidateCheckInsCache: () => 
-    ApiService.invalidateQueries(['/api/check-ins', '/api/check-in-alerts']),
+  async upload<T>(url: string, formData: FormData, config?: ApiRequestConfig): Promise<T> {
+    try {
+      // For file uploads, don't set Content-Type (browser sets it with boundary)
+      const headers = {
+        ...(config?.headers || {}),
+      };
+      delete headers['Content-Type'];
+      
+      const response = await fetchWithTimeout<T>(url, {
+        method: 'POST',
+        body: formData,
+        headers,
+        ...config,
+      });
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
 };
 
-/**
- * Service for User related API operations
- */
-export const UserService = {
-  /**
-   * Get the current user's profile
-   */
-  getCurrentUser: () => ApiService.get('/api/user'),
-  
-  /**
-   * Update the current user's profile
-   */
-  updateProfile: (data: any) => ApiService.update('/api/user', data),
-  
-  /**
-   * Invalidate the user cache
-   */
-  invalidateUserCache: () => ApiService.invalidateQueries('/api/user'),
-};
-
-/**
- * Service for Chat related API operations
- */
-export const ChatService = {
-  /**
-   * Get all chat messages
-   */
-  getChatMessages: () => ApiService.get('/api/chat'),
-  
-  /**
-   * Send a new chat message
-   */
-  sendMessage: (message: string) => 
-    ApiService.create('/api/chat', { message }),
-    
-  /**
-   * Invalidate the chat cache
-   */
-  invalidateChatCache: () => ApiService.invalidateQueries('/api/chat'),
-};
-
-/**
- * Export services for use throughout the application
- */
-export default {
-  ApiService,
-  CheckInService,
-  UserService,
-  ChatService,
-};
+export default apiService;

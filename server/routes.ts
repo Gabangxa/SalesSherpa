@@ -454,33 +454,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up WebSocket server on a distinct path so it doesn't conflict with Vite's HMR
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
+  // Store client connections with user info for authenticated connections
+  const clients = new Map<WebSocket, { userId?: number, sessionId: string }>();
+  
   // Handle WebSocket connections
-  wss.on('connection', (ws: WebSocket) => {
-    log('WebSocket client connected');
+  wss.on('connection', (ws: WebSocket, req: any) => {
+    // Generate a unique session ID for this connection
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    log(`WebSocket client connected (Session: ${sessionId})`);
+    
+    // Store client connection with session info
+    clients.set(ws, { sessionId });
     
     // Send welcome message
     const welcomeMessage: WebSocketMessage = {
       type: WebSocketMessageType.CONNECT,
-      payload: { message: 'Connected to server' },
+      payload: { 
+        message: 'Connected to server',
+        sessionId,
+        timestamp: new Date().toISOString(),
+        activeConnections: clients.size
+      },
       timestamp: Date.now()
     };
     
     ws.send(JSON.stringify(welcomeMessage));
     
+    // Send a notification to all clients about new connection
+    broadcastConnectionUpdate(clients.size);
+    
     // Handle incoming messages
     ws.on('message', async (data: string) => {
       try {
         const message = JSON.parse(data) as WebSocketMessage;
+        const clientInfo = clients.get(ws);
+        
+        // Add log for debugging
+        log(`Received WebSocket message: ${message.type}`);
         
         // Process message based on type
         switch (message.type) {
           case WebSocketMessageType.MESSAGE:
-            // Echo the message back for now
+            // Handle regular messages
             ws.send(JSON.stringify({
               type: WebSocketMessageType.MESSAGE,
               payload: { 
                 message: 'Echo: ' + message.payload.message,
-                originalMessage: message.payload 
+                originalMessage: message.payload,
+                sessionId: clientInfo?.sessionId,
+                userId: clientInfo?.userId,
+                timestamp: new Date().toISOString()
               },
               timestamp: Date.now()
             }));
@@ -488,14 +511,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
           case WebSocketMessageType.ALERT:
             // Broadcast alert to all connected clients
-            wss.clients.forEach(client => {
-              if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({
-                  type: WebSocketMessageType.ALERT,
-                  payload: message.payload,
-                  timestamp: Date.now()
-                }));
-              }
+            broadcastMessage({
+              type: WebSocketMessageType.ALERT,
+              payload: {
+                ...message.payload,
+                sourceSessionId: clientInfo?.sessionId,
+                timestamp: new Date().toISOString()
+              },
+              timestamp: Date.now()
+            });
+            break;
+            
+          case WebSocketMessageType.NOTIFICATION:
+            // Handle notifications, potentially storing them
+            // Could add code here to save notifications to the database
+            broadcastMessage({
+              type: WebSocketMessageType.NOTIFICATION,
+              payload: {
+                ...message.payload,
+                sourceSessionId: clientInfo?.sessionId,
+                timestamp: new Date().toISOString()
+              },
+              timestamp: Date.now()
             });
             break;
             
@@ -503,15 +540,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Unknown message type
             ws.send(JSON.stringify({
               type: WebSocketMessageType.ERROR,
-              payload: { error: 'Unknown message type' },
+              payload: { 
+                error: 'Unknown message type',
+                receivedType: message.type 
+              },
               timestamp: Date.now()
             }));
         }
       } catch (error) {
+        // Log the error for debugging
+        log(`WebSocket message parsing error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        
         // Send error response for invalid messages
         ws.send(JSON.stringify({
           type: WebSocketMessageType.ERROR,
-          payload: { error: 'Invalid message format' },
+          payload: { 
+            error: 'Invalid message format',
+            hint: 'Message must be valid JSON with type, payload, and timestamp fields'
+          },
           timestamp: Date.now()
         }));
       }
@@ -519,14 +565,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Handle disconnection
     ws.on('close', () => {
-      log('WebSocket client disconnected');
+      const clientInfo = clients.get(ws);
+      log(`WebSocket client disconnected (Session: ${clientInfo?.sessionId})`);
+      
+      // Remove client from the connections map
+      clients.delete(ws);
+      
+      // Notify remaining clients about connection update
+      broadcastConnectionUpdate(clients.size);
     });
     
     // Handle errors
     ws.on('error', (error) => {
-      log(`WebSocket error: ${error.message}`);
+      const clientInfo = clients.get(ws);
+      log(`WebSocket error (Session: ${clientInfo?.sessionId}): ${error.message}`);
     });
   });
+  
+  // Helper function to broadcast a message to all connected clients
+  function broadcastMessage(message: WebSocketMessage): void {
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(message));
+      }
+    });
+  }
+  
+  // Helper function to broadcast connection status updates
+  function broadcastConnectionUpdate(connectionCount: number): void {
+    const updateMessage: WebSocketMessage = {
+      type: WebSocketMessageType.NOTIFICATION,
+      payload: { 
+        type: 'connection_update', 
+        activeConnections: connectionCount,
+        timestamp: new Date().toISOString()
+      },
+      timestamp: Date.now()
+    };
+    
+    broadcastMessage(updateMessage);
+  }
   
   return httpServer;
 }
