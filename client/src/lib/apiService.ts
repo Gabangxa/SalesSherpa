@@ -248,7 +248,7 @@ export const apiService = {
   async upload<T>(url: string, formData: FormData, config?: ApiRequestConfig): Promise<T> {
     try {
       // For file uploads, don't set Content-Type (browser sets it with boundary)
-      const headers = {
+      const headers: Record<string, string> = {
         ...(config?.headers || {}),
       };
       delete headers['Content-Type'];
