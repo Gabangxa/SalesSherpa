@@ -2,32 +2,14 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useNotifications } from '@/hooks/use-notifications';
 import { useQuery } from '@tanstack/react-query';
 import { CheckInAlert } from '@shared/schema';
-import { formatTimeWithTimezone, getUserTimezone, convertTimeToTimezone } from '@/lib/timezoneUtils';
-
-// Function to check if time is within a window (current time +/- margin in minutes)
-const isTimeInWindow = (targetTime: string, currentTime: string, marginMinutes = 2): boolean => {
-  try {
-    const [targetHour, targetMinute] = targetTime.split(':').map(Number);
-    const [currentHour, currentMinute] = currentTime.split(':').map(Number);
-    
-    // Convert both times to minutes since midnight
-    const targetMinutes = targetHour * 60 + targetMinute;
-    const currentMinutes = currentHour * 60 + currentMinute;
-    
-    // Log for debugging
-    console.log(`Checking time: Target=${targetHour}:${targetMinute} (${targetMinutes} mins), Current=${currentHour}:${currentMinute} (${currentMinutes} mins), Margin=${marginMinutes} mins`);
-    
-    // Check if the current time is within the margin of the target time
-    const isWithinWindow = Math.abs(targetMinutes - currentMinutes) <= marginMinutes;
-    if (isWithinWindow) {
-      console.log('Time match found! Alert should trigger.');
-    }
-    return isWithinWindow;
-  } catch (error) {
-    console.error('Error in isTimeInWindow:', error);
-    return false;
-  }
-};
+import { 
+  isTimeWithinMargin, 
+  getBrowserTimezone, 
+  getCurrentTimeInTimezone, 
+  convertTimeZone, 
+  formatTimeString,
+  parseTimeString
+} from '@/lib/luxonTimezoneUtils';
 
 // Day of week mapping
 const dayMapping: { [key: number]: string } = {
@@ -65,15 +47,14 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setCheckInProgress(true);
     
     try {
-      // Get current time and day
+      // Get current time and day using Luxon
       const now = new Date();
       const currentDay = dayMapping[now.getDay()];
-      const userTimezone = getUserTimezone();
+      const userTimezone = getBrowserTimezone();
       
-      // Get the current time in the user's timezone in HH:MM format
-      const hours = now.getHours().toString().padStart(2, '0');
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      const currentTime = `${hours}:${minutes}`;
+      // Get the current time in the user's timezone in HH:MM format using Luxon
+      const currentDateTime = getCurrentTimeInTimezone(userTimezone);
+      const currentTime = formatTimeString(currentDateTime);
       
       console.log(`Current check time: ${currentTime}, Day: ${currentDay}, User timezone: ${userTimezone}`);
       console.log(`Current alerts to check: ${alerts.length}`);
@@ -103,15 +84,15 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
           return;
         }
         
-        // Convert alert time to user's timezone if needed
+        // Convert alert time to user's timezone if needed using Luxon
         const alertTimeInUserTimezone = alert.timezone !== userTimezone 
-          ? convertTimeToTimezone(alert.time, alert.timezone, userTimezone)
+          ? convertTimeZone(alert.time, alert.timezone, userTimezone)
           : alert.time;
         
         console.log(`  Alert time in user timezone: ${alertTimeInUserTimezone}`);
         
-        // Check if it's time to trigger the alert
-        if (isTimeInWindow(alertTimeInUserTimezone, currentTime)) {
+        // Check if it's time to trigger the alert using Luxon
+        if (isTimeWithinMargin(alertTimeInUserTimezone, userTimezone, 2)) {
           console.log('  ✓ TIME MATCH FOUND - TRIGGERING ALERT');
           
           // Show notification

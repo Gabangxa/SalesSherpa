@@ -10,6 +10,7 @@ import { AlertCheckerProvider } from "@/components/providers/AlertCheckerProvide
 import { ProtectedRoute } from "@/lib/protected-route";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import { PageLoading, LoadingOverlay } from "@/components/ui/loading";
+import { OfflineAlert, OfflineBanner } from "@/components/ui/offline-alert";
 
 // Lazy load page components for performance
 import Dashboard from "@/pages/Dashboard";
@@ -80,6 +81,9 @@ function AppContent() {
   // Main app layout for authenticated users
   return (
     <div className="flex h-screen overflow-hidden" data-bind="app-container">
+      {/* Display offline banner at the top of the screen when offline */}
+      <OfflineBanner />
+      
       <MemoizedSidebar userData={user} currentPath={location} />
       <MemoizedMobileHeader 
         isMenuOpen={isMobileMenuOpen} 
@@ -102,6 +106,9 @@ function AppContent() {
             <Route component={NotFound} />
           </Switch>
         </ErrorBoundary>
+        
+        {/* Display offline alert for immediate notifications */}
+        <OfflineAlert />
       </main>
     </div>
   );
