@@ -208,11 +208,10 @@ export default function CheckInAlertForm({
                         <div className="pt-3 pb-1 text-xs text-muted-foreground font-semibold">
                           Africa
                         </div>
-                        {getTimezones()
-                          .filter(tz => tz.value.startsWith('Africa/'))
-                          .map(timezone => (
-                            <SelectItem key={timezone.value} value={timezone.value}>
-                              {timezone.label}
+                        {getAvailableTimezones('Africa')
+                          .map(zone => (
+                            <SelectItem key={zone} value={zone}>
+                              {zone.replace('Africa/', '')} (Africa)
                             </SelectItem>
                           ))
                         }
@@ -220,11 +219,10 @@ export default function CheckInAlertForm({
                         <div className="pt-3 pb-1 text-xs text-muted-foreground font-semibold">
                           Americas
                         </div>
-                        {getTimezones()
-                          .filter(tz => tz.value.startsWith('America/') || tz.value.startsWith('Pacific/Honolulu'))
-                          .map(timezone => (
-                            <SelectItem key={timezone.value} value={timezone.value}>
-                              {timezone.label}
+                        {getAvailableTimezones('America')
+                          .map(zone => (
+                            <SelectItem key={zone} value={zone}>
+                              {zone.replace('America/', '')} (Americas)
                             </SelectItem>
                           ))
                         }
@@ -232,11 +230,10 @@ export default function CheckInAlertForm({
                         <div className="pt-3 pb-1 text-xs text-muted-foreground font-semibold">
                           Europe
                         </div>
-                        {getTimezones()
-                          .filter(tz => tz.value.startsWith('Europe/'))
-                          .map(timezone => (
-                            <SelectItem key={timezone.value} value={timezone.value}>
-                              {timezone.label}
+                        {getAvailableTimezones('Europe')
+                          .map(zone => (
+                            <SelectItem key={zone} value={zone}>
+                              {zone.replace('Europe/', '')} (Europe)
                             </SelectItem>
                           ))
                         }
@@ -244,11 +241,10 @@ export default function CheckInAlertForm({
                         <div className="pt-3 pb-1 text-xs text-muted-foreground font-semibold">
                           Asia
                         </div>
-                        {getTimezones()
-                          .filter(tz => tz.value.startsWith('Asia/'))
-                          .map(timezone => (
-                            <SelectItem key={timezone.value} value={timezone.value}>
-                              {timezone.label}
+                        {getAvailableTimezones('Asia')
+                          .map(zone => (
+                            <SelectItem key={zone} value={zone}>
+                              {zone.replace('Asia/', '')} (Asia)
                             </SelectItem>
                           ))
                         }
@@ -256,11 +252,11 @@ export default function CheckInAlertForm({
                         <div className="pt-3 pb-1 text-xs text-muted-foreground font-semibold">
                           Australia & Pacific
                         </div>
-                        {getTimezones()
-                          .filter(tz => tz.value.startsWith('Australia/') || tz.value.startsWith('Pacific/Auckland'))
-                          .map(timezone => (
-                            <SelectItem key={timezone.value} value={timezone.value}>
-                              {timezone.label}
+                        {getAvailableTimezones('Australia')
+                          .concat(getAvailableTimezones('Pacific'))
+                          .map(zone => (
+                            <SelectItem key={zone} value={zone}>
+                              {zone.replace('Australia/', '').replace('Pacific/', '')} ({zone.startsWith('Australia') ? 'Australia' : 'Pacific'})
                             </SelectItem>
                           ))
                         }
