@@ -17,8 +17,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Bell, Clock, CalendarDays, Edit, Trash2 } from 'lucide-react';
+import { Bell, Clock, CalendarDays, Edit, Trash2, Globe } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { formatTimeWithTimezone } from '@/lib/timezoneUtils';
 
 export default function CheckInAlerts() {
   const { 
@@ -162,6 +163,13 @@ export default function CheckInAlerts() {
                         <CalendarDays className="h-3.5 w-3.5" /> 
                         {formatDays(alert.days)}
                       </span>
+                      <span className="flex items-center gap-1">
+                        <Globe className="h-3.5 w-3.5" /> 
+                        {alert.timezone || 'UTC'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {alert.timezone && formatTimeWithTimezone(alert.time, alert.timezone)}
                     </div>
                   </div>
                 </div>
