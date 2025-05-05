@@ -24,6 +24,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CheckInAlert } from '@shared/schema';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { getTimezones, getUserTimezone, formatTimeWithTimezone } from '@/lib/timezoneUtils';
 
 // Create a schema for form validation
 const alertFormSchema = z.object({
@@ -31,6 +39,7 @@ const alertFormSchema = z.object({
   message: z.string().min(10, 'Message must be at least 10 characters'),
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Time must be in HH:MM format'),
   days: z.array(z.string()).min(1, 'Select at least one day'),
+  timezone: z.string().min(1, 'Please select a timezone'),
   enabled: z.boolean().default(true),
 });
 
@@ -68,6 +77,7 @@ export default function CheckInAlertForm({
       message: alert?.message || '',
       time: alert?.time || '09:00',
       days: alert?.days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+      timezone: alert?.timezone || getUserTimezone(),
       enabled: alert?.enabled ?? true,
     },
   });
@@ -171,6 +181,34 @@ export default function CheckInAlertForm({
               )}
             </div>
 
+            <FormField
+              control={form.control}
+              name="timezone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Timezone</FormLabel>
+                  <FormControl>
+                    <Select 
+                      value={field.value} 
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select timezone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getTimezones().map(timezone => (
+                          <SelectItem key={timezone.value} value={timezone.value}>
+                            {timezone.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField
               control={form.control}
               name="enabled"

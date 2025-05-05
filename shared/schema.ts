@@ -166,6 +166,7 @@ export const checkInAlerts = pgTable("check_in_alerts", {
   userId: integer("user_id").notNull(),
   time: time("time").notNull(),
   days: text("days").array().notNull(), // Array of days: ['monday', 'tuesday', etc]
+  timezone: text("timezone").notNull().default('UTC'),
   enabled: boolean("enabled").notNull().default(true),
   title: text("title").notNull().default('Daily Check-in'),
   message: text("message").notNull().default('Time to complete your daily check-in'),
@@ -175,6 +176,7 @@ export const insertCheckInAlertSchema = createInsertSchema(checkInAlerts).pick({
   userId: true,
   time: true,
   days: true,
+  timezone: true,
   enabled: true,
   title: true,
   message: true,
