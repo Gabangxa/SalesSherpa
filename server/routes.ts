@@ -344,6 +344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const alerts = await storage.getCheckInAlerts(req.body.userId);
       return res.status(200).json(alerts);
     } catch (error) {
+      console.error("Error getting check-in alerts:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
@@ -359,6 +360,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const alert = await storage.createCheckInAlert(validatedData);
       return res.status(201).json(alert);
     } catch (error) {
+      console.error("Error creating check-in alert:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid alert data", errors: error.errors });
       }
@@ -375,12 +377,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Alert not found" });
       }
       
-      if (alert.userId !== req.body.userId) {
+      if (alert.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
       
       return res.status(200).json(alert);
     } catch (error) {
+      console.error("Error getting check-in alert by ID:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
@@ -394,13 +397,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Alert not found" });
       }
       
-      if (alert.userId !== req.body.userId) {
+      if (alert.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
       
       const updatedAlert = await storage.updateCheckInAlert(alertId, req.body);
       return res.status(200).json(updatedAlert);
     } catch (error) {
+      console.error("Error updating check-in alert:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
@@ -414,13 +418,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Alert not found" });
       }
       
-      if (alert.userId !== req.body.userId) {
+      if (alert.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
       
       await storage.deleteCheckInAlert(alertId);
       return res.status(204).send();
     } catch (error) {
+      console.error("Error deleting check-in alert:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
