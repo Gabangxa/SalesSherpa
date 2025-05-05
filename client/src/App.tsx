@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
+import { AlertCheckerProvider } from "@/components/providers/AlertCheckerProvider";
 import { ProtectedRoute } from "@/lib/protected-route";
 
 import Dashboard from "@/pages/Dashboard";
@@ -104,10 +105,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <NotificationProvider>
-          <TooltipProvider>
-            <Toaster />
-            <AppContent />
-          </TooltipProvider>
+          <AlertCheckerProvider>
+            <TooltipProvider>
+              <Toaster />
+              <AppContent />
+            </TooltipProvider>
+          </AlertCheckerProvider>
         </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>

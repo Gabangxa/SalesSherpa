@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNotifications } from './use-notifications';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useNotifications } from '@/hooks/use-notifications';
+import { useQuery } from '@tanstack/react-query';
 import { CheckInAlert } from '@shared/schema';
 import { formatTimeWithTimezone, getUserTimezone, convertTimeToTimezone } from '@/lib/timezoneUtils';
 
 // Function to check if time is within a window (current time +/- margin in minutes)
-const isTimeInWindow = (targetTime: string, currentTime: string, marginMinutes: number = 1): boolean => {
+const isTimeInWindow = (targetTime: string, currentTime: string, marginMinutes = 1): boolean => {
   const [targetHour, targetMinute] = targetTime.split(':').map(Number);
   const [currentHour, currentMinute] = currentTime.split(':').map(Number);
   
@@ -28,9 +28,14 @@ const dayMapping: { [key: number]: string } = {
   6: 'saturday',
 };
 
-export function useAlertChecker() {
+type AlertCheckerContextType = {
+  triggerAlert: (alertId: number) => void;
+};
+
+const AlertCheckerContext = createContext<AlertCheckerContextType | null>(null);
+
+export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { showNotification } = useNotifications();
-  const queryClient = useQueryClient();
   const [triggeredAlerts, setTriggeredAlerts] = useState<number[]>([]);
   const [checkInProgress, setCheckInProgress] = useState(false);
   
@@ -92,6 +97,19 @@ export function useAlertChecker() {
     }
   }, [alerts, checkInProgress, showNotification, triggeredAlerts]);
 
+  // Allow manually triggering a specific alert (for testing)
+  const triggerAlert = useCallback((alertId: number) => {
+    const alert = alerts.find(a => a.id === alertId);
+    if (alert) {
+      showNotification({
+        title: alert.title,
+        description: alert.message,
+        variant: 'alert',
+        duration: 10000,
+      });
+    }
+  }, [alerts, showNotification]);
+
   // Check alerts every minute
   useEffect(() => {
     // Check immediately on mount
@@ -124,21 +142,19 @@ export function useAlertChecker() {
     };
   }, []);
 
-  // Allow manually triggering a specific alert (for testing)
-  const triggerAlert = useCallback((alertId: number) => {
-    const alert = alerts.find(a => a.id === alertId);
-    if (alert) {
-      showNotification({
-        title: alert.title,
-        description: alert.message,
-        variant: 'alert',
-        duration: 10000,
-      });
-    }
-  }, [alerts, showNotification]);
+  return (
+    <AlertCheckerContext.Provider value={{ triggerAlert }}>
+      {children}
+    </AlertCheckerContext.Provider>
+  );
+};
 
-  return {
-    checkAlerts,
-    triggerAlert
-  };
-}
+export const useAlertChecker = () => {
+  const context = useContext(AlertCheckerContext);
+  
+  if (!context) {
+    throw new Error('useAlertChecker must be used within a AlertCheckerProvider');
+  }
+  
+  return context;
+};

@@ -20,7 +20,7 @@ import {
 import { Bell, Clock, CalendarDays, Edit, Trash2, Globe, Play } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatTimeWithTimezone } from '@/lib/timezoneUtils';
-import { useAlertChecker } from '@/hooks/use-alert-checker';
+import { useAlertChecker } from '@/components/providers/AlertCheckerProvider';
 
 export default function CheckInAlerts() {
   const { 
