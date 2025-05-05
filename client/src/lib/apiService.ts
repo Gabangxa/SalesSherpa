@@ -60,7 +60,7 @@ export async function fetchWithTimeout<T>(
       ...fetchConfig,
       signal: controller.signal,
       headers: {
-        ...DEFAULT_HEADERS,
+        ...apiService.defaultHeaders, // Use headers from apiService
         ...fetchConfig.headers,
       },
     };
@@ -136,6 +136,20 @@ export async function fetchWithTimeout<T>(
  * Main API service with methods for different request types
  */
 export const apiService = {
+  // Default headers for all requests
+  defaultHeaders: DEFAULT_HEADERS,
+  
+  /**
+   * Set CSRF token for API requests
+   * 
+   * @param token CSRF token from the server
+   */
+  setCsrfToken(token: string): void {
+    this.defaultHeaders = {
+      ...this.defaultHeaders,
+      'X-CSRF-Token': token
+    };
+  },
   /**
    * Make a GET request
    * 

@@ -2,10 +2,35 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage, DatabaseStorage } from "./storage";
+import { 
+  apiRateLimiter, 
+  loginRateLimiter, 
+  sanitizeRequestBody, 
+  securityHeaders, 
+  csrfProtection,
+  csrfTokenMiddleware
+} from "./security";
+import session from 'express-session';
+import { setupAuth } from "./auth";
 
+// Initialize Express app
 const app = express();
+
+// Apply security headers to all requests
+app.use(securityHeaders);
+
+// Apply rate limiting to all API requests
+app.use('/api', apiRateLimiter);
+
+// Apply specific rate limit to authentication endpoints
+app.use('/api/auth/login', loginRateLimiter);
+
+// Basic middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Sanitize all incoming request bodies
+app.use(sanitizeRequestBody);
 
 app.use((req, res, next) => {
   const start = Date.now();
