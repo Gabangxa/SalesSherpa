@@ -61,17 +61,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/goals", authenticateUser, async (req, res) => {
     try {
-      const validatedData = insertGoalSchema.parse({
-        ...req.body,
-        userId: req.body.userId
-      });
+      // The userId is already added to req.body by the authenticateUser middleware
+      // No need to extract it separately
+      
+      // Validate the data with the schema
+      const validatedData = insertGoalSchema.parse(req.body);
+      
+      // For debugging
+      log(`Creating goal with data: ${JSON.stringify(validatedData)}`, "goals");
       
       const goal = await storage.createGoal(validatedData);
       return res.status(201).json(goal);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        // Log the validation errors for debugging
+        log(`Goal validation error: ${JSON.stringify(error.errors)}`, "goals");
         return res.status(400).json({ message: "Invalid goal data", errors: error.errors });
       }
+      log(`Goal creation error: ${error instanceof Error ? error.message : "Unknown error"}`, "goals");
       return res.status(500).json({ message: "Server error" });
     }
   });

@@ -69,13 +69,13 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
       const deadlineDate = new Date(values.deadline + 'T23:59:59');
       
       // Ensure all required fields are present and properly formatted
+      // Note: userId is now handled by the server from the session
       return apiRequest('POST', '/api/goals', {
         title: values.title,
         targetAmount: parseInt(values.targetAmount.toString()), // Ensure it's an integer
         currentAmount: parseInt(values.currentAmount.toString()), // Ensure it's an integer
         deadline: deadlineDate.toISOString(),
-        category: values.category,
-        userId: user?.id // Explicitly include userId
+        category: values.category
       });
     },
     onSuccess: () => {
