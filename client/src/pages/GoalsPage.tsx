@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import { Plus, Target, Edit, Trash2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { GoalDialog } from "@/components/dialogs/GoalDialog";
 
 interface Goal {
   id: number;
@@ -36,51 +37,11 @@ interface Goal {
 
 export default function GoalsPage() {
   const { toast } = useToast();
-  const [showNewGoalForm, setShowNewGoalForm] = useState(false);
-  const [newGoal, setNewGoal] = useState({
-    title: "",
-    targetAmount: "",
-    deadline: format(new Date(), "yyyy-MM-dd"),
-    category: "revenue",
-  });
+  const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
 
   // Fetch goals
   const { data: goals = [], isLoading } = useQuery<Goal[]>({
     queryKey: ['/api/goals'],
-  });
-
-  // Add new goal
-  const addGoal = useMutation({
-    mutationFn: (goal: { 
-      title: string; 
-      targetAmount: number; 
-      deadline: string; 
-      category: string 
-    }) => {
-      return apiRequest('POST', '/api/goals', goal);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
-      setShowNewGoalForm(false);
-      setNewGoal({
-        title: "",
-        targetAmount: "",
-        deadline: format(new Date(), "yyyy-MM-dd"),
-        category: "revenue",
-      });
-      
-      toast({
-        title: "Goal created",
-        description: "Your new goal has been created successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Failed to create goal",
-        description: error instanceof Error ? error.message : "Please try again",
-      });
-    },
   });
 
   // Update goal progress
@@ -129,20 +90,6 @@ export default function GoalsPage() {
     },
   });
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newGoal.title || !newGoal.targetAmount) return;
-    
-    addGoal.mutate({
-      title: newGoal.title,
-      targetAmount: parseFloat(newGoal.targetAmount),
-      deadline: newGoal.deadline,
-      category: newGoal.category,
-    });
-  };
-
   // Get category color
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -179,91 +126,17 @@ export default function GoalsPage() {
           <p className="text-neutral-600 mt-1">Track your progress and set new sales targets</p>
         </div>
         
-        <Button 
-          onClick={() => setShowNewGoalForm(true)}
-          className="mt-4 md:mt-0"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create New Goal
-        </Button>
+        <GoalDialog 
+          trigger={
+            <Button className="mt-4 md:mt-0">
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Goal
+            </Button>
+          }
+          open={isGoalDialogOpen}
+          onOpenChange={setIsGoalDialogOpen}
+        />
       </div>
-      
-      {showNewGoalForm && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Create New Goal</CardTitle>
-            <CardDescription>Set a specific, measurable target with a deadline</CardDescription>
-          </CardHeader>
-          
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="title">Goal Title</Label>
-                <Input
-                  id="title"
-                  placeholder="e.g., Monthly Sales Target"
-                  value={newGoal.title}
-                  onChange={(e) => setNewGoal({...newGoal, title: e.target.value})}
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="targetAmount">Target Amount</Label>
-                <Input
-                  id="targetAmount"
-                  type="number"
-                  placeholder="e.g., 100000"
-                  value={newGoal.targetAmount}
-                  onChange={(e) => setNewGoal({...newGoal, targetAmount: e.target.value})}
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="deadline">Deadline</Label>
-                <Input
-                  id="deadline"
-                  type="date"
-                  value={newGoal.deadline}
-                  onChange={(e) => setNewGoal({...newGoal, deadline: e.target.value})}
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={newGoal.category}
-                  onValueChange={(value) => setNewGoal({...newGoal, category: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="revenue">Revenue</SelectItem>
-                    <SelectItem value="accounts">Accounts</SelectItem>
-                    <SelectItem value="activities">Activities</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-            
-            <CardFooter className="flex justify-between">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setShowNewGoalForm(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={addGoal.isPending}>
-                {addGoal.isPending ? "Creating..." : "Create Goal"}
-              </Button>
-            </CardFooter>
-          </form>
-        </Card>
-      )}
       
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -275,7 +148,7 @@ export default function GoalsPage() {
           <h2 className="text-xl font-semibold text-neutral-700 mb-2">No Goals Set Yet</h2>
           <p className="text-neutral-500 mb-6">Create your first goal to start tracking your progress</p>
           <Button 
-            onClick={() => setShowNewGoalForm(true)}
+            onClick={() => setIsGoalDialogOpen(true)}
             className="mx-auto"
           >
             <Plus className="h-4 w-4 mr-2" />
