@@ -120,106 +120,107 @@ export default function ProgressTracking() {
   const crmPercentage = safeMetrics.crmUpdatePercentage || 0;
 
   return (
-    <Card className="col-span-1 lg:col-span-2">
-      <CardHeader>
-        <CardTitle>Performance Tracking</CardTitle>
+    <Card className="col-span-1 lg:col-span-2 shadow-md overflow-hidden border-border/60">
+      <CardHeader className="bg-muted/30 pb-4">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-primary" />
+          Performance Tracking
+        </CardTitle>
       </CardHeader>
       
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Field Trips Target */}
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 shadow-sm">
+      <CardContent className="p-5">
+        {/* Responsive grid for metrics cards - stacks on mobile, 3 columns on desktop */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Field Trips - Using consistent primary color styling */}
+          <div className="rounded-lg p-4 border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-primary/80"></div>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-blue-700">Field Trips</h3>
-              <Badge variant="secondary" className={cn("font-medium", 
-                tripsPercentage >= 90 ? "bg-green-100 text-green-800" : 
-                tripsPercentage >= 70 ? "bg-blue-100 text-blue-800" : 
-                "bg-amber-100 text-amber-800")}>
+              <h3 className="text-sm font-medium text-foreground">Field Trips</h3>
+              <Badge variant={tripsPercentage >= 90 ? "success" : tripsPercentage >= 70 ? "default" : "secondary"} 
+                className="font-medium">
                 {tripsPercentage}%
               </Badge>
             </div>
             <div className="mt-2">
-              <p className="text-2xl font-semibold text-blue-900">
+              <p className="text-2xl font-semibold text-foreground group-hover:text-primary transition-colors">
                 {safeMetrics.tripsCurrent}
               </p>
-              <p className="text-sm text-blue-700 font-medium">
-                Target: <span className="text-blue-900 font-bold">{safeMetrics.tripsTarget}</span> field trips per month
+              <p className="text-sm text-muted-foreground font-medium">
+                Target: <span className="text-foreground font-bold">{safeMetrics.tripsTarget}</span> field trips per month
               </p>
             </div>
             <div className="mt-3">
               <Progress 
                 value={tripsPercentage} 
-                className="h-2.5 bg-blue-100" 
-                indicatorClassName="bg-blue-600" 
+                className="h-2.5"
+                indicatorClassName="bg-primary" 
               />
             </div>
-            <div className="mt-2 text-xs text-blue-700">
+            <div className="mt-2 text-xs text-muted-foreground">
               {safeMetrics.tripsTarget - safeMetrics.tripsCurrent > 0 ? 
                 `${safeMetrics.tripsTarget - safeMetrics.tripsCurrent} more field trips needed` : 
                 'Field trips target achieved!'}
             </div>
           </div>
           
-          {/* CRM Update Level */}
-          <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200 shadow-sm">
+          {/* CRM Update Level - Using consistent primary color styling */}
+          <div className="rounded-lg p-4 border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-primary/80"></div>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-emerald-700">CRM Updated</h3>
-              <Badge variant="secondary" className={cn("font-medium", 
-                crmPercentage >= 90 ? "bg-green-100 text-green-800" : 
-                crmPercentage >= 70 ? "bg-emerald-100 text-emerald-800" : 
-                "bg-amber-100 text-amber-800")}>
+              <h3 className="text-sm font-medium text-foreground">CRM Updated</h3>
+              <Badge variant={crmPercentage >= 90 ? "success" : crmPercentage >= 70 ? "default" : "secondary"} 
+                className="font-medium">
                 {crmPercentage}%
               </Badge>
             </div>
             <div className="mt-2">
-              <p className="text-2xl font-semibold text-emerald-900">
+              <p className="text-2xl font-semibold text-foreground group-hover:text-primary transition-colors">
                 {crmPercentage}%
               </p>
-              <p className="text-sm text-emerald-700 font-medium">
+              <p className="text-sm text-muted-foreground font-medium">
                 Customer data completeness
               </p>
             </div>
             <div className="mt-3">
               <Progress 
                 value={crmPercentage} 
-                className="h-2.5 bg-emerald-100" 
-                indicatorClassName="bg-emerald-600" 
+                className="h-2.5"
+                indicatorClassName="bg-primary" 
               />
             </div>
-            <div className="mt-2 text-xs text-emerald-700">
+            <div className="mt-2 text-xs text-muted-foreground">
               {crmPercentage < 80 ? 
                 "Update customer records to reach 80% target" : 
                 "Good job keeping records updated!"}
             </div>
           </div>
           
-          {/* Client Meetings - Highlighted with primary accent */}
-          <div className="bg-primary-50 rounded-lg p-4 border border-primary-200 shadow-sm">
+          {/* Client Meetings - Using consistent primary color styling */}
+          <div className="rounded-lg p-4 border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-primary/80"></div>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-primary-700">Monthly Client Meetings</h3>
-              <Badge variant="secondary" className={cn("font-medium", 
-                meetingsPercentage >= 90 ? "bg-green-100 text-green-800" : 
-                meetingsPercentage >= 70 ? "bg-blue-100 text-blue-800" : 
-                "bg-amber-100 text-amber-800")}>
+              <h3 className="text-sm font-medium text-foreground">Client Meetings</h3>
+              <Badge variant={meetingsPercentage >= 90 ? "success" : meetingsPercentage >= 70 ? "default" : "secondary"} 
+                className="font-medium">
                 {meetingsPercentage}%
               </Badge>
             </div>
             <div className="mt-2">
-              <p className="text-2xl font-semibold text-primary-900">
+              <p className="text-2xl font-semibold text-foreground group-hover:text-primary transition-colors">
                 {safeMetrics.meetingsCurrent}
               </p>
-              <p className="text-sm text-primary-700 font-medium">
-                Target: <span className="text-primary-900 font-bold">{safeMetrics.meetingsTarget}</span> meetings per month
+              <p className="text-sm text-muted-foreground font-medium">
+                Target: <span className="text-foreground font-bold">{safeMetrics.meetingsTarget}</span> meetings per month
               </p>
             </div>
             <div className="mt-3">
               <Progress 
                 value={meetingsPercentage} 
-                className="h-2.5 bg-primary-100" 
-                indicatorClassName="bg-primary-600" 
+                className="h-2.5"
+                indicatorClassName="bg-primary" 
               />
             </div>
-            <div className="mt-2 text-xs text-primary-700">
+            <div className="mt-2 text-xs text-muted-foreground">
               {safeMetrics.meetingsTarget - safeMetrics.meetingsCurrent > 0 ? 
                 `${safeMetrics.meetingsTarget - safeMetrics.meetingsCurrent} more meetings needed this month` : 
                 'Monthly target achieved! Great job!'}
@@ -227,9 +228,13 @@ export default function ProgressTracking() {
           </div>
         </div>
         
+        {/* Weekly Activity Chart with improved styling */}
         <div className="mt-8">
-          <h3 className="text-sm font-medium text-neutral-600 mb-4">Weekly Activity</h3>
-          <div className="h-64 bg-neutral-50 rounded-lg border border-neutral-200">
+          <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            Weekly Activity
+          </h3>
+          <div className="h-64 rounded-lg border border-border bg-card p-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
@@ -240,11 +245,17 @@ export default function ProgressTracking() {
                   bottom: 20,
                 }}
               >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                <XAxis dataKey="day" stroke="var(--muted-foreground)" />
+                <YAxis stroke="var(--muted-foreground)" />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'var(--background)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Bar dataKey="value" fill="var(--primary)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

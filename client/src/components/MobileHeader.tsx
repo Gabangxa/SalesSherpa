@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface MobileHeaderProps {
   isMenuOpen: boolean;
@@ -52,13 +53,16 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
           </div>
           <h1 className="ml-2 text-lg font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">FinSales</h1>
         </div>
-        <button 
-          onClick={toggleMenu}
-          className="text-muted-foreground p-1.5 rounded-lg hover:bg-muted transition-colors focus:outline-none"
-          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-        >
-          {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center space-x-2">
+          <ThemeToggle />
+          <button 
+            onClick={toggleMenu}
+            className="text-muted-foreground p-1.5 rounded-lg hover:bg-muted transition-colors focus:outline-none"
+            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
       
       {/* Mobile Menu */}

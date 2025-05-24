@@ -19,22 +19,22 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="py-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      {/* Welcome header with reduced padding */}
-      <div className="mb-6">
+    <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      {/* Welcome header with improved styling */}
+      <div className="mb-8">
         <WelcomeSection name={user?.name || "Jordan"} />
       </div>
       
-      {/* Main content area with improved grid layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chat and check-ins column (takes 2/3 on large screens) */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Main content area with improved grid layout and spacing */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left column - Sales Assistant & Check-ins (takes 2/3 on large screens) */}
+        <div className="lg:col-span-2 space-y-8">
           <SalesAssistantChat userName={user?.name || "Jordan Doe"} />
           <RecentCheckIns />
         </div>
         
-        {/* Progress tracking and todos column (takes 1/3 on large screens) */}
-        <div className="space-y-6">
+        {/* Right column - Progress tracking and todos (takes 1/3 on large screens) */}
+        <div className="space-y-8">
           <ProgressTracking />
           <TodosAndReminders />
         </div>
