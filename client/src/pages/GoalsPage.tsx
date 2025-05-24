@@ -6,19 +6,9 @@ import {
   CardHeader, 
   CardTitle,
   CardDescription,
-  CardFooter
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { formatCurrency, calculatePercentage } from "@/lib/utils";
 import { format } from "date-fns";
 import { Plus, Target, Edit, Trash2 } from "lucide-react";
@@ -93,37 +83,32 @@ export default function GoalsPage() {
   // Get category color
   const getCategoryColor = (category: string) => {
     switch (category) {
+      case 'sales':
+        return 'bg-primary';
+      case 'meetings':
+        return 'bg-blue-500';
+      case 'leads':
+        return 'bg-green-500';
       case 'revenue':
-        return 'bg-secondary-500';
-      case 'accounts':
-        return 'bg-primary-500';
-      case 'activities':
-        return 'bg-accent-500';
+        return 'bg-amber-500';
+      case 'clients':
+        return 'bg-purple-500';
       default:
-        return 'bg-neutral-500';
+        return 'bg-primary';
     }
   };
 
   // Format category label
   const formatCategory = (category: string) => {
-    switch (category) {
-      case 'revenue':
-        return 'Revenue';
-      case 'accounts':
-        return 'Accounts';
-      case 'activities':
-        return 'Activities';
-      default:
-        return category;
-    }
+    return category.charAt(0).toUpperCase() + category.slice(1);
   };
 
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Goals & Targets</h1>
-          <p className="text-neutral-600 mt-1">Track your progress and set new sales targets</p>
+          <h1 className="text-2xl font-bold text-foreground">Goals & Targets</h1>
+          <p className="text-muted-foreground mt-1">Track your progress and set new sales targets</p>
         </div>
         
         <GoalDialog 
@@ -140,13 +125,13 @@ export default function GoalsPage() {
       
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
         </div>
       ) : goals.length === 0 ? (
         <Card className="p-12 text-center">
-          <Target className="mx-auto h-12 w-12 text-neutral-400 mb-4" />
-          <h2 className="text-xl font-semibold text-neutral-700 mb-2">No Goals Set Yet</h2>
-          <p className="text-neutral-500 mb-6">Create your first goal to start tracking your progress</p>
+          <Target className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">No Goals Set Yet</h2>
+          <p className="text-muted-foreground mb-6">Create your first goal to start tracking your progress</p>
           <Button 
             onClick={() => setIsGoalDialogOpen(true)}
             className="mx-auto"
@@ -161,7 +146,7 @@ export default function GoalsPage() {
             const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount);
             
             return (
-              <Card key={goal.id} className="overflow-hidden">
+              <Card key={goal.id} className="overflow-hidden border-border/60 hover:shadow-md transition-shadow duration-200">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between">
                     <CardTitle>{goal.title}</CardTitle>
@@ -188,7 +173,7 @@ export default function GoalsPage() {
                       <Button
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8 text-destructive"
+                        className="h-8 w-8 text-destructive hover:text-destructive/90"
                         onClick={() => {
                           if (confirm("Are you sure you want to delete this goal?")) {
                             deleteGoal.mutate(goal.id);
@@ -206,7 +191,7 @@ export default function GoalsPage() {
                 
                 <CardContent>
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm text-neutral-500">
+                    <span className="text-sm text-muted-foreground">
                       {formatCategory(goal.category)}
                     </span>
                     <span className="text-sm font-medium">
@@ -216,13 +201,14 @@ export default function GoalsPage() {
                   
                   <Progress 
                     value={percentage} 
-                    className={`h-2 mb-3 ${getCategoryColor(goal.category)}`} 
+                    className="h-2 mb-3" 
+                    indicatorClassName={getCategoryColor(goal.category)}
                   />
                   
                   <div className="mt-4">
                     <div className="flex justify-between mb-1">
-                      <span className="text-sm text-neutral-500">Current</span>
-                      <span className="text-sm text-neutral-500">Target</span>
+                      <span className="text-sm text-muted-foreground">Current</span>
+                      <span className="text-sm text-muted-foreground">Target</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-lg font-semibold">
