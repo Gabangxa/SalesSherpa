@@ -65,8 +65,11 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
   const createGoalMutation = useMutation({
     mutationFn: (values: FormValues) => {
       setLoading(true);
-      // Convert string date to ISO date format required by the API
+      // Convert string date to a proper Date object
+      // The schema has been updated to handle this properly
       const deadlineDate = new Date(values.deadline + 'T23:59:59');
+      
+      console.log("Submitting goal with date:", deadlineDate);
       
       // Ensure all required fields are present and properly formatted
       // Note: userId is now handled by the server from the session
@@ -74,7 +77,7 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
         title: values.title,
         targetAmount: parseInt(values.targetAmount.toString()), // Ensure it's an integer
         currentAmount: parseInt(values.currentAmount.toString()), // Ensure it's an integer
-        deadline: deadlineDate.toISOString(),
+        deadline: deadlineDate, // Send as Date object
         category: values.category
       });
     },

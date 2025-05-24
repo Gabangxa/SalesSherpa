@@ -33,13 +33,26 @@ export const goals = pgTable("goals", {
   category: text("category").notNull(),
 });
 
-export const insertGoalSchema = createInsertSchema(goals).pick({
+// Create base schema
+const baseGoalSchema = createInsertSchema(goals).pick({
   userId: true,
   title: true,
   targetAmount: true,
   currentAmount: true,
   deadline: true,
   category: true,
+});
+
+// Modified schema with custom deadline validation
+export const insertGoalSchema = baseGoalSchema.extend({
+  // Override deadline validation to support ISO string dates
+  deadline: z.preprocess(
+    (arg) => {
+      if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+      return arg;
+    },
+    z.date()
+  )
 });
 
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
