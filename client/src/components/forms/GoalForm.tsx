@@ -23,12 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
 
 // Define the form schema
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  targetAmount: z.coerce.number().positive("Target must be a positive number"),
-  currentAmount: z.coerce.number().min(0, "Current amount must be 0 or greater"),
+  targetAmount: z.coerce.number().int("Target must be a whole number").positive("Target must be a positive number"),
+  currentAmount: z.coerce.number().int("Current amount must be a whole number").min(0, "Current amount must be 0 or greater"),
   deadline: z.string().min(1, "Deadline is required"),
   category: z.string().min(1, "Category is required"),
 });
@@ -43,6 +44,7 @@ interface GoalFormProps {
 export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
   
   // Get today's date in the format YYYY-MM-DD for the default deadline
   const today = new Date().toISOString().split('T')[0];
@@ -52,7 +54,7 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
-      targetAmount: 0,
+      targetAmount: 10,
       currentAmount: 0,
       deadline: today,
       category: "sales",
@@ -66,9 +68,14 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
       // Convert string date to ISO date format required by the API
       const deadlineDate = new Date(values.deadline + 'T23:59:59');
       
+      // Ensure all required fields are present and properly formatted
       return apiRequest('POST', '/api/goals', {
-        ...values,
+        title: values.title,
+        targetAmount: parseInt(values.targetAmount.toString()), // Ensure it's an integer
+        currentAmount: parseInt(values.currentAmount.toString()), // Ensure it's an integer
         deadline: deadlineDate.toISOString(),
+        category: values.category,
+        userId: user?.id // Explicitly include userId
       });
     },
     onSuccess: () => {
@@ -91,8 +98,9 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
       toast({
         variant: "destructive",
         title: "Failed to create goal",
-        description: error instanceof Error ? error.message : "Please try again",
+        description: error instanceof Error ? error.message : "Please check all fields and try again",
       });
+      console.error("Goal creation error:", error);
     },
   });
   
@@ -138,10 +146,10 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
               <FormItem>
                 <FormLabel>Target Amount</FormLabel>
                 <FormControl>
-                  <Input type="number" min="1" {...field} />
+                  <Input type="number" min="1" step="1" {...field} />
                 </FormControl>
                 <FormDescription>
-                  The numerical target you aim to achieve
+                  The numerical target you aim to achieve (whole number)
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -155,10 +163,10 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
               <FormItem>
                 <FormLabel>Current Amount</FormLabel>
                 <FormControl>
-                  <Input type="number" min="0" {...field} />
+                  <Input type="number" min="0" step="1" {...field} />
                 </FormControl>
                 <FormDescription>
-                  Your current progress toward the goal
+                  Your current progress toward the goal (whole number)
                 </FormDescription>
                 <FormMessage />
               </FormItem>
