@@ -15,9 +15,10 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
+import { BarChart3, Calendar } from "lucide-react";
 
 interface SalesMetrics {
   newAccountsTarget: number;
@@ -136,8 +137,8 @@ export default function ProgressTracking() {
             <div className="absolute top-0 left-0 w-full h-1 bg-primary/80"></div>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-foreground">Field Trips</h3>
-              <Badge variant={tripsPercentage >= 90 ? "success" : tripsPercentage >= 70 ? "default" : "secondary"} 
-                className="font-medium">
+              <Badge variant={tripsPercentage >= 90 ? "default" : tripsPercentage >= 70 ? "default" : "secondary"} 
+                className={cn("font-medium", tripsPercentage >= 90 ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100" : "")}>
                 {tripsPercentage}%
               </Badge>
             </div>
@@ -168,8 +169,8 @@ export default function ProgressTracking() {
             <div className="absolute top-0 left-0 w-full h-1 bg-primary/80"></div>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-foreground">CRM Updated</h3>
-              <Badge variant={crmPercentage >= 90 ? "success" : crmPercentage >= 70 ? "default" : "secondary"} 
-                className="font-medium">
+              <Badge variant={crmPercentage >= 90 ? "default" : crmPercentage >= 70 ? "default" : "secondary"} 
+                className={cn("font-medium", crmPercentage >= 90 ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100" : "")}>
                 {crmPercentage}%
               </Badge>
             </div>
@@ -200,8 +201,8 @@ export default function ProgressTracking() {
             <div className="absolute top-0 left-0 w-full h-1 bg-primary/80"></div>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-foreground">Client Meetings</h3>
-              <Badge variant={meetingsPercentage >= 90 ? "success" : meetingsPercentage >= 70 ? "default" : "secondary"} 
-                className="font-medium">
+              <Badge variant={meetingsPercentage >= 90 ? "default" : meetingsPercentage >= 70 ? "default" : "secondary"} 
+                className={cn("font-medium", meetingsPercentage >= 90 ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100" : "")}>
                 {meetingsPercentage}%
               </Badge>
             </div>
@@ -248,7 +249,7 @@ export default function ProgressTracking() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" />
                 <YAxis stroke="var(--muted-foreground)" />
-                <Tooltip 
+                <RechartsTooltip 
                   contentStyle={{
                     backgroundColor: 'var(--background)',
                     border: '1px solid var(--border)',

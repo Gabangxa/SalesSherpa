@@ -86,8 +86,8 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
   const userInitials = getUserInitials(userName || "Jordan Doe");
   
   return (
-    <div className="bg-card rounded-xl shadow-xl border border-border overflow-hidden">
-      <div className="border-b border-border px-5 py-3 flex items-center justify-between bg-gradient-to-r from-primary/90 to-primary">
+    <div className="bg-card rounded-xl shadow-lg border border-border/60 overflow-hidden transition-all duration-300 hover:shadow-xl">
+      <div className="border-b border-border/40 px-5 py-3.5 flex items-center justify-between bg-gradient-to-r from-primary/90 to-primary">
         <div className="flex items-center">
           <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center shadow-inner">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -100,101 +100,157 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
           </div>
         </div>
         <div>
-          <button className="text-white/80 hover:text-white transition-colors">
+          <button 
+            className="text-white/80 hover:text-white transition-colors p-2 rounded-md hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20"
+            aria-label="Expand chat"
+          >
             <Maximize2 className="h-5 w-5" />
           </button>
         </div>
       </div>
       
-      <ScrollArea className="p-4 h-80">
+      <ScrollArea className="p-5 h-96">
         {isLoading ? (
-          <div className="flex justify-center items-center h-full">
-            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+          <div className="flex flex-col justify-center items-center h-full gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+            <p className="text-sm text-muted-foreground">Loading conversation...</p>
           </div>
         ) : (
           <>
-            {messages.map((msg) => (
-              <div 
-                key={msg.id} 
-                className={`flex mb-3 ${msg.sender === 'user' ? 'justify-end' : ''}`}
-              >
-                {msg.sender === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-primary/30 flex-shrink-0 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
-                    </svg>
-                  </div>
-                )}
-                
-                <div 
-                  className={`${msg.sender === 'assistant' 
-                    ? 'ml-2 bg-muted rounded-lg py-2 px-3 max-w-[85%] shadow-sm' 
-                    : 'mr-2 bg-gradient-to-br from-primary to-primary/80 rounded-lg py-2 px-3 max-w-[85%] shadow-md'}`}
-                >
-                  <p 
-                    className={msg.sender === 'assistant' 
-                      ? 'text-sm text-foreground leading-relaxed' 
-                      : 'text-sm text-white leading-relaxed'}
-                  >
-                    {msg.message}
-                  </p>
-                  <p 
-                    className={msg.sender === 'assistant' 
-                      ? 'text-[10px] text-muted-foreground mt-1' 
-                      : 'text-[10px] text-white/80 mt-1'}
-                  >
-                    {formatTime(msg.timestamp)}
-                  </p>
-                </div>
-                
-                {msg.sender === 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-secondary flex-shrink-0 flex items-center justify-center shadow-sm">
-                    <span className="text-xs font-medium text-secondary-foreground">{userInitials}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {/* AI thinking indicator */}
-            {waitingForResponse && (
-              <div className="flex mb-3">
-                <div className="w-8 h-8 rounded-full bg-primary/30 flex-shrink-0 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-60 text-center px-6">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
                   </svg>
                 </div>
-                
-                <div className="ml-2 bg-muted rounded-lg py-2 px-3 max-w-[85%] shadow-sm">
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  </div>
+                <h3 className="text-lg font-medium mb-2">Welcome to your Sales Assistant</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Ask questions about sales strategies, meeting preparation, or get advice on achieving your targets.
+                </p>
+                <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
+                  {["How can I improve my close rate?", "Tips for better client meetings", "Help me with follow-up strategies"].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => {
+                        setMessage(suggestion);
+                        setTimeout(() => {
+                          handleSubmit(new Event('click') as any);
+                        }, 100);
+                      }}
+                      className="text-sm px-4 py-2 rounded-lg border border-border hover:bg-muted/80 transition-colors text-left"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
                 </div>
               </div>
+            ) : (
+              <>
+                {messages.map((msg, index) => (
+                  <div 
+                    key={msg.id} 
+                    className={`flex mb-5 ${msg.sender === 'user' ? 'justify-end' : ''} group`}
+                  >
+                    {msg.sender === 'assistant' && (
+                      <div className="w-9 h-9 rounded-full bg-primary/20 flex-shrink-0 flex items-center justify-center ring-2 ring-background">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
+                        </svg>
+                      </div>
+                    )}
+                    
+                    <div 
+                      className={`${msg.sender === 'assistant' 
+                        ? 'ml-3 bg-muted rounded-2xl rounded-tl-none py-3 px-4 max-w-[85%] shadow-sm' 
+                        : 'mr-3 bg-primary rounded-2xl rounded-tr-none py-3 px-4 max-w-[85%] shadow-md'}`}
+                    >
+                      <p 
+                        className={msg.sender === 'assistant' 
+                          ? 'text-sm text-foreground leading-relaxed' 
+                          : 'text-sm text-primary-foreground leading-relaxed'}
+                      >
+                        {msg.message}
+                      </p>
+                      <div className="flex justify-between items-center mt-1.5">
+                        <p 
+                          className={msg.sender === 'assistant' 
+                            ? 'text-[10px] text-muted-foreground' 
+                            : 'text-[10px] text-primary-foreground/80'}
+                        >
+                          {formatTime(msg.timestamp)}
+                        </p>
+                        
+                        {msg.sender === 'assistant' && (
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              className="p-1 text-muted-foreground hover:text-foreground"
+                              aria-label="Copy message"
+                              onClick={() => {
+                                navigator.clipboard.writeText(msg.message);
+                                // Could add toast here
+                              }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {msg.sender === 'user' && (
+                      <div className="w-9 h-9 rounded-full bg-secondary flex-shrink-0 flex items-center justify-center ring-2 ring-background">
+                        <span className="text-xs font-medium text-secondary-foreground">{userInitials}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {/* AI thinking indicator */}
+                {waitingForResponse && (
+                  <div className="flex mb-5">
+                    <div className="w-9 h-9 rounded-full bg-primary/20 flex-shrink-0 flex items-center justify-center ring-2 ring-background">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
+                      </svg>
+                    </div>
+                    
+                    <div className="ml-3 bg-muted rounded-2xl rounded-tl-none py-3 px-4 max-w-[85%] shadow-sm min-w-[80px]">
+                      <div className="flex items-center space-x-1.5">
+                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '600ms' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
         <div ref={messagesEndRef} />
       </ScrollArea>
       
-      <div className="px-4 py-3 border-t border-border bg-muted/50">
+      <div className="px-5 py-4 border-t border-border/40 bg-card">
         <form className="flex items-center" onSubmit={handleSubmit}>
           <Input 
             type="text" 
-            placeholder="Type your message..." 
-            className="flex-1 border-0 focus-visible:ring-1 focus-visible:ring-primary text-sm bg-background"
+            placeholder="Ask your sales assistant..."
+            className="flex-1 border border-border/60 focus-visible:ring-1 focus-visible:ring-primary text-sm rounded-lg py-2.5"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             disabled={sendMessage.isPending}
           />
           <Button 
             type="submit" 
-            size="sm" 
-            className="ml-2 h-9 w-9 p-0 rounded-full bg-primary hover:bg-primary/90" 
-            disabled={sendMessage.isPending}
+            size="default" 
+            className="ml-2 h-10 px-4 bg-primary hover:bg-primary/90 text-white flex items-center gap-1.5" 
+            disabled={sendMessage.isPending || message.trim() === ''}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span>Send</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </Button>
