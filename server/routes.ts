@@ -317,7 +317,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               timestamp: new Date()
             });
           } catch (error) {
-            console.error("Error generating AI response:", error);
+            log(`Error generating AI response: ${error instanceof Error ? error.message : 'Unknown error'}`, "chat");
+            log(`Error stack: ${error instanceof Error ? error.stack : 'No stack trace'}`, "chat");
+            
             // Save a fallback response if AI generation fails
             await storage.createChatMessage({
               userId: req.body.userId,
