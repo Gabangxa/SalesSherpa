@@ -264,7 +264,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertTimeOffSchema.parse({
         ...req.body,
-        userId: req.body.userId
+        userId: req.body.userId,
+        startDate: new Date(req.body.startDate),
+        endDate: new Date(req.body.endDate)
       });
       
       const timeOff = await storage.createTimeOff(validatedData);
