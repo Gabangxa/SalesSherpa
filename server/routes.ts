@@ -291,8 +291,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const recentMessages = await storage.getChatMessages(req.body.userId);
         
         // Create an AI response in the background
+        log(`Starting AI response generation for user ${req.body.userId}`, "chat");
         setTimeout(async () => {
           try {
+            log(`Fetching goals and tasks for user ${req.body.userId}`, "chat");
+            
             // Fetch user's current goals and tasks for context
             const userGoals = await storage.getGoals(req.body.userId);
             const userTasks = await storage.getTasks(req.body.userId);
