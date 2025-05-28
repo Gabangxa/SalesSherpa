@@ -38,6 +38,10 @@ export async function generateAIResponse(
         ).join('\n')}`
       : '\n\nNo active tasks.';
 
+    // Debug log the context being sent to AI
+    console.log("AI Goals Context:", goalsContext);
+    console.log("AI Tasks Context:", tasksContext);
+
     // Create the conversation history for context
     const messages = [
       {
@@ -72,10 +76,12 @@ Only recommend these five specific sales books if relevant:
 4. Never Split the Difference 
 5. The New Strategic Selling
 
-IMPORTANT: You have access to the user's current goals and tasks. Reference these when providing guidance to make your coaching more targeted and effective.
+CRITICAL INSTRUCTION: You MUST reference the user's specific goals and tasks in your response. When they ask about goals, list their actual goals by name with current progress. DO NOT give generic advice.
 
 ${goalsContext}
 ${tasksContext}
+
+When responding about goals, always mention specific goal titles, progress numbers, and deadlines from the data above. Be specific and personal in your coaching.
 
 Maintain a professional tone that balances friendliness with authority.`
       },
