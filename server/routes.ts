@@ -290,9 +290,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get recent conversation history for context
         const recentMessages = await storage.getChatMessages(req.body.userId);
         
-        // Create an AI response in the background
+        // Create an AI response immediately (not in background)
         log(`Starting AI response generation for user ${req.body.userId}`, "chat");
-        setTimeout(async () => {
+        
+        // Execute immediately instead of using setTimeout
+        (async () => {
           try {
             log(`Fetching goals and tasks for user ${req.body.userId}`, "chat");
             
@@ -331,7 +333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               timestamp: new Date()
             });
           }
-        }, 100); // Reduced delay for better user experience
+        })(); // Execute immediately
       }
       
       return res.status(201).json(message);
