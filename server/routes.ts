@@ -308,6 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Execute immediately with detailed step logging
         (async () => {
+          log(`ASYNC FUNCTION STARTED for user ${req.body.userId}`, "chat");
           try {
             log(`=== STEP 1: AI PROCESS START for user ${req.body.userId} ===`, "chat");
             log(`STEP 1a: User message received: "${validatedData.message}"`, "chat");
