@@ -297,6 +297,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const userGoals = await storage.getGoals(req.body.userId);
             const userTasks = await storage.getTasks(req.body.userId);
             
+            // Debug: Log the data being passed to AI
+            log(`AI Context - Goals: ${JSON.stringify(userGoals)}`, "chat");
+            log(`AI Context - Tasks: ${JSON.stringify(userTasks)}`, "chat");
+            
             // Generate AI response using OpenAI API with goals and tasks context
             const aiResponse = await generateAIResponse(
               validatedData.message, 
