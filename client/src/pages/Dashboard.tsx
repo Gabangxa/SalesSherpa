@@ -19,12 +19,11 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-[#7f1d1d00]">
       {/* Welcome header with improved styling */}
       <div className="mb-8">
         <WelcomeSection name={user?.name || "Jordan"} />
       </div>
-      
       {/* Main content area with improved grid layout and spacing */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left column - Sales Assistant & Check-ins (takes 2/3 on large screens) */}
