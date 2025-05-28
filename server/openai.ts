@@ -16,6 +16,14 @@ const userContextCache = new Map<number, { goals: any[], tasks: any[], lastUpdat
  */
 export async function initializeUserCache(userId: number, storage: any) {
   try {
+    // Check if cache already exists and is recent
+    const existing = userContextCache.get(userId);
+    if (existing && (Date.now() - existing.lastUpdated < 60000)) { // 1 minute cache
+      console.log(`Cache already fresh for user ${userId}`);
+      return;
+    }
+
+    console.log(`Fetching fresh data for user ${userId}...`);
     const goals = await storage.getGoals(userId);
     const tasks = await storage.getTasks(userId);
     
@@ -25,7 +33,11 @@ export async function initializeUserCache(userId: number, storage: any) {
       lastUpdated: Date.now()
     });
     
-    console.log(`Initialized cache for user ${userId} with ${goals.length} goals and ${tasks.length} tasks`);
+    console.log(`CACHE INITIALIZED for user ${userId}:`);
+    console.log(`- Goals: ${goals.length} items`);
+    goals.forEach(goal => console.log(`  * ${goal.title}: ${goal.currentAmount}/${goal.targetAmount}`));
+    console.log(`- Tasks: ${tasks.length} items`);
+    
   } catch (error) {
     console.error(`Failed to initialize cache for user ${userId}:`, error);
   }
@@ -89,10 +101,11 @@ export function updateTaskInCache(userId: number, task: any, operation: 'add' | 
 function getUserContext(userId: number) {
   const cached = userContextCache.get(userId);
   if (!cached) {
-    console.log(`No cache found for user ${userId}, returning empty context`);
+    console.log(`ERROR: No cache found for user ${userId}, returning empty context`);
     return { goals: [], tasks: [] };
   }
   
+  console.log(`Retrieved cache for user ${userId}: ${cached.goals.length} goals, ${cached.tasks.length} tasks`);
   return { goals: cached.goals, tasks: cached.tasks };
 }
 
