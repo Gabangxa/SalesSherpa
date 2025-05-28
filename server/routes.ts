@@ -303,54 +303,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get recent conversation history for context
         const recentMessages = await storage.getChatMessages(req.body.userId);
         
-        // Create an AI response immediately (not in background)
-        log(`Starting AI response generation for user ${req.body.userId}`, "chat");
+        log(`Processing user message for AI response - userId: ${req.body.userId}`, "chat");
         
-        // Execute immediately with detailed step logging
-        (async () => {
-          log(`ASYNC FUNCTION STARTED for user ${req.body.userId}`, "chat");
-          try {
-            log(`=== STEP 1: AI PROCESS START for user ${req.body.userId} ===`, "chat");
-            log(`STEP 1a: User message received: "${validatedData.message}"`, "chat");
-            
-            log(`=== STEP 2: CACHE INITIALIZATION ===`, "chat");
-            await initializeUserCache(req.body.userId, storage);
-            log(`STEP 2 COMPLETE: Cache initialization finished`, "chat");
-            
-            log(`=== STEP 3: GENERATING AI RESPONSE ===`, "chat");
-            log(`STEP 3a: Calling generateAIResponse with userId ${req.body.userId}`, "chat");
-            const aiResponse = await generateAIResponse(
-              validatedData.message, 
-              recentMessages.slice(-10), // Only use last 10 messages for context
-              req.body.userId
-            );
-            log(`STEP 3 COMPLETE: AI response generated (${aiResponse.length} chars): "${aiResponse.substring(0, 100)}..."`, "chat");
-            
-            log(`=== STEP 4: SAVING AI RESPONSE ===`, "chat");
-            const savedMessage = await storage.createChatMessage({
-              userId: req.body.userId,
-              message: aiResponse,
-              sender: 'assistant',
-              timestamp: new Date()
-            });
-            log(`STEP 4 COMPLETE: AI response saved with ID ${savedMessage.id}`, "chat");
-            log(`=== AI PROCESS COMPLETE ===`, "chat");
-            
-          } catch (error) {
-            log(`=== ERROR IN AI PROCESS ===`, "chat");
-            log(`Error type: ${error instanceof Error ? error.name : 'Unknown'}`, "chat");
-            log(`Error message: ${error instanceof Error ? error.message : 'Unknown error'}`, "chat");
-            log(`Error stack: ${error instanceof Error ? error.stack : 'No stack trace'}`, "chat");
-            
-            // Save a fallback response if AI generation fails
-            await storage.createChatMessage({
-              userId: req.body.userId,
-              message: "I encountered an issue processing your request. Could you please try again?",
-              sender: 'assistant',
-              timestamp: new Date()
-            });
-          }
-        })(); // Execute immediately
+        // Initialize cache and generate response synchronously to ensure proper data flow
+        try {
+          // Step 1: Ensure cache is populated with current user data
+          await initializeUserCache(req.body.userId, storage);
+          
+          // Step 2: Generate AI response with cached context
+          const aiResponse = await generateAIResponse(
+            validatedData.message, 
+            recentMessages.slice(-10),
+            req.body.userId
+          );
+          
+          // Step 3: Save AI response
+          const savedAIMessage = await storage.createChatMessage({
+            userId: req.body.userId,
+            message: aiResponse,
+            sender: 'assistant',
+            timestamp: new Date()
+          });
+          
+          log(`AI response saved successfully with ID: ${savedAIMessage.id}`, "chat");
+          
+        } catch (error) {
+          log(`AI processing error: ${error instanceof Error ? error.message : 'Unknown error'}`, "chat");
+          
+          // Save fallback response
+          await storage.createChatMessage({
+            userId: req.body.userId,
+            message: "I'm experiencing technical difficulties accessing your goals data. Please try again.",
+            sender: 'assistant',
+            timestamp: new Date()
+          });
+        }
       }
       
       return res.status(201).json(message);
