@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { setupAuth } from "./auth";
-import { generateAIResponse, updateUserContext } from "./openai";
+import { generateAIResponse, initializeUserCache, updateGoalInCache, updateTaskInCache } from "./openai";
 import { WebSocketServer, WebSocket } from 'ws';
 import { log } from "./vite";
 import { 
@@ -72,10 +72,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const goal = await storage.createGoal(validatedData);
       
-      // Update AI context cache with fresh goals and tasks
-      const updatedGoals = await storage.getGoals(validatedData.userId);
-      const userTasks = await storage.getTasks(validatedData.userId);
-      updateUserContext(validatedData.userId, updatedGoals, userTasks);
+      // Update AI cache with just this new goal (differential update)
+      updateGoalInCache(validatedData.userId, goal, 'add');
       
       return res.status(201).json(goal);
     } catch (error) {
@@ -103,6 +101,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const updatedGoal = await storage.updateGoal(goalId, req.body);
+      
+      // Update AI cache with just this updated goal (differential update)
+      if (updatedGoal) {
+        updateGoalInCache(req.body.userId, updatedGoal, 'update');
+      }
+      
       return res.status(200).json(updatedGoal);
     } catch (error) {
       return res.status(500).json({ message: "Server error" });
@@ -121,6 +125,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (goal.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
+      
+      // Update AI cache to remove this deleted goal (differential update)
+      updateGoalInCache(req.body.userId, goal, 'delete');
       
       await storage.deleteGoal(goalId);
       return res.status(204).send();
@@ -304,14 +311,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             log(`Ensuring user context is cached for user ${req.body.userId}`, "chat");
             
-            // Ensure user context is cached - fetch if not available
-            const userGoals = await storage.getGoals(req.body.userId);
-            const userTasks = await storage.getTasks(req.body.userId);
-            updateUserContext(req.body.userId, userGoals, userTasks);
+            // Initialize user cache if not already cached
+            await initializeUserCache(req.body.userId, storage);
             
-            // Debug: Log the data being passed to AI
-            log(`AI Context - Goals: ${JSON.stringify(userGoals)}`, "chat");
-            log(`AI Context - Tasks: ${JSON.stringify(userTasks)}`, "chat");
+            // Debug: Log that cache initialization is complete
+            log(`AI Context cache initialized for user ${req.body.userId}`, "chat");
             
             // Generate AI response using OpenAI API with user ID for cached context
             const aiResponse = await generateAIResponse(

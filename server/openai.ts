@@ -12,33 +12,88 @@ const AI_MODEL = "gpt-4o";
 const userContextCache = new Map<number, { goals: any[], tasks: any[], lastUpdated: number }>();
 
 /**
- * Update the cached context for a user
+ * Initialize cache with existing user data from storage
  */
-export function updateUserContext(userId: number, goals: any[], tasks: any[]) {
-  userContextCache.set(userId, {
-    goals,
-    tasks,
-    lastUpdated: Date.now()
-  });
+export async function initializeUserCache(userId: number, storage: any) {
+  try {
+    const goals = await storage.getGoals(userId);
+    const tasks = await storage.getTasks(userId);
+    
+    userContextCache.set(userId, {
+      goals,
+      tasks,
+      lastUpdated: Date.now()
+    });
+    
+    console.log(`Initialized cache for user ${userId} with ${goals.length} goals and ${tasks.length} tasks`);
+  } catch (error) {
+    console.error(`Failed to initialize cache for user ${userId}:`, error);
+  }
 }
 
 /**
- * Get cached context for a user, or return empty if not available
+ * Update specific goal in cache (differential update)
+ */
+export function updateGoalInCache(userId: number, goal: any, operation: 'add' | 'update' | 'delete') {
+  const cached = userContextCache.get(userId);
+  if (!cached) return;
+
+  switch (operation) {
+    case 'add':
+      cached.goals.push(goal);
+      break;
+    case 'update':
+      const updateIndex = cached.goals.findIndex(g => g.id === goal.id);
+      if (updateIndex !== -1) {
+        cached.goals[updateIndex] = goal;
+      }
+      break;
+    case 'delete':
+      cached.goals = cached.goals.filter(g => g.id !== goal.id);
+      break;
+  }
+  
+  cached.lastUpdated = Date.now();
+  console.log(`Updated cache for user ${userId}: ${operation} goal "${goal.title}"`);
+}
+
+/**
+ * Update specific task in cache (differential update)
+ */
+export function updateTaskInCache(userId: number, task: any, operation: 'add' | 'update' | 'delete') {
+  const cached = userContextCache.get(userId);
+  if (!cached) return;
+
+  switch (operation) {
+    case 'add':
+      cached.tasks.push(task);
+      break;
+    case 'update':
+      const updateIndex = cached.tasks.findIndex(t => t.id === task.id);
+      if (updateIndex !== -1) {
+        cached.tasks[updateIndex] = task;
+      }
+      break;
+    case 'delete':
+      cached.tasks = cached.tasks.filter(t => t.id !== task.id);
+      break;
+  }
+  
+  cached.lastUpdated = Date.now();
+  console.log(`Updated cache for user ${userId}: ${operation} task "${task.title}"`);
+}
+
+/**
+ * Get cached context for a user, initialize if not available
  */
 function getUserContext(userId: number) {
   const cached = userContextCache.get(userId);
   if (!cached) {
+    console.log(`No cache found for user ${userId}, returning empty context`);
     return { goals: [], tasks: [] };
   }
   
-  // Return cached data if it's less than 5 minutes old
-  if (Date.now() - cached.lastUpdated < 5 * 60 * 1000) {
-    return { goals: cached.goals, tasks: cached.tasks };
-  }
-  
-  // Clear old cache
-  userContextCache.delete(userId);
-  return { goals: [], tasks: [] };
+  return { goals: cached.goals, tasks: cached.tasks };
 }
 
 /**
