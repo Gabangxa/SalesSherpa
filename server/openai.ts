@@ -194,8 +194,25 @@ Maintain a professional tone that balances friendliness with authority.`
 
     return response.choices[0].message.content || "I'm not sure how to respond to that. Could you provide more context?";
   } catch (error) {
-    console.error("OpenAI API error:", error);
+    console.error("OPENAI ERROR DETAILS:", {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack',
+      name: error instanceof Error ? error.name : 'No name',
+      fullError: error
+    });
+    
+    // Check for specific API issues
+    if (error instanceof Error) {
+      if (error.message.includes('API key')) {
+        console.error("API KEY ISSUE: Invalid or missing OpenAI API key");
+      } else if (error.message.includes('rate limit')) {
+        console.error("RATE LIMIT: OpenAI API rate limit exceeded");
+      } else if (error.message.includes('quota')) {
+        console.error("QUOTA EXCEEDED: OpenAI API quota exceeded");
+      }
+    }
+    
     // Fallback to a generic response if the API call fails
-    return "I'm experiencing some technical difficulties. Please try again later or contact support if the issue persists.";
+    return "I'm experiencing some technical difficulties with my AI system. Please try again later or contact support if the issue persists.";
   }
 }
