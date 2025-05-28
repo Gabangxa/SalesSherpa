@@ -293,10 +293,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create an AI response in the background
         setTimeout(async () => {
           try {
-            // Generate AI response using OpenAI API
+            // Fetch user's current goals and tasks for context
+            const userGoals = await storage.getGoals(req.body.userId);
+            const userTasks = await storage.getTasks(req.body.userId);
+            
+            // Generate AI response using OpenAI API with goals and tasks context
             const aiResponse = await generateAIResponse(
               validatedData.message, 
-              recentMessages.slice(-10) // Only use last 10 messages for context
+              recentMessages.slice(-10), // Only use last 10 messages for context
+              userGoals,
+              userTasks
             );
             
             // Save the AI response

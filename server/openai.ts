@@ -13,10 +13,31 @@ const AI_MODEL = "gpt-4o";
  * 
  * @param userMessage - The message from the user
  * @param conversation - Previous messages for context
+ * @param userGoals - Current user goals for context
+ * @param userTasks - Current user tasks for context
  * @returns The AI-generated response
  */
-export async function generateAIResponse(userMessage: string, conversation: any[] = []): Promise<string> {
+export async function generateAIResponse(
+  userMessage: string, 
+  conversation: any[] = [], 
+  userGoals: any[] = [],
+  userTasks: any[] = []
+): Promise<string> {
   try {
+    // Build goals context
+    const goalsContext = userGoals.length > 0 
+      ? `\n\nCURRENT GOALS:\n${userGoals.map(goal => 
+          `- ${goal.title} (Progress: ${goal.currentAmount}/${goal.targetAmount}, Category: ${goal.category}, Deadline: ${new Date(goal.deadline).toLocaleDateString()})`
+        ).join('\n')}`
+      : '\n\nNo active goals set.';
+
+    // Build tasks context  
+    const tasksContext = userTasks.length > 0
+      ? `\n\nCURRENT TASKS:\n${userTasks.map(task => 
+          `- ${task.title} (${task.completed ? 'Completed' : 'Pending'}, Priority: ${task.priority})`
+        ).join('\n')}`
+      : '\n\nNo active tasks.';
+
     // Create the conversation history for context
     const messages = [
       {
@@ -41,6 +62,7 @@ COACHING STYLE:
 - Balance strategic guidance with tactical implementation
 - Emphasize relationship building with financial stakeholders
 - Acknowledge the entrepreneurial mindset of fintech professionals
+- Use their current goals and tasks to provide personalized guidance
 
 RECOMMENDED RESOURCES:
 Only recommend these five specific sales books if relevant:
@@ -49,6 +71,11 @@ Only recommend these five specific sales books if relevant:
 3. The Psychology of Selling
 4. Never Split the Difference 
 5. The New Strategic Selling
+
+IMPORTANT: You have access to the user's current goals and tasks. Reference these when providing guidance to make your coaching more targeted and effective.
+
+${goalsContext}
+${tasksContext}
 
 Maintain a professional tone that balances friendliness with authority.`
       },
