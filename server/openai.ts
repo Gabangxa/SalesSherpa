@@ -8,22 +8,56 @@ const openai = new OpenAI({
 // The newest OpenAI model is "gpt-4o" which was released May 13, 2024. Do not change this unless explicitly requested by the user
 const AI_MODEL = "gpt-4o";
 
+// Cache for user goals and tasks to avoid repeated database calls
+const userContextCache = new Map<number, { goals: any[], tasks: any[], lastUpdated: number }>();
+
+/**
+ * Update the cached context for a user
+ */
+export function updateUserContext(userId: number, goals: any[], tasks: any[]) {
+  userContextCache.set(userId, {
+    goals,
+    tasks,
+    lastUpdated: Date.now()
+  });
+}
+
+/**
+ * Get cached context for a user, or return empty if not available
+ */
+function getUserContext(userId: number) {
+  const cached = userContextCache.get(userId);
+  if (!cached) {
+    return { goals: [], tasks: [] };
+  }
+  
+  // Return cached data if it's less than 5 minutes old
+  if (Date.now() - cached.lastUpdated < 5 * 60 * 1000) {
+    return { goals: cached.goals, tasks: cached.tasks };
+  }
+  
+  // Clear old cache
+  userContextCache.delete(userId);
+  return { goals: [], tasks: [] };
+}
+
 /**
  * Generate a response from the AI sales coach
  * 
  * @param userMessage - The message from the user
  * @param conversation - Previous messages for context
- * @param userGoals - Current user goals for context
- * @param userTasks - Current user tasks for context
+ * @param userId - User ID to get cached goals and tasks
  * @returns The AI-generated response
  */
 export async function generateAIResponse(
   userMessage: string, 
   conversation: any[] = [], 
-  userGoals: any[] = [],
-  userTasks: any[] = []
+  userId: number
 ): Promise<string> {
   try {
+    // Get cached user context
+    const { goals: userGoals, tasks: userTasks } = getUserContext(userId);
+    
     // Build goals context
     const goalsContext = userGoals.length > 0 
       ? `\n\nCURRENT GOALS:\n${userGoals.map(goal => 

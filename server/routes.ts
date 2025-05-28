@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { setupAuth } from "./auth";
-import { generateAIResponse } from "./openai";
+import { generateAIResponse, updateUserContext } from "./openai";
 import { WebSocketServer, WebSocket } from 'ws';
 import { log } from "./vite";
 import { 
@@ -71,6 +71,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       log(`Creating goal with data: ${JSON.stringify(validatedData)}`, "goals");
       
       const goal = await storage.createGoal(validatedData);
+      
+      // Update AI context cache with fresh goals and tasks
+      const updatedGoals = await storage.getGoals(validatedData.userId);
+      const userTasks = await storage.getTasks(validatedData.userId);
+      updateUserContext(validatedData.userId, updatedGoals, userTasks);
+      
       return res.status(201).json(goal);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -296,22 +302,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Execute immediately instead of using setTimeout
         (async () => {
           try {
-            log(`Fetching goals and tasks for user ${req.body.userId}`, "chat");
+            log(`Ensuring user context is cached for user ${req.body.userId}`, "chat");
             
-            // Fetch user's current goals and tasks for context
+            // Ensure user context is cached - fetch if not available
             const userGoals = await storage.getGoals(req.body.userId);
             const userTasks = await storage.getTasks(req.body.userId);
+            updateUserContext(req.body.userId, userGoals, userTasks);
             
             // Debug: Log the data being passed to AI
             log(`AI Context - Goals: ${JSON.stringify(userGoals)}`, "chat");
             log(`AI Context - Tasks: ${JSON.stringify(userTasks)}`, "chat");
             
-            // Generate AI response using OpenAI API with goals and tasks context
+            // Generate AI response using OpenAI API with user ID for cached context
             const aiResponse = await generateAIResponse(
               validatedData.message, 
               recentMessages.slice(-10), // Only use last 10 messages for context
-              userGoals,
-              userTasks
+              req.body.userId
             );
             
             // Save the AI response
