@@ -306,33 +306,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create an AI response immediately (not in background)
         log(`Starting AI response generation for user ${req.body.userId}`, "chat");
         
-        // Execute immediately instead of using setTimeout
+        // Execute immediately with detailed step logging
         (async () => {
           try {
-            log(`Ensuring user context is cached for user ${req.body.userId}`, "chat");
+            log(`=== STEP 1: AI PROCESS START for user ${req.body.userId} ===`, "chat");
+            log(`STEP 1a: User message received: "${validatedData.message}"`, "chat");
             
-            // Initialize user cache if not already cached
+            log(`=== STEP 2: CACHE INITIALIZATION ===`, "chat");
             await initializeUserCache(req.body.userId, storage);
+            log(`STEP 2 COMPLETE: Cache initialization finished`, "chat");
             
-            // Debug: Log that cache initialization is complete
-            log(`AI Context cache initialized for user ${req.body.userId}`, "chat");
-            
-            // Generate AI response using OpenAI API with user ID for cached context
+            log(`=== STEP 3: GENERATING AI RESPONSE ===`, "chat");
+            log(`STEP 3a: Calling generateAIResponse with userId ${req.body.userId}`, "chat");
             const aiResponse = await generateAIResponse(
               validatedData.message, 
               recentMessages.slice(-10), // Only use last 10 messages for context
               req.body.userId
             );
+            log(`STEP 3 COMPLETE: AI response generated (${aiResponse.length} chars): "${aiResponse.substring(0, 100)}..."`, "chat");
             
-            // Save the AI response
-            await storage.createChatMessage({
+            log(`=== STEP 4: SAVING AI RESPONSE ===`, "chat");
+            const savedMessage = await storage.createChatMessage({
               userId: req.body.userId,
               message: aiResponse,
               sender: 'assistant',
               timestamp: new Date()
             });
+            log(`STEP 4 COMPLETE: AI response saved with ID ${savedMessage.id}`, "chat");
+            log(`=== AI PROCESS COMPLETE ===`, "chat");
+            
           } catch (error) {
-            log(`Error generating AI response: ${error instanceof Error ? error.message : 'Unknown error'}`, "chat");
+            log(`=== ERROR IN AI PROCESS ===`, "chat");
+            log(`Error type: ${error instanceof Error ? error.name : 'Unknown'}`, "chat");
+            log(`Error message: ${error instanceof Error ? error.message : 'Unknown error'}`, "chat");
             log(`Error stack: ${error instanceof Error ? error.stack : 'No stack trace'}`, "chat");
             
             // Save a fallback response if AI generation fails

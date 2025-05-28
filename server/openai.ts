@@ -123,26 +123,31 @@ export async function generateAIResponse(
   userId: number
 ): Promise<string> {
   try {
+    console.log(`=== AI RESPONSE GENERATION START ===`);
+    console.log(`AI Step A: Getting cached context for user ${userId}`);
+    
     // Get cached user context
     const { goals: userGoals, tasks: userTasks } = getUserContext(userId);
     
+    console.log(`AI Step B: Retrieved ${userGoals.length} goals and ${userTasks.length} tasks from cache`);
+    
     // Build goals context
     const goalsContext = userGoals.length > 0 
-      ? `\n\nCURRENT GOALS:\n${userGoals.map(goal => 
+      ? `\n\nCURRENT GOALS:\n${userGoals.map((goal: any) => 
           `- ${goal.title} (Progress: ${goal.currentAmount}/${goal.targetAmount}, Category: ${goal.category}, Deadline: ${new Date(goal.deadline).toLocaleDateString()})`
         ).join('\n')}`
       : '\n\nNo active goals set.';
 
     // Build tasks context  
     const tasksContext = userTasks.length > 0
-      ? `\n\nCURRENT TASKS:\n${userTasks.map(task => 
+      ? `\n\nCURRENT TASKS:\n${userTasks.map((task: any) => 
           `- ${task.title} (${task.completed ? 'Completed' : 'Pending'}, Priority: ${task.priority})`
         ).join('\n')}`
       : '\n\nNo active tasks.';
 
-    // Debug log the context being sent to AI
-    console.log("AI Goals Context:", goalsContext);
-    console.log("AI Tasks Context:", tasksContext);
+    console.log(`AI Step C: Built context strings:`);
+    console.log(`Goals context: ${goalsContext}`);
+    console.log(`Tasks context: ${tasksContext}`);
 
     // Create the conversation history for context
     const messages = [
@@ -197,6 +202,9 @@ Maintain a professional tone that balances friendliness with authority.`
       }
     ];
 
+    console.log(`AI Step D: Calling OpenAI API with model ${AI_MODEL}`);
+    console.log(`AI Step D1: System prompt includes ${goalsContext.length + tasksContext.length} chars of context`);
+    
     // Generate a response from OpenAI
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
@@ -205,7 +213,10 @@ Maintain a professional tone that balances friendliness with authority.`
       max_tokens: 200,
     });
 
-    return response.choices[0].message.content || "I'm not sure how to respond to that. Could you provide more context?";
+    const aiResponseText = response.choices[0].message.content || "I'm not sure how to respond to that. Could you provide more context?";
+    console.log(`AI Step E: OpenAI returned response (${aiResponseText.length} chars): "${aiResponseText.substring(0, 100)}..."`);
+    
+    return aiResponseText;
   } catch (error) {
     console.error("OPENAI ERROR DETAILS:", {
       message: error instanceof Error ? error.message : 'Unknown error',
