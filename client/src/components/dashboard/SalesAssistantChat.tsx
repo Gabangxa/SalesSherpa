@@ -86,17 +86,17 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
   const userInitials = getUserInitials(userName || "Jordan Doe");
   
   return (
-    <div className="bg-card rounded-xl shadow-lg border border-border/60 overflow-hidden transition-all duration-300 hover:shadow-xl">
-      <div className="border-b border-border/40 px-5 py-3.5 flex items-center justify-between bg-gradient-to-r from-primary/90 to-primary">
+    <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/10 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-white/20">
+      <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm">
         <div className="flex items-center">
-          <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center shadow-inner">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
             </svg>
           </div>
-          <div className="ml-3">
-            <h2 className="text-base font-semibold text-white">FinSales Assistant</h2>
-            <p className="text-xs text-white/80">Your virtual sales coach</p>
+          <div className="ml-4">
+            <h2 className="text-lg font-bold text-white">Sales Coach</h2>
+            <p className="text-sm text-gray-300 font-medium">AI-powered guidance</p>
           </div>
         </div>
         <div>
@@ -150,25 +150,31 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
                 {messages.map((msg, index) => (
                   <div 
                     key={msg.id} 
-                    className={`flex mb-5 ${msg.sender === 'user' ? 'justify-end' : ''} group`}
+                    className={`flex mb-6 ${msg.sender === 'user' ? 'justify-end' : ''} group`}
                   >
                     {msg.sender === 'assistant' && (
-                      <div className="w-9 h-9 rounded-full bg-primary/20 flex-shrink-0 flex items-center justify-center ring-2 ring-background">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center shadow-lg border border-white/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
                         </svg>
                       </div>
                     )}
                     
+                    {msg.sender === 'user' && (
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-600 to-gray-700 flex-shrink-0 flex items-center justify-center shadow-lg border border-white/10 order-2">
+                        <span className="text-white font-semibold text-sm">{userInitials}</span>
+                      </div>
+                    )}
+                    
                     <div 
                       className={`${msg.sender === 'assistant' 
-                        ? 'ml-3 bg-muted rounded-2xl rounded-tl-none py-3 px-4 max-w-[85%] shadow-sm' 
-                        : 'mr-3 bg-primary rounded-2xl rounded-tr-none py-3 px-4 max-w-[85%] shadow-md'}`}
+                        ? 'ml-4 bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-2xl rounded-tl-md py-4 px-5 max-w-[85%] shadow-xl' 
+                        : 'mr-4 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl rounded-tr-md py-4 px-5 max-w-[85%] shadow-xl border border-blue-500/30'}`}
                     >
                       <p 
                         className={msg.sender === 'assistant' 
-                          ? 'text-sm text-foreground leading-relaxed' 
-                          : 'text-sm text-primary-foreground leading-relaxed'}
+                          ? 'text-sm text-gray-100 leading-relaxed font-medium' 
+                          : 'text-sm text-white leading-relaxed font-medium'}
                       >
                         {msg.message}
                       </p>

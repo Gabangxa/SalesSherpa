@@ -121,33 +121,39 @@ export default function ProgressTracking() {
   const crmPercentage = safeMetrics.crmUpdatePercentage || 0;
 
   return (
-    <Card className="col-span-1 lg:col-span-2 shadow-md overflow-hidden border-border/60">
-      <CardHeader className="bg-muted/30 pb-4">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
+    <Card className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/10 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-white/20">
+      <CardHeader className="bg-gradient-to-r from-emerald-600/20 to-blue-600/20 backdrop-blur-sm border-b border-white/10 pb-6">
+        <CardTitle className="text-xl font-bold flex items-center gap-3 text-white">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center">
+            <BarChart3 className="h-6 w-6 text-white" />
+          </div>
           Performance Tracking
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="p-5">
+      <CardContent className="p-6">
         {/* Responsive grid for metrics cards - stacks on mobile, 3 columns on desktop */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Field Trips - Using consistent primary color styling */}
-          <div className="rounded-lg p-4 border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-full h-1 bg-primary/80"></div>
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-foreground">Field Trips</h3>
-              <Badge variant={tripsPercentage >= 90 ? "default" : tripsPercentage >= 70 ? "default" : "secondary"} 
-                className={cn("font-medium", tripsPercentage >= 90 ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100" : "")}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Field Trips - Using refined styling */}
+          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800/60 to-slate-700/60 backdrop-blur-sm border border-white/10 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-white/20 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-blue-500"></div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-300">Field Trips</h3>
+              <Badge className={cn(
+                "font-bold text-xs px-3 py-1 rounded-full",
+                tripsPercentage >= 90 ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : 
+                tripsPercentage >= 70 ? "bg-blue-500/20 text-blue-300 border-blue-500/30" : 
+                "bg-gray-600/20 text-gray-300 border-gray-500/30"
+              )}>
                 {tripsPercentage}%
               </Badge>
             </div>
-            <div className="mt-2">
-              <p className="text-2xl font-semibold text-foreground group-hover:text-primary transition-colors">
+            <div>
+              <p className="text-3xl font-bold text-white group-hover:text-emerald-300 transition-colors mb-2">
                 {safeMetrics.tripsCurrent}
               </p>
-              <p className="text-sm text-muted-foreground font-medium">
-                Target: <span className="text-foreground font-bold">{safeMetrics.tripsTarget}</span> field trips per month
+              <p className="text-sm text-gray-400 font-medium">
+                Target: <span className="text-gray-200 font-bold">{safeMetrics.tripsTarget}</span> field trips per month
               </p>
             </div>
             <div className="mt-3">
