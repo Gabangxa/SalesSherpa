@@ -32,6 +32,9 @@ const formSchema = z.object({
   currentAmount: z.coerce.number().int("Current amount must be a whole number").min(0, "Current amount must be 0 or greater"),
   deadline: z.string().min(1, "Deadline is required"),
   category: z.string().min(1, "Category is required"),
+  valueType: z.enum(["monetary", "number", "percentage"], {
+    required_error: "Please select a value type",
+  }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -58,6 +61,7 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
       currentAmount: 0,
       deadline: today,
       category: "sales",
+      valueType: "number",
     },
   });
   
@@ -78,7 +82,8 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
         targetAmount: parseInt(values.targetAmount.toString()), // Ensure it's an integer
         currentAmount: parseInt(values.currentAmount.toString()), // Ensure it's an integer
         deadline: deadlineDate, // Send as Date object
-        category: values.category
+        category: values.category,
+        valueType: values.valueType
       });
     },
     onSuccess: () => {
@@ -120,6 +125,38 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
     { value: "revenue", label: "Revenue" },
     { value: "clients", label: "Clients" },
   ];
+
+  // Watch the valueType to update field labels
+  const valueType = form.watch("valueType");
+  
+  const getFieldLabels = (valueType: string) => {
+    switch (valueType) {
+      case 'monetary':
+        return {
+          target: 'Target Amount ($)',
+          current: 'Current Amount ($)',
+          targetDesc: 'The dollar amount you aim to achieve',
+          currentDesc: 'Your current progress in dollars'
+        };
+      case 'percentage':
+        return {
+          target: 'Target Percentage (%)',
+          current: 'Current Percentage (%)',
+          targetDesc: 'The percentage you aim to achieve (e.g., 25 for 25%)',
+          currentDesc: 'Your current percentage progress'
+        };
+      case 'number':
+      default:
+        return {
+          target: 'Target Number',
+          current: 'Current Number',
+          targetDesc: 'The number you aim to achieve (e.g., 10 meetings)',
+          currentDesc: 'Your current count toward the goal'
+        };
+    }
+  };
+
+  const fieldLabels = getFieldLabels(valueType);
   
   return (
     <Form {...form}>
@@ -147,12 +184,12 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
             name="targetAmount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Target Amount</FormLabel>
+                <FormLabel>{fieldLabels.target}</FormLabel>
                 <FormControl>
                   <Input type="number" min="1" step="1" {...field} />
                 </FormControl>
                 <FormDescription>
-                  The numerical target you aim to achieve (whole number)
+                  {fieldLabels.targetDesc}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -164,18 +201,44 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
             name="currentAmount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Current Amount</FormLabel>
+                <FormLabel>{fieldLabels.current}</FormLabel>
                 <FormControl>
                   <Input type="number" min="0" step="1" {...field} />
                 </FormControl>
                 <FormDescription>
-                  Your current progress toward the goal (whole number)
+                  {fieldLabels.currentDesc}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
+        
+        <FormField
+          control={form.control}
+          name="valueType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Value Type</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select value type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="monetary">💰 Monetary (e.g., $50,000)</SelectItem>
+                  <SelectItem value="number">🔢 Number (e.g., 10 meetings)</SelectItem>
+                  <SelectItem value="percentage">📊 Percentage (e.g., 25%)</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                How should the target and progress be measured?
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField

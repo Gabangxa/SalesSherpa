@@ -33,6 +33,7 @@ export const goals = pgTable("goals", {
   currentAmount: integer("current_amount").notNull().default(0),
   deadline: timestamp("deadline").notNull(),
   category: text("category").notNull(),
+  valueType: text("value_type").notNull().default("number"), // "monetary", "number", or "percentage"
 });
 
 // Create base schema
@@ -43,6 +44,7 @@ const baseGoalSchema = createInsertSchema(goals).pick({
   currentAmount: true,
   deadline: true,
   category: true,
+  valueType: true,
 });
 
 // Modified schema with custom deadline validation

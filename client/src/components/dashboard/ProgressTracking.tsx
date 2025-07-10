@@ -21,6 +21,7 @@ interface Goal {
   currentAmount: number;
   deadline: string;
   category: string;
+  valueType: string;
 }
 
 const getBadgeColor = (percentage: number) => {
@@ -56,6 +57,19 @@ export default function ProgressTracking() {
   const { data: goals = [], isLoading } = useQuery<Goal[]>({
     queryKey: ['/api/goals'],
   });
+
+  // Helper function to format values based on type
+  const formatValue = (amount: number, valueType: string) => {
+    switch (valueType) {
+      case 'monetary':
+        return formatCurrency(amount);
+      case 'percentage':
+        return `${amount}%`;
+      case 'number':
+      default:
+        return amount.toString();
+    }
+  };
 
   // Calculate overall progress
   const totalGoals = goals.length;
@@ -141,7 +155,6 @@ export default function ProgressTracking() {
             <div className="space-y-4">
               {goals.slice(0, 3).map((goal) => {
                 const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount);
-                const isMonetary = goal.category === 'revenue' || goal.title.toLowerCase().includes('revenue') || goal.title.toLowerCase().includes('sales');
                 
                 return (
                   <div key={goal.id} className="rounded-xl p-4 bg-gradient-to-br from-slate-800/60 to-slate-700/60 backdrop-blur-sm border border-white/10 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-white/20 relative overflow-hidden">
@@ -160,7 +173,7 @@ export default function ProgressTracking() {
                     <Progress value={percentage} className="h-2 mb-2" />
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <span>
-                        {isMonetary ? formatCurrency(goal.currentAmount) : goal.currentAmount} / {isMonetary ? formatCurrency(goal.targetAmount) : goal.targetAmount}
+                        {formatValue(goal.currentAmount, goal.valueType || 'number')} / {formatValue(goal.targetAmount, goal.valueType || 'number')}
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
