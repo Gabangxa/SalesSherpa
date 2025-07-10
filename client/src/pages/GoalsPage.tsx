@@ -143,7 +143,9 @@ export default function GoalsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {goals.map((goal) => {
-            const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount, goal.startingAmount);
+            // Handle legacy goals without startingAmount field
+            const startingAmount = goal.startingAmount ?? 0;
+            const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount, startingAmount);
             const isNegative = percentage < 0;
             
             return (
@@ -218,17 +220,17 @@ export default function GoalsPage() {
                   <div className="mt-4">
                     <div className="flex justify-between mb-1">
                       <span className="text-sm text-muted-foreground">
-                        {goal.startingAmount > 0 ? "Starting" : "Current"}
+                        {startingAmount > 0 ? "Starting" : "Current"}
                       </span>
                       <span className="text-sm text-muted-foreground">Target</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-lg font-semibold">
-                        {goal.startingAmount > 0 ? (
+                        {startingAmount > 0 ? (
                           <span>
-                            {goal.valueType === 'monetary' ? formatCurrency(goal.startingAmount) : 
-                             goal.valueType === 'percentage' ? `${goal.startingAmount}%` : 
-                             goal.startingAmount} → {goal.valueType === 'monetary' ? formatCurrency(goal.currentAmount) : 
+                            {goal.valueType === 'monetary' ? formatCurrency(startingAmount) : 
+                             goal.valueType === 'percentage' ? `${startingAmount}%` : 
+                             startingAmount} → {goal.valueType === 'monetary' ? formatCurrency(goal.currentAmount) : 
                              goal.valueType === 'percentage' ? `${goal.currentAmount}%` : 
                              goal.currentAmount}
                           </span>

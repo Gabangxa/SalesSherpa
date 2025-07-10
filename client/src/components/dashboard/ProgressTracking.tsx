@@ -75,7 +75,7 @@ export default function ProgressTracking() {
   // Calculate overall progress
   const totalGoals = goals.length;
   const completedGoals = goals.filter(goal => 
-    calculatePercentage(goal.currentAmount, goal.targetAmount, goal.startingAmount) >= 100
+    calculatePercentage(goal.currentAmount, goal.targetAmount, goal.startingAmount ?? 0) >= 100
   ).length;
   const overallProgress = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
@@ -155,7 +155,9 @@ export default function ProgressTracking() {
             {/* Individual Goals */}
             <div className="space-y-4">
               {goals.slice(0, 3).map((goal) => {
-                const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount, goal.startingAmount);
+                // Handle legacy goals without startingAmount field
+                const startingAmount = goal.startingAmount ?? 0;
+                const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount, startingAmount);
                 const isNegative = percentage < 0;
                 
                 return (
@@ -181,8 +183,8 @@ export default function ProgressTracking() {
                     )}
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <span>
-                        {goal.startingAmount > 0 
-                          ? `${formatValue(goal.startingAmount, goal.valueType || 'number')} → ${formatValue(goal.currentAmount, goal.valueType || 'number')} / ${formatValue(goal.targetAmount, goal.valueType || 'number')}`
+                        {startingAmount > 0 
+                          ? `${formatValue(startingAmount, goal.valueType || 'number')} → ${formatValue(goal.currentAmount, goal.valueType || 'number')} / ${formatValue(goal.targetAmount, goal.valueType || 'number')}`
                           : `${formatValue(goal.currentAmount, goal.valueType || 'number')} / ${formatValue(goal.targetAmount, goal.valueType || 'number')}`
                         }
                       </span>
