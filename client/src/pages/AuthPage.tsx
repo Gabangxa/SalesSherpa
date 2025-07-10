@@ -90,9 +90,9 @@ export default function AuthPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              Welcome Back
+              Welcome to Sales Sherpa
             </h2>
-            <p className="text-muted-foreground mt-2">Access your personalized sales coaching dashboard</p>
+            <p className="text-muted-foreground mt-2">Access your sales accountability and guidance platform</p>
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -106,7 +106,7 @@ export default function AuthPage() {
                 <CardHeader>
                   <CardTitle className="text-2xl">Login</CardTitle>
                   <CardDescription className="text-base">
-                    Sign in to access your sales coaching platform
+                    Sign in to access your Sales Sherpa accountability platform
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -184,7 +184,7 @@ export default function AuthPage() {
                 <CardHeader>
                   <CardTitle className="text-2xl">Create an Account</CardTitle>
                   <CardDescription className="text-base">
-                    Join the platform to start tracking your sales progress
+                    Join Sales Sherpa to stay accountable and achieve your sales goals
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -305,9 +305,9 @@ export default function AuthPage() {
         
         <div className="max-w-md relative z-10">
           <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent drop-shadow-sm">
-            Sales Coaching Platform
+            Sales Sherpa
           </h1>
-          <h2 className="text-2xl font-semibold mb-6 text-white/90">Elevate Your Fintech Sales Performance</h2>
+          <h2 className="text-2xl font-semibold mb-6 text-white/90">Accountability & Guidance for Sales Excellence</h2>
           <ul className="space-y-4">
             <li className="flex items-start">
               <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
@@ -331,7 +331,7 @@ export default function AuthPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <div className="text-lg">Strategic guidance from AI sales coach</div>
+              <div className="text-lg">Personalized guidance from Sales Sherpa Assistant</div>
             </li>
             <li className="flex items-start">
               <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
@@ -344,7 +344,7 @@ export default function AuthPage() {
           </ul>
           <div className="mt-10 p-5 rounded-lg bg-white/10 backdrop-blur-sm shadow-xl border border-white/20">
             <p className="text-base">
-              Our platform helps fintech sales professionals stay accountable, track their progress, and receive strategic guidance to maximize their entrepreneurial potential.
+              Sales Sherpa helps fintech sales professionals stay accountable to their goals, track meaningful progress, and receive personalized guidance that requires your active engagement to maximize results.
             </p>
           </div>
         </div>
