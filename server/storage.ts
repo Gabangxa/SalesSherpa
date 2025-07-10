@@ -135,8 +135,10 @@ export class MemStorage implements IStorage {
       title: "Monthly Sales Target",
       targetAmount: 150000,
       currentAmount: 127500,
+      startingAmount: 100000,
       deadline: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
-      category: "revenue"
+      category: "revenue",
+      valueType: "monetary"
     });
     
     this.createGoal({
@@ -144,17 +146,21 @@ export class MemStorage implements IStorage {
       title: "New Accounts",
       targetAmount: 10,
       currentAmount: 7,
+      startingAmount: 0,
       deadline: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
-      category: "accounts"
+      category: "accounts",
+      valueType: "number"
     });
     
     this.createGoal({
       userId,
-      title: "Client Meetings",
-      targetAmount: 30,
-      currentAmount: 28,
+      title: "Increase Client Adoption to 75%",
+      targetAmount: 75,
+      currentAmount: 62,
+      startingAmount: 50,
       deadline: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
-      category: "activities"
+      category: "activities",
+      valueType: "percentage"
     });
     
     // Create demo tasks

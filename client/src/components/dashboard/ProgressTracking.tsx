@@ -19,6 +19,7 @@ interface Goal {
   title: string;
   targetAmount: number;
   currentAmount: number;
+  startingAmount: number;
   deadline: string;
   category: string;
   valueType: string;
@@ -74,7 +75,7 @@ export default function ProgressTracking() {
   // Calculate overall progress
   const totalGoals = goals.length;
   const completedGoals = goals.filter(goal => 
-    calculatePercentage(goal.currentAmount, goal.targetAmount) >= 100
+    calculatePercentage(goal.currentAmount, goal.targetAmount, goal.startingAmount) >= 100
   ).length;
   const overallProgress = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
@@ -154,7 +155,7 @@ export default function ProgressTracking() {
             {/* Individual Goals */}
             <div className="space-y-4">
               {goals.slice(0, 3).map((goal) => {
-                const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount);
+                const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount, goal.startingAmount);
                 
                 return (
                   <div key={goal.id} className="rounded-xl p-4 bg-gradient-to-br from-slate-800/60 to-slate-700/60 backdrop-blur-sm border border-white/10 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-white/20 relative overflow-hidden">
@@ -173,7 +174,10 @@ export default function ProgressTracking() {
                     <Progress value={percentage} className="h-2 mb-2" />
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <span>
-                        {formatValue(goal.currentAmount, goal.valueType || 'number')} / {formatValue(goal.targetAmount, goal.valueType || 'number')}
+                        {goal.startingAmount > 0 
+                          ? `${formatValue(goal.startingAmount, goal.valueType || 'number')} → ${formatValue(goal.currentAmount, goal.valueType || 'number')} / ${formatValue(goal.targetAmount, goal.valueType || 'number')}`
+                          : `${formatValue(goal.currentAmount, goal.valueType || 'number')} / ${formatValue(goal.targetAmount, goal.valueType || 'number')}`
+                        }
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />

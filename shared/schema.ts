@@ -31,6 +31,7 @@ export const goals = pgTable("goals", {
   title: text("title").notNull(),
   targetAmount: integer("target_amount").notNull(),
   currentAmount: integer("current_amount").notNull().default(0),
+  startingAmount: integer("starting_amount").notNull().default(0),
   deadline: timestamp("deadline").notNull(),
   category: text("category").notNull(),
   valueType: text("value_type").notNull().default("number"), // "monetary", "number", or "percentage"
@@ -42,6 +43,7 @@ const baseGoalSchema = createInsertSchema(goals).pick({
   title: true,
   targetAmount: true,
   currentAmount: true,
+  startingAmount: true,
   deadline: true,
   category: true,
   valueType: true,

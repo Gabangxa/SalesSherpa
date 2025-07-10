@@ -30,6 +30,7 @@ const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   targetAmount: z.coerce.number().int("Target must be a whole number").positive("Target must be a positive number"),
   currentAmount: z.coerce.number().int("Current amount must be a whole number").min(0, "Current amount must be 0 or greater"),
+  startingAmount: z.coerce.number().int("Starting amount must be a whole number").min(0, "Starting amount must be 0 or greater"),
   deadline: z.string().min(1, "Deadline is required"),
   category: z.string().min(1, "Category is required"),
   valueType: z.enum(["monetary", "number", "percentage"], {
@@ -59,6 +60,7 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
       title: "",
       targetAmount: 10,
       currentAmount: 0,
+      startingAmount: 0,
       deadline: today,
       category: "sales",
       valueType: "number",
@@ -81,6 +83,7 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
         title: values.title,
         targetAmount: parseInt(values.targetAmount.toString()), // Ensure it's an integer
         currentAmount: parseInt(values.currentAmount.toString()), // Ensure it's an integer
+        startingAmount: parseInt(values.startingAmount.toString()), // Ensure it's an integer
         deadline: deadlineDate, // Send as Date object
         category: values.category,
         valueType: values.valueType
@@ -135,23 +138,29 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
         return {
           target: 'Target Amount ($)',
           current: 'Current Amount ($)',
+          starting: 'Starting Amount ($)',
           targetDesc: 'The dollar amount you aim to achieve',
-          currentDesc: 'Your current progress in dollars'
+          currentDesc: 'Your current progress in dollars',
+          startingDesc: 'The baseline amount you started from'
         };
       case 'percentage':
         return {
           target: 'Target Percentage (%)',
           current: 'Current Percentage (%)',
-          targetDesc: 'The percentage you aim to achieve (e.g., 25 for 25%)',
-          currentDesc: 'Your current percentage progress'
+          starting: 'Starting Percentage (%)',
+          targetDesc: 'The percentage you aim to achieve (e.g., 60 for 60%)',
+          currentDesc: 'Your current percentage (e.g., 55 for 55%)',
+          startingDesc: 'The baseline percentage you started from (e.g., 50 for 50%)'
         };
       case 'number':
       default:
         return {
           target: 'Target Number',
           current: 'Current Number',
+          starting: 'Starting Number',
           targetDesc: 'The number you aim to achieve (e.g., 10 meetings)',
-          currentDesc: 'Your current count toward the goal'
+          currentDesc: 'Your current count toward the goal',
+          startingDesc: 'The baseline number you started from'
         };
     }
   };
@@ -178,18 +187,18 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
           )}
         />
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FormField
             control={form.control}
-            name="targetAmount"
+            name="startingAmount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{fieldLabels.target}</FormLabel>
+                <FormLabel>{fieldLabels.starting}</FormLabel>
                 <FormControl>
-                  <Input type="number" min="1" step="1" {...field} />
+                  <Input type="number" min="0" step="1" {...field} />
                 </FormControl>
                 <FormDescription>
-                  {fieldLabels.targetDesc}
+                  {fieldLabels.startingDesc}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -207,6 +216,23 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
                 </FormControl>
                 <FormDescription>
                   {fieldLabels.currentDesc}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="targetAmount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{fieldLabels.target}</FormLabel>
+                <FormControl>
+                  <Input type="number" min="1" step="1" {...field} />
+                </FormControl>
+                <FormDescription>
+                  {fieldLabels.targetDesc}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
