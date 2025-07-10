@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { formatCurrency, calculatePercentage } from "@/lib/utils";
+import { formatCurrency, calculatePercentage, cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Plus, Target, Edit, Trash2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
