@@ -79,9 +79,39 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
+      // Check for existing username
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
+      }
+
+      // Check for existing email
+      const existingEmail = await storage.getUserByEmail(req.body.email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(req.body.email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+
+      // Validate required fields
+      if (!req.body.username || req.body.username.length < 3) {
+        return res.status(400).json({ message: "Username must be at least 3 characters long" });
+      }
+      
+      if (!req.body.password || req.body.password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+      
+      if (!req.body.name || req.body.name.trim().length === 0) {
+        return res.status(400).json({ message: "Name is required" });
+      }
+      
+      if (!req.body.role || req.body.role.trim().length === 0) {
+        return res.status(400).json({ message: "Role is required" });
       }
 
       const user = await storage.createUser({

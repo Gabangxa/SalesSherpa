@@ -34,6 +34,7 @@ const loginSchema = z.object({
 // Registration form schema
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().min(2, "Name is required"),
   role: z.string().min(2, "Role is required"),
@@ -67,6 +68,7 @@ export default function AuthPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
+      email: "",
       password: "",
       name: "",
       role: "Fintech Sales Professional",
@@ -199,6 +201,24 @@ export default function AuthPage() {
                             <FormControl>
                               <Input 
                                 placeholder="your.username" 
+                                {...field} 
+                                className="h-11" 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base">Email Address</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="email"
+                                placeholder="john@example.com" 
                                 {...field} 
                                 className="h-11" 
                               />

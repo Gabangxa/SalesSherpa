@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 const userSchema = z.object({
   id: z.number(),
   username: z.string(),
+  email: z.string(),
   name: z.string(),
   role: z.string()
 });
@@ -33,6 +34,7 @@ type LoginData = {
 
 type RegisterData = {
   username: string;
+  email: string;
   password: string;
   name: string;
   role: string;
@@ -120,8 +122,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error.status === 400) {
         if (errorMessage.includes("Username already exists")) {
           errorMessage = "This username is already taken. Please choose a different one.";
+        } else if (errorMessage.includes("Email already exists")) {
+          errorMessage = "This email is already registered. Please use a different email or try logging in.";
         } else if (errorMessage.includes("username")) {
           errorMessage = "Username must be at least 3 characters long.";
+        } else if (errorMessage.includes("email")) {
+          errorMessage = "Please enter a valid email address.";
         } else if (errorMessage.includes("password")) {
           errorMessage = "Password must be at least 6 characters long.";
         } else if (errorMessage.includes("name")) {
