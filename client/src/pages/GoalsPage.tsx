@@ -143,7 +143,8 @@ export default function GoalsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {goals.map((goal) => {
-            const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount);
+            const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount, goal.startingAmount);
+            const isNegative = percentage < 0;
             
             return (
               <Card key={goal.id} className="overflow-hidden border-border/60 hover:shadow-md transition-shadow duration-200">
@@ -194,32 +195,53 @@ export default function GoalsPage() {
                     <span className="text-sm text-muted-foreground">
                       {formatCategory(goal.category)}
                     </span>
-                    <span className="text-sm font-medium">
-                      {percentage}% Complete
+                    <span className={cn(
+                      "text-sm font-medium",
+                      isNegative ? "text-red-500" : ""
+                    )}>
+                      {percentage}% {isNegative ? "(Below Starting Point)" : "Complete"}
                     </span>
                   </div>
                   
                   <Progress 
-                    value={percentage} 
+                    value={Math.max(0, percentage)} 
                     className="h-2 mb-3" 
-                    indicatorClassName={getCategoryColor(goal.category)}
+                    indicatorClassName={isNegative ? "bg-red-500" : getCategoryColor(goal.category)}
                   />
+                  
+                  {isNegative && (
+                    <div className="text-xs text-red-500 mb-2">
+                      ⚠️ Below starting point by {Math.abs(percentage)}%
+                    </div>
+                  )}
                   
                   <div className="mt-4">
                     <div className="flex justify-between mb-1">
-                      <span className="text-sm text-muted-foreground">Current</span>
+                      <span className="text-sm text-muted-foreground">
+                        {goal.startingAmount > 0 ? "Starting" : "Current"}
+                      </span>
                       <span className="text-sm text-muted-foreground">Target</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-lg font-semibold">
-                        {goal.category === 'revenue' 
-                          ? formatCurrency(goal.currentAmount) 
-                          : goal.currentAmount}
+                        {goal.startingAmount > 0 ? (
+                          <span>
+                            {goal.valueType === 'monetary' ? formatCurrency(goal.startingAmount) : 
+                             goal.valueType === 'percentage' ? `${goal.startingAmount}%` : 
+                             goal.startingAmount} → {goal.valueType === 'monetary' ? formatCurrency(goal.currentAmount) : 
+                             goal.valueType === 'percentage' ? `${goal.currentAmount}%` : 
+                             goal.currentAmount}
+                          </span>
+                        ) : (
+                          goal.valueType === 'monetary' ? formatCurrency(goal.currentAmount) : 
+                          goal.valueType === 'percentage' ? `${goal.currentAmount}%` : 
+                          goal.currentAmount
+                        )}
                       </span>
                       <span className="text-lg font-semibold">
-                        {goal.category === 'revenue' 
-                          ? formatCurrency(goal.targetAmount) 
-                          : goal.targetAmount}
+                        {goal.valueType === 'monetary' ? formatCurrency(goal.targetAmount) : 
+                         goal.valueType === 'percentage' ? `${goal.targetAmount}%` : 
+                         goal.targetAmount}
                       </span>
                     </div>
                   </div>

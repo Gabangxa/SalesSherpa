@@ -28,6 +28,7 @@ export function formatCurrency(amount: number | undefined | null): string {
  * Calculate percentage completion accounting for starting amount
  * Safely handles undefined, null, NaN values and prevents division by zero
  * For example: starting=50, current=55, target=60 means 50% progress toward goal (5 out of 10)
+ * If current < starting, shows negative progress
  */
 export function calculatePercentage(current: number | undefined | null, target: number | undefined | null, starting: number | undefined | null = 0): number {
   // Handle undefined, null, NaN values
@@ -35,16 +36,15 @@ export function calculatePercentage(current: number | undefined | null, target: 
   if (target === undefined || target === null || isNaN(target)) return 0;
   if (starting === undefined || starting === null || isNaN(starting)) starting = 0;
   
-  // Ensure logical values
-  if (target <= starting) return 0; // Target must be greater than starting
-  if (current <= starting) return 0; // Current cannot be less than starting
+  // Ensure target is greater than starting
+  if (target <= starting) return 0;
   
   // Calculate progress as percentage of the gap between starting and target
   const progress = current - starting;
   const totalGoal = target - starting;
   
   const percentage = (progress / totalGoal) * 100;
-  return isNaN(percentage) ? 0 : Math.min(100, Math.round(percentage));
+  return isNaN(percentage) ? 0 : Math.round(percentage);
 }
 
 /**

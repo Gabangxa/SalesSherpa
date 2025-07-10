@@ -68,6 +68,14 @@ Sales Sherpa is a full-stack sales accountability and guidance platform built wi
 
 ## Recent Changes
 
+### Progress Calculation Enhancement (January 2025)
+- Added startingAmount field to goal schema and database for non-zero starting points
+- Updated progress calculation logic to properly handle starting values
+- Enhanced UI to display starting → current / target format when applicable
+- Added support for negative progress when current value falls below starting point
+- Improved visual indicators with red styling for negative progress scenarios
+- Fixed progress calculation examples: 50% → 62% target 75% now shows 48% progress (12 out of 25)
+
 ### UI/UX Enhancements (January 2025)
 - Implemented modern glassmorphism design with sophisticated gradients and backdrop blur effects
 - Enhanced Sales Sherpa Assistant chat with improved message bubbles and avatar styling

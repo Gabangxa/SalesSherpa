@@ -156,6 +156,7 @@ export default function ProgressTracking() {
             <div className="space-y-4">
               {goals.slice(0, 3).map((goal) => {
                 const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount, goal.startingAmount);
+                const isNegative = percentage < 0;
                 
                 return (
                   <div key={goal.id} className="rounded-xl p-4 bg-gradient-to-br from-slate-800/60 to-slate-700/60 backdrop-blur-sm border border-white/10 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-white/20 relative overflow-hidden">
@@ -164,6 +165,7 @@ export default function ProgressTracking() {
                       <h3 className="text-sm font-semibold text-gray-300 truncate">{goal.title}</h3>
                       <Badge className={cn(
                         "font-bold text-xs px-2 py-1 rounded-full",
+                        isNegative ? "bg-red-500/20 text-red-300 border-red-500/30" :
                         percentage >= 90 ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : 
                         percentage >= 70 ? "bg-blue-500/20 text-blue-300 border-blue-500/30" : 
                         "bg-gray-600/20 text-gray-300 border-gray-500/30"
@@ -171,7 +173,12 @@ export default function ProgressTracking() {
                         {percentage}%
                       </Badge>
                     </div>
-                    <Progress value={percentage} className="h-2 mb-2" />
+                    <Progress value={Math.max(0, percentage)} className="h-2 mb-2" />
+                    {isNegative && (
+                      <div className="text-xs text-red-400 mb-1">
+                        ⚠️ Below starting point by {Math.abs(percentage)}%
+                      </div>
+                    )}
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <span>
                         {goal.startingAmount > 0 
