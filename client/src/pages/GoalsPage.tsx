@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency, calculatePercentage, cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Plus, Target, Edit, Trash2 } from "lucide-react";
+import { Plus, Target, Edit, Trash2, Zap } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { GoalDialog } from "@/components/dialogs/GoalDialog";
@@ -30,6 +30,7 @@ interface Goal {
 export default function GoalsPage() {
   const { toast } = useToast();
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
   // Fetch goals
   const { data: goals = [], isLoading } = useQuery<Goal[]>({
@@ -125,6 +126,18 @@ export default function GoalsPage() {
         />
       </div>
       
+      {/* Edit Goal Dialog */}
+      {editingGoal && (
+        <GoalDialog 
+          goal={editingGoal}
+          open={!!editingGoal}
+          onOpenChange={(open) => {
+            if (!open) setEditingGoal(null);
+          }}
+          trigger={<div />} // Hidden trigger since we control open state
+        />
+      )}
+      
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
@@ -172,6 +185,16 @@ export default function GoalsPage() {
                             }
                           }
                         }}
+                        title="Quick progress update"
+                      >
+                        <Zap className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => setEditingGoal(goal)}
+                        title="Edit goal details"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -184,6 +207,7 @@ export default function GoalsPage() {
                             deleteGoal.mutate(goal.id);
                           }
                         }}
+                        title="Delete goal"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

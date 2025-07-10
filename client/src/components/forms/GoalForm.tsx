@@ -40,12 +40,24 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+interface Goal {
+  id: number;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  startingAmount?: number;
+  deadline: string;
+  category: string;
+  valueType?: string;
+}
+
 interface GoalFormProps {
+  goal?: Goal; // Optional goal for editing
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
+export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
@@ -56,7 +68,15 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
   // Setup the form with validation
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: goal ? {
+      title: goal.title,
+      targetAmount: goal.targetAmount,
+      currentAmount: goal.currentAmount,
+      startingAmount: goal.startingAmount ?? 0,
+      deadline: new Date(goal.deadline).toISOString().split('T')[0],
+      category: goal.category,
+      valueType: goal.valueType ?? "number",
+    } : {
       title: "",
       targetAmount: 10,
       currentAmount: 0,
@@ -67,33 +87,35 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
     },
   });
   
-  // Setup the mutation for creating a goal
-  const createGoalMutation = useMutation({
+  // Setup the mutation for creating/updating a goal
+  const saveGoalMutation = useMutation({
     mutationFn: (values: FormValues) => {
       setLoading(true);
       // Convert string date to a proper Date object
-      // The schema has been updated to handle this properly
       const deadlineDate = new Date(values.deadline + 'T23:59:59');
       
-      console.log("Submitting goal with date:", deadlineDate);
-      
-      // Ensure all required fields are present and properly formatted
-      // Note: userId is now handled by the server from the session
-      return apiRequest('POST', '/api/goals', {
+      const payload = {
         title: values.title,
-        targetAmount: parseInt(values.targetAmount.toString()), // Ensure it's an integer
-        currentAmount: parseInt(values.currentAmount.toString()), // Ensure it's an integer
-        startingAmount: parseInt(values.startingAmount.toString()), // Ensure it's an integer
-        deadline: deadlineDate, // Send as Date object
+        targetAmount: parseInt(values.targetAmount.toString()),
+        currentAmount: parseInt(values.currentAmount.toString()),
+        startingAmount: parseInt(values.startingAmount.toString()),
+        deadline: deadlineDate,
         category: values.category,
         valueType: values.valueType
-      });
+      };
+      
+      // Use PATCH for editing, POST for creating
+      if (goal) {
+        return apiRequest('PATCH', `/api/goals/${goal.id}`, payload);
+      } else {
+        return apiRequest('POST', '/api/goals', payload);
+      }
     },
     onSuccess: () => {
       setLoading(false);
       toast({
-        title: "Goal created successfully",
-        description: "Your goal has been added to your dashboard",
+        title: goal ? "Goal updated successfully" : "Goal created successfully",
+        description: goal ? "Your goal has been updated" : "Your goal has been added to your dashboard",
       });
       
       // Invalidate the goals query to refresh the data
@@ -108,16 +130,16 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
       setLoading(false);
       toast({
         variant: "destructive",
-        title: "Failed to create goal",
+        title: goal ? "Failed to update goal" : "Failed to create goal",
         description: error instanceof Error ? error.message : "Please check all fields and try again",
       });
-      console.error("Goal creation error:", error);
+      console.error("Goal save error:", error);
     },
   });
   
   // Handle form submission
   function onSubmit(values: FormValues) {
-    createGoalMutation.mutate(values);
+    saveGoalMutation.mutate(values);
   }
   
   // Categories for the select dropdown
@@ -328,7 +350,7 @@ export function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
             type="submit" 
             disabled={loading}
           >
-            {loading ? 'Creating...' : 'Create Goal'}
+            {loading ? (goal ? 'Updating...' : 'Creating...') : (goal ? 'Update Goal' : 'Create Goal')}
           </Button>
         </div>
       </form>
