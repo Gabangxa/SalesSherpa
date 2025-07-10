@@ -127,7 +127,7 @@ export default function ProgressTracking() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center">
             <BarChart3 className="h-6 w-6 text-white" />
           </div>
-          Performance Tracking
+          Performance Tracking Centre
         </CardTitle>
       </CardHeader>
       

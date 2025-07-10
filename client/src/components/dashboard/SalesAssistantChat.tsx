@@ -95,7 +95,7 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
             </svg>
           </div>
           <div className="ml-4">
-            <h2 className="text-lg font-bold text-white">Sales Coach</h2>
+            <h2 className="text-lg font-bold text-white">Sales Sherpa Assistant</h2>
             <p className="text-sm text-gray-300 font-medium">AI-powered guidance</p>
           </div>
         </div>
@@ -124,9 +124,9 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium mb-2">Welcome to your Sales Assistant</h3>
+                <h3 className="text-lg font-medium mb-2">Welcome to your Sales Sherpa Assistant</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Ask questions about sales strategies, meeting preparation, or get advice on achieving your targets.
+                  Ask questions about sales strategies, meeting preparation, or get guidance on achieving your targets.
                 </p>
                 <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
                   {["How can I improve my close rate?", "Tips for better client meetings", "Help me with follow-up strategies"].map((suggestion) => (
@@ -243,7 +243,7 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
         <form className="flex items-center" onSubmit={handleSubmit}>
           <Input 
             type="text" 
-            placeholder="Ask your sales assistant..."
+            placeholder="Ask your Sales Sherpa Assistant..."
             className="flex-1 border border-border/60 focus-visible:ring-1 focus-visible:ring-primary text-sm rounded-lg py-2.5"
             value={message}
             onChange={(e) => setMessage(e.target.value)}

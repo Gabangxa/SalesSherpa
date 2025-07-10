@@ -51,7 +51,7 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </div>
-          <h1 className="ml-2 text-lg font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">FinSales</h1>
+          <h1 className="ml-2 text-lg font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Sales Sherpa</h1>
         </div>
         <div className="flex items-center space-x-2">
           <ThemeToggle />

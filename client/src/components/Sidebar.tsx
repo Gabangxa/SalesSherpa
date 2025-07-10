@@ -53,8 +53,8 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
           </svg>
         </div>
         <div className="ml-3">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">FinSales</h1>
-          <p className="text-xs text-muted-foreground">Virtual Sales Mentor</p>
+          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Sales Sherpa</h1>
+          <p className="text-xs text-muted-foreground">Accountability & Guidance</p>
         </div>
       </div>
       
