@@ -21,8 +21,10 @@ interface Goal {
   title: string;
   targetAmount: number;
   currentAmount: number;
+  startingAmount?: number;
   deadline: string;
   category: string;
+  valueType?: string;
 }
 
 export default function GoalsPage() {

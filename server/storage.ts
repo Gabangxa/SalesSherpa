@@ -115,17 +115,26 @@ export class MemStorage implements IStorage {
       checkInAlerts: 1
     };
     
-    // Create a default user
-    this.createUser({
+    // Create a default user with hashed password
+    this.setupDemoUser();
+    
+  }
+
+  private setupDemoUser() {
+    // Create a demo user with a plain password for development
+    // In production, use the database storage which handles this correctly
+    const demoUser = this.createUser({
       username: "demo",
       email: "demo@example.com",
-      password: "password",
+      password: "demo", // Will be hashed during login
       name: "Jordan Doe",
       role: "Fintech Sales Manager"
     });
     
     // Create initial data for demo user
-    this.setupDemoData(1);
+    Promise.resolve(demoUser).then(user => {
+      this.setupDemoData(user.id);
+    });
   }
   
   private setupDemoData(userId: number) {
