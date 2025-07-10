@@ -66,10 +66,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: `Welcome back, ${user.name}!`,
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      // Extract specific error message from server response
+      let errorMessage = "Invalid username or password";
+      
+      if (error.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error.message && !error.message.includes("There was an issue")) {
+        errorMessage = error.message;
+      }
+      
+      // Handle specific error cases
+      if (error.status === 401) {
+        errorMessage = "Invalid username or password. Please try again.";
+      } else if (error.status === 429) {
+        errorMessage = "Too many login attempts. Please wait before trying again.";
+      } else if (error.status >= 500) {
+        errorMessage = "Server error. Please try again later.";
+      }
+      
       toast({
         title: "Login failed",
-        description: error.message || "Invalid username or password",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -88,10 +106,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: `Welcome, ${user.name}!`,
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      // Extract specific error message from server response
+      let errorMessage = "Could not create account";
+      
+      if (error.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error.message && !error.message.includes("There was an issue")) {
+        errorMessage = error.message;
+      }
+      
+      // Handle specific error cases
+      if (error.status === 400) {
+        if (errorMessage.includes("Username already exists")) {
+          errorMessage = "This username is already taken. Please choose a different one.";
+        } else if (errorMessage.includes("username")) {
+          errorMessage = "Username must be at least 3 characters long.";
+        } else if (errorMessage.includes("password")) {
+          errorMessage = "Password must be at least 6 characters long.";
+        } else if (errorMessage.includes("name")) {
+          errorMessage = "Please provide a valid name.";
+        } else if (errorMessage.includes("role")) {
+          errorMessage = "Please provide a valid role.";
+        } else {
+          errorMessage = "Please check your information and try again.";
+        }
+      } else if (error.status === 429) {
+        errorMessage = "Too many registration attempts. Please wait before trying again.";
+      } else if (error.status >= 500) {
+        errorMessage = "Server error. Please try again later.";
+      }
+      
       toast({
         title: "Registration failed",
-        description: error.message || "Could not create account",
+        description: errorMessage,
         variant: "destructive",
       });
     },
