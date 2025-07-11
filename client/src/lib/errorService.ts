@@ -103,10 +103,11 @@ export function processError(error: unknown, additionalInfo?: Record<string, unk
         ...error,
         name: 'AuthenticationError',
         type: ErrorType.AUTH,
-        severity: ErrorSeverity.ERROR,
-        message: 'You are not authenticated. Please log in again.',
+        severity: ErrorSeverity.WARNING, // Changed to warning to prevent complete app crash
+        message: 'Your session has expired. Please log in again.',
         timestamp: Date.now(),
         originalError: error,
+        status: 401,
       };
     }
     // Handle validation errors

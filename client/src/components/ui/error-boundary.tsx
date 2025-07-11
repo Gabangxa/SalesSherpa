@@ -73,6 +73,45 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       // Otherwise use our default fallback UI
       const error = this.state.error;
       const processedError = error ? processError(error) : null;
+      
+      // Check if this is an authentication error
+      const isAuthError = processedError?.type === 'Authentication Error' || 
+                         processedError?.status === 401 ||
+                         error?.message?.toLowerCase().includes('unauthorized');
+
+      if (isAuthError) {
+        return (
+          <div className="min-h-screen flex items-center justify-center p-4">
+            <Alert className="max-w-md border-amber-200 bg-amber-50">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800">Session Expired</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                <div className="space-y-4">
+                  <p>Your session has expired. Please log in again to continue.</p>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => window.location.href = '/auth'} 
+                      size="sm"
+                      className="bg-amber-600 hover:bg-amber-700"
+                    >
+                      Go to Login
+                    </Button>
+                    <Button 
+                      onClick={this.handleRefresh} 
+                      variant="outline" 
+                      size="sm"
+                      className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        );
+      }
       const errorMessage = processedError ? getUserFriendlyMessage(processedError) : 'Something went wrong.';
       const isNetworkError = processedError?.type === ErrorType.NETWORK;
 

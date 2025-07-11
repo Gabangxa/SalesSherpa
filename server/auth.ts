@@ -57,6 +57,8 @@ export function setupAuth(app: Express) {
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: 'lax'
     }
   };
 
@@ -84,8 +86,13 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user) {
+        console.log(`User not found for ID: ${id}`);
+        return done(null, false);
+      }
       done(null, user);
     } catch (err) {
+      console.log(`Error deserializing user ${id}:`, err);
       done(err);
     }
   });

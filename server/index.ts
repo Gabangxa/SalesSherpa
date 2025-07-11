@@ -32,6 +32,9 @@ app.use(express.urlencoded({ extended: false }));
 // Sanitize all incoming request bodies
 app.use(sanitizeRequestBody);
 
+// Setup authentication BEFORE routes
+setupAuth(app);
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

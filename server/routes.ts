@@ -33,12 +33,10 @@ interface WebSocketMessage {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication with Passport.js
-  setupAuth(app);
-  
   // Authentication middleware using Passport
   const authenticateUser = (req: Request, res: Response, next: Function) => {
     if (!req.isAuthenticated()) {
+      console.log(`Authentication failed for ${req.method} ${req.path}, session ID: ${req.sessionID}`);
       return res.status(401).json({ message: "Unauthorized" });
     }
     
@@ -48,6 +46,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     next();
   };
+
+  // User info endpoint
+  app.get("/api/user", authenticateUser, (req, res) => {
+    res.json(req.user);
+  });
 
   // Goals routes
   app.get("/api/goals", authenticateUser, async (req, res) => {
