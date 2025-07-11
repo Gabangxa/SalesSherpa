@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { formatCurrency, calculatePercentage } from "@/lib/utils";
+import { calculatePercentage, cn } from "@/lib/utils";
+import { formatGoalValue, getCategoryGradient, getBadgeColor } from "@/lib/goalUtils";
 import { 
   Card, 
   CardContent, 
@@ -7,50 +8,14 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Target, TrendingUp, Calendar, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useLocation } from 'wouter';
+import { Goal } from "@shared/schema";
 
-interface Goal {
-  id: number;
-  title: string;
-  targetAmount: number;
-  currentAmount: number;
-  startingAmount: number;
-  deadline: string;
-  category: string;
-  valueType: string;
-}
-
-const getBadgeColor = (percentage: number) => {
-  if (percentage >= 90) return "accent";
-  if (percentage >= 70) return "primary";
-  return "secondary";
-};
-
-const getCategoryColor = (category: string) => {
-  switch (category) {
-    case 'sales':
-      return 'from-emerald-500 to-teal-500';
-    case 'meetings':
-      return 'from-blue-500 to-indigo-500';
-    case 'leads':
-      return 'from-green-500 to-emerald-500';
-    case 'revenue':
-      return 'from-amber-500 to-orange-500';
-    case 'clients':
-      return 'from-purple-500 to-pink-500';
-    case 'accounts':
-      return 'from-cyan-500 to-blue-500';
-    case 'activities':
-      return 'from-rose-500 to-red-500';
-    default:
-      return 'from-slate-500 to-gray-500';
-  }
-};
+// Moved to shared utilities
 
 export default function ProgressTracking() {
   const [, navigate] = useLocation();
@@ -59,18 +24,7 @@ export default function ProgressTracking() {
     queryKey: ['/api/goals'],
   });
 
-  // Helper function to format values based on type
-  const formatValue = (amount: number, valueType: string) => {
-    switch (valueType) {
-      case 'monetary':
-        return formatCurrency(amount);
-      case 'percentage':
-        return `${amount}%`;
-      case 'number':
-      default:
-        return amount.toString();
-    }
-  };
+  // Moved to shared utilities
 
   // Calculate overall progress
   const totalGoals = goals.length;
@@ -162,7 +116,7 @@ export default function ProgressTracking() {
                 
                 return (
                   <div key={goal.id} className="rounded-xl p-4 bg-gradient-to-br from-slate-800/60 to-slate-700/60 backdrop-blur-sm border border-white/10 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-white/20 relative overflow-hidden">
-                    <div className={cn("absolute top-0 left-0 w-full h-1 bg-gradient-to-r", getCategoryColor(goal.category))}></div>
+                    <div className={cn("absolute top-0 left-0 w-full h-1 bg-gradient-to-r", getCategoryGradient(goal.category))}></div>
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-gray-300 truncate">{goal.title}</h3>
                       <Badge className={cn(
@@ -184,8 +138,8 @@ export default function ProgressTracking() {
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <span>
                         {startingAmount > 0 
-                          ? `${formatValue(startingAmount, goal.valueType || 'number')} → ${formatValue(goal.currentAmount, goal.valueType || 'number')} / ${formatValue(goal.targetAmount, goal.valueType || 'number')}`
-                          : `${formatValue(goal.currentAmount, goal.valueType || 'number')} / ${formatValue(goal.targetAmount, goal.valueType || 'number')}`
+                          ? `${formatGoalValue(startingAmount, goal.valueType || 'number')} → ${formatGoalValue(goal.currentAmount, goal.valueType || 'number')} / ${formatGoalValue(goal.targetAmount, goal.valueType || 'number')}`
+                          : `${formatGoalValue(goal.currentAmount, goal.valueType || 'number')} / ${formatGoalValue(goal.targetAmount, goal.valueType || 'number')}`
                         }
                       </span>
                       <span className="flex items-center gap-1">

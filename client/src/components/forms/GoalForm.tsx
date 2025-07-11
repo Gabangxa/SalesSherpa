@@ -24,6 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { Goal } from "@shared/schema";
+import { GOAL_CATEGORIES, getFieldLabels } from "@/lib/goalUtils";
 
 // Define the form schema
 const formSchema = z.object({
@@ -39,17 +41,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-interface Goal {
-  id: number;
-  title: string;
-  targetAmount: number;
-  currentAmount: number;
-  startingAmount?: number;
-  deadline: string;
-  category: string;
-  valueType?: string;
-}
 
 interface GoalFormProps {
   goal?: Goal; // Optional goal for editing
@@ -142,51 +133,10 @@ export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
     saveGoalMutation.mutate(values);
   }
   
-  // Categories for the select dropdown
-  const categories = [
-    { value: "sales", label: "Sales" },
-    { value: "meetings", label: "Meetings" },
-    { value: "leads", label: "Leads" },
-    { value: "revenue", label: "Revenue" },
-    { value: "clients", label: "Clients" },
-  ];
+  // Categories moved to shared utilities
 
   // Watch the valueType to update field labels
   const valueType = form.watch("valueType");
-  
-  const getFieldLabels = (valueType: string) => {
-    switch (valueType) {
-      case 'monetary':
-        return {
-          target: 'Target Amount ($)',
-          current: 'Current Amount ($)',
-          starting: 'Starting Amount ($)',
-          targetDesc: 'The dollar amount you aim to achieve',
-          currentDesc: 'Your current progress in dollars',
-          startingDesc: 'The baseline amount you started from'
-        };
-      case 'percentage':
-        return {
-          target: 'Target Percentage (%)',
-          current: 'Current Percentage (%)',
-          starting: 'Starting Percentage (%)',
-          targetDesc: 'The percentage you aim to achieve (e.g., 60 for 60%)',
-          currentDesc: 'Your current percentage (e.g., 55 for 55%)',
-          startingDesc: 'The baseline percentage you started from (e.g., 50 for 50%)'
-        };
-      case 'number':
-      default:
-        return {
-          target: 'Target Number',
-          current: 'Current Number',
-          starting: 'Starting Number',
-          targetDesc: 'The number you aim to achieve (e.g., 10 meetings)',
-          currentDesc: 'Your current count toward the goal',
-          startingDesc: 'The baseline number you started from'
-        };
-    }
-  };
-
   const fieldLabels = getFieldLabels(valueType);
   
   return (
@@ -319,7 +269,7 @@ export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {categories.map(category => (
+                    {GOAL_CATEGORIES.map(category => (
                       <SelectItem key={category.value} value={category.value}>
                         {category.label}
                       </SelectItem>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   Card, 
@@ -9,28 +9,47 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { formatCurrency, calculatePercentage, cn } from "@/lib/utils";
+import { calculatePercentage, cn } from "@/lib/utils";
+import { getCategoryColor, formatCategory, formatGoalValue } from "@/lib/goalUtils";
 import { format } from "date-fns";
 import { Plus, Target, Edit, Trash2, Zap } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { GoalDialog } from "@/components/dialogs/GoalDialog";
-
-interface Goal {
-  id: number;
-  title: string;
-  targetAmount: number;
-  currentAmount: number;
-  startingAmount?: number;
-  deadline: string;
-  category: string;
-  valueType?: string;
-}
+import { Goal } from "@shared/schema";
 
 export default function GoalsPage() {
   const { toast } = useToast();
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  
+  // Optimized event handlers with useCallback
+  const handleEditGoal = useCallback((goal: Goal) => {
+    setEditingGoal(goal);
+  }, []);
+  
+  const handleCloseEditDialog = useCallback((open: boolean) => {
+    if (!open) setEditingGoal(null);
+  }, []);
+  
+  const handleQuickProgressUpdate = useCallback((goal: Goal) => {
+    const newAmount = prompt("Update progress:", goal.currentAmount.toString());
+    if (newAmount !== null) {
+      const parsedAmount = parseFloat(newAmount);
+      if (!isNaN(parsedAmount)) {
+        updateGoalProgress.mutate({
+          id: goal.id,
+          currentAmount: parsedAmount
+        });
+      }
+    }
+  }, [updateGoalProgress]);
+  
+  const handleDeleteGoal = useCallback((goalId: number) => {
+    if (confirm("Are you sure you want to delete this goal?")) {
+      deleteGoal.mutate(goalId);
+    }
+  }, [deleteGoal]);
 
   // Fetch goals
   const { data: goals = [], isLoading } = useQuery<Goal[]>({
@@ -83,28 +102,7 @@ export default function GoalsPage() {
     },
   });
 
-  // Get category color
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'sales':
-        return 'bg-primary';
-      case 'meetings':
-        return 'bg-blue-500';
-      case 'leads':
-        return 'bg-green-500';
-      case 'revenue':
-        return 'bg-amber-500';
-      case 'clients':
-        return 'bg-purple-500';
-      default:
-        return 'bg-primary';
-    }
-  };
-
-  // Format category label
-  const formatCategory = (category: string) => {
-    return category.charAt(0).toUpperCase() + category.slice(1);
-  };
+  // Moved to shared utilities
 
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8">
@@ -131,9 +129,7 @@ export default function GoalsPage() {
         <GoalDialog 
           goal={editingGoal}
           open={!!editingGoal}
-          onOpenChange={(open) => {
-            if (!open) setEditingGoal(null);
-          }}
+          onOpenChange={handleCloseEditDialog}
           trigger={<div />} // Hidden trigger since we control open state
         />
       )}
@@ -173,18 +169,7 @@ export default function GoalsPage() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
-                        onClick={() => {
-                          const newAmount = prompt("Update progress:", goal.currentAmount.toString());
-                          if (newAmount !== null) {
-                            const parsedAmount = parseFloat(newAmount);
-                            if (!isNaN(parsedAmount)) {
-                              updateGoalProgress.mutate({
-                                id: goal.id,
-                                currentAmount: parsedAmount
-                              });
-                            }
-                          }
-                        }}
+                        onClick={() => handleQuickProgressUpdate(goal)}
                         title="Quick progress update"
                       >
                         <Zap className="h-4 w-4" />
@@ -193,7 +178,7 @@ export default function GoalsPage() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
-                        onClick={() => setEditingGoal(goal)}
+                        onClick={() => handleEditGoal(goal)}
                         title="Edit goal details"
                       >
                         <Edit className="h-4 w-4" />
@@ -202,11 +187,7 @@ export default function GoalsPage() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 text-destructive hover:text-destructive/90"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this goal?")) {
-                            deleteGoal.mutate(goal.id);
-                          }
-                        }}
+                        onClick={() => handleDeleteGoal(goal.id)}
                         title="Delete goal"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -254,22 +235,14 @@ export default function GoalsPage() {
                       <span className="text-lg font-semibold">
                         {startingAmount > 0 ? (
                           <span>
-                            {goal.valueType === 'monetary' ? formatCurrency(startingAmount) : 
-                             goal.valueType === 'percentage' ? `${startingAmount}%` : 
-                             startingAmount} → {goal.valueType === 'monetary' ? formatCurrency(goal.currentAmount) : 
-                             goal.valueType === 'percentage' ? `${goal.currentAmount}%` : 
-                             goal.currentAmount}
+                            {formatGoalValue(startingAmount, goal.valueType || 'number')} → {formatGoalValue(goal.currentAmount, goal.valueType || 'number')}
                           </span>
                         ) : (
-                          goal.valueType === 'monetary' ? formatCurrency(goal.currentAmount) : 
-                          goal.valueType === 'percentage' ? `${goal.currentAmount}%` : 
-                          goal.currentAmount
+                          formatGoalValue(goal.currentAmount, goal.valueType || 'number')
                         )}
                       </span>
                       <span className="text-lg font-semibold">
-                        {goal.valueType === 'monetary' ? formatCurrency(goal.targetAmount) : 
-                         goal.valueType === 'percentage' ? `${goal.targetAmount}%` : 
-                         goal.targetAmount}
+                        {formatGoalValue(goal.targetAmount, goal.valueType || 'number')}
                       </span>
                     </div>
                   </div>
