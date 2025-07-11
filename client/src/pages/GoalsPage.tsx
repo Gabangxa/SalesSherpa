@@ -32,6 +32,52 @@ export default function GoalsPage() {
     if (!open) setEditingGoal(null);
   }, []);
   
+  // Update goal progress
+  const updateGoalProgress = useMutation({
+    mutationFn: (params: { id: number; currentAmount: number }) => {
+      return apiRequest('PATCH', `/api/goals/${params.id}`, {
+        currentAmount: params.currentAmount
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      
+      toast({
+        title: "Progress updated",
+        description: "Your goal progress has been updated",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating progress",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Delete goal
+  const deleteGoal = useMutation({
+    mutationFn: (goalId: number) => {
+      return apiRequest('DELETE', `/api/goals/${goalId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      
+      toast({
+        title: "Goal deleted",
+        description: "Your goal has been deleted",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting goal",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleQuickProgressUpdate = useCallback((goal: Goal) => {
     const newAmount = prompt("Update progress:", goal.currentAmount.toString());
     if (newAmount !== null) {
@@ -54,55 +100,8 @@ export default function GoalsPage() {
   // Fetch goals
   const { data: goals = [], isLoading } = useQuery<Goal[]>({
     queryKey: ['/api/goals'],
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
-
-  // Update goal progress
-  const updateGoalProgress = useMutation({
-    mutationFn: (params: { id: number; currentAmount: number }) => {
-      return apiRequest('PATCH', `/api/goals/${params.id}`, {
-        currentAmount: params.currentAmount
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
-      
-      toast({
-        title: "Progress updated",
-        description: "Your goal progress has been updated",
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Failed to update progress",
-        description: error instanceof Error ? error.message : "Please try again",
-      });
-    },
-  });
-
-  // Delete goal
-  const deleteGoal = useMutation({
-    mutationFn: (id: number) => {
-      return apiRequest('DELETE', `/api/goals/${id}`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
-      
-      toast({
-        title: "Goal deleted",
-        description: "The goal has been deleted successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Failed to delete goal",
-        description: error instanceof Error ? error.message : "Please try again",
-      });
-    },
-  });
-
-  // Moved to shared utilities
 
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8">

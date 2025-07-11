@@ -59,7 +59,9 @@ export function setupAuth(app: Express) {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       sameSite: 'lax'
-    }
+    },
+    rolling: true, // Reset expiration on each request
+    name: 'connect.sid' // Explicit session name
   };
 
   app.set("trust proxy", 1);

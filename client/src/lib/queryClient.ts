@@ -111,6 +111,22 @@ export const getQueryFn: <T>(options: {
         return null;
       }
 
+      // For data endpoints, if user is not authenticated, return empty data instead of error
+      if (res.status === 401 && url.includes('/api/')) {
+        if (
+          url.includes('/api/goals') || 
+          url.includes('/api/tasks') ||
+          url.includes('/api/check-ins') ||
+          url.includes('/api/check-in-alerts')
+        ) {
+          return [] as any;
+        }
+        
+        if (url.includes('/api/sales-metrics')) {
+          return {} as any;
+        }
+      }
+
       if (!res.ok) {
         await processResponseError(res);
       }

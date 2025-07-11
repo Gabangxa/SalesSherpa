@@ -3,10 +3,12 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { CheckInAlert } from '@shared/schema';
+import { useAuth } from '@/hooks/use-auth';
 import { z } from 'zod';
 
 export function useCheckInAlerts() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedAlert, setSelectedAlert] = useState<CheckInAlert | null>(null);
 
   const {
@@ -17,6 +19,7 @@ export function useCheckInAlerts() {
   } = useQuery<CheckInAlert[]>({
     queryKey: ['/api/check-in-alerts'],
     retry: 1,
+    enabled: !!user, // Only fetch when user is authenticated
   });
 
   const createAlertMutation = useMutation({
