@@ -10,7 +10,7 @@ if (process.env.SENDGRID_API_KEY) {
   mailService.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
-const FROM_EMAIL = 'noreply@salesherpa.com'; // You can change this to your verified sender email
+const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'noreply@salesherpa.com'; // You can change this to your verified sender email
 
 export interface EmailParams {
   to: string;
