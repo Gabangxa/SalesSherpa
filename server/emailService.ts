@@ -2,11 +2,13 @@ import { MailService } from '@sendgrid/mail';
 import crypto from 'crypto';
 
 if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
+  console.warn("SENDGRID_API_KEY environment variable not set - email functionality will be disabled");
 }
 
 const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+if (process.env.SENDGRID_API_KEY) {
+  mailService.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 const FROM_EMAIL = 'noreply@salesherpa.com'; // You can change this to your verified sender email
 
@@ -19,6 +21,11 @@ export interface EmailParams {
 }
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn('SendGrid API key not configured - email not sent');
+    return false;
+  }
+  
   try {
     await mailService.send({
       to: params.to,

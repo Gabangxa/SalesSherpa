@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+import { ResendVerificationDialog } from "@/components/ResendVerificationDialog";
 
 // Login form schema
 const loginSchema = z.object({
@@ -166,7 +167,7 @@ export default function AuthPage() {
                     </form>
                   </Form>
                 </CardContent>
-                <CardFooter className="flex justify-center pb-6">
+                <CardFooter className="flex flex-col gap-4 pb-6">
                   <p className="text-sm text-muted-foreground">
                     Don't have an account?{" "}
                     <Button 
@@ -177,6 +178,9 @@ export default function AuthPage() {
                       Sign up
                     </Button>
                   </p>
+                  <div className="flex justify-center">
+                    <ResendVerificationDialog />
+                  </div>
                 </CardFooter>
               </Card>
             </TabsContent>

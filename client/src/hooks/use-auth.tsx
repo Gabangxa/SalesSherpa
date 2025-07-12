@@ -83,7 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Handle specific error cases
       if (error.status === 401) {
-        errorMessage = "Invalid username or password. Please try again.";
+        if (error.data?.emailNotVerified) {
+          errorMessage = "Please verify your email address before logging in. Check your email for the verification link.";
+        } else {
+          errorMessage = "Invalid username or password. Please try again.";
+        }
       } else if (error.status === 429) {
         errorMessage = "Too many login attempts. Please wait before trying again.";
       } else if (error.status >= 500) {
@@ -101,15 +105,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterData) => {
       const res = await apiRequest("POST", "/api/register", data);
-      const userData = await res.json();
-      return userSchema.parse(userData);
+      const responseData = await res.json();
+      
+      // Registration now returns a message instead of user data
+      if (responseData.message) {
+        return responseData;
+      }
+      
+      // Fallback for backwards compatibility
+      return userSchema.parse(responseData);
     },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "Registration successful",
-        description: `Welcome, ${user.name}!`,
-      });
+    onSuccess: (data: any) => {
+      // Handle email verification response
+      if (data.message) {
+        toast({
+          title: "Registration successful!",
+          description: data.message,
+        });
+      } else {
+        // Fallback for backwards compatibility
+        queryClient.setQueryData(["/api/user"], data);
+        toast({
+          title: "Registration successful",
+          description: `Welcome, ${data.name}!`,
+        });
+      }
     },
     onError: (error: any) => {
       // Extract specific error message from server response

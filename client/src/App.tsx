@@ -21,6 +21,7 @@ import ResourcesPage from "@/pages/ResourcesPage";
 import SettingsPage from "@/pages/SettingsPage";
 import WebSocketTest from "@/pages/WebSocketTest";
 import AuthPage from "@/pages/AuthPage";
+import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import NotFound from "@/pages/not-found";
 
 import Sidebar from "@/components/Sidebar";
@@ -45,12 +46,13 @@ function AppContent() {
     setIsMobileMenuOpen(false);
   }, [location]);
 
-  // Show public routes when user is not on the /auth page
-  if (!user && location !== "/auth") {
+  // Show public routes when user is not authenticated
+  if (!user && location !== "/auth" && location !== "/verify-email") {
     return (
       <ErrorBoundary>
         <Switch>
           <Route path="/auth" component={AuthPage} />
+          <Route path="/verify-email" component={VerifyEmailPage} />
           <Route>
             <AuthPage />
           </Route>
@@ -65,6 +67,7 @@ function AppContent() {
       <ErrorBoundary>
         <Switch>
           <Route path="/auth" component={AuthPage} />
+          <Route path="/verify-email" component={VerifyEmailPage} />
           <Route>
             <AuthPage />
           </Route>

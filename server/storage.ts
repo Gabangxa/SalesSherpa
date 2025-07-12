@@ -41,6 +41,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
+  updateUserVerification(id: number, updates: { emailVerified?: boolean; verificationToken?: string | null; verificationTokenExpiry?: Date | null }): Promise<User | undefined>;
   
   // Goal operations
   getGoals(userId: number): Promise<Goal[]>;
@@ -115,6 +117,20 @@ export class DatabaseStorage implements IStorage {
       .values(insertUser)
       .returning();
     return user;
+  }
+
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.verificationToken, token));
+    return user || undefined;
+  }
+
+  async updateUserVerification(id: number, updates: { emailVerified?: boolean; verificationToken?: string | null; verificationTokenExpiry?: Date | null }): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser || undefined;
   }
 
   // Goal operations
