@@ -2,7 +2,7 @@
 
 ## Overview
 
-Sales Sherpa is a full-stack sales accountability and guidance platform built with React (frontend) and Express.js (backend). The platform helps fintech sales professionals stay accountable to their goals, track progress, and receive personalized AI guidance. The platform requires significant user input and engagement to maximize effectiveness, focusing on self-accountability rather than passive coaching.
+Sales Sherpa is a full-stack sales accountability and guidance platform built with React (frontend) and Express.js (backend). The platform helps sales professionals stay accountable to their goals, track progress, and receive personalized AI guidance. The platform requires significant user input and engagement to maximize effectiveness, focusing on self-accountability rather than passive coaching.
 
 ## User Preferences
 

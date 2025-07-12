@@ -364,7 +364,7 @@ export default function AuthPage() {
           </ul>
           <div className="mt-10 p-5 rounded-lg bg-white/10 backdrop-blur-sm shadow-xl border border-white/20">
             <p className="text-base">
-              Sales Sherpa helps fintech sales professionals stay accountable to their goals, track meaningful progress, and receive personalized guidance that requires your active engagement to maximize results.
+              Sales Sherpa helps sales professionals stay accountable to their goals, track meaningful progress, and receive personalized guidance that requires your active engagement to maximize results.
             </p>
           </div>
         </div>
