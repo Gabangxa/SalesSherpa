@@ -71,7 +71,7 @@ export default function AuthPage() {
       email: "",
       password: "",
       name: "",
-      role: "Fintech Sales Professional",
+      role: "",
     },
   });
   
@@ -252,7 +252,7 @@ export default function AuthPage() {
                             <FormLabel className="text-base">Job Role</FormLabel>
                             <FormControl>
                               <Input 
-                                placeholder="Fintech Sales Professional" 
+                                placeholder="Sales Professional" 
                                 {...field} 
                                 className="h-11" 
                               />
