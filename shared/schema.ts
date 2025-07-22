@@ -6,14 +6,17 @@ import { relations } from "drizzle-orm";
 // User schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  username: text("username").unique(),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"),
   name: text("name").notNull(),
   role: text("role").notNull(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   verificationToken: text("verification_token"),
   verificationTokenExpiry: timestamp("verification_token_expiry"),
+  googleId: text("google_id").unique(),
+  profileImage: text("profile_image"),
+  authProvider: text("auth_provider").notNull().default("local"), // 'local' or 'google'
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -23,6 +26,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   name: true,
   role: true,
+  googleId: true,
+  profileImage: true,
+  authProvider: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

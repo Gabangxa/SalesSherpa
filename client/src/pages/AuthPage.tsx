@@ -25,6 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import { ResendVerificationDialog } from "@/components/ResendVerificationDialog";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { Separator } from "@/components/ui/separator";
 
 // Login form schema
 const loginSchema = z.object({
@@ -113,8 +115,23 @@ export default function AuthPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <div className="space-y-4">
+                    <GoogleSignInButton />
+                    
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <Separator className="w-full" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                          Or continue with username
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-5">
+                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-5 mt-4">
                       <FormField
                         control={loginForm.control}
                         name="username"
@@ -194,8 +211,23 @@ export default function AuthPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <div className="space-y-4">
+                    <GoogleSignInButton text="Sign up with Google" />
+                    
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <Separator className="w-full" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                          Or create account manually
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <Form {...registerForm}>
-                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-5">
+                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-5 mt-4">
                       <FormField
                         control={registerForm.control}
                         name="username"

@@ -9,6 +9,7 @@ import { sendEmail, generateVerificationToken, generateVerificationEmail } from 
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import { setupGoogleAuth } from "./googleAuth";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -70,11 +71,23 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Setup Google authentication
+  setupGoogleAuth(app);
+
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
+        if (!user) {
+          return done(null, false);
+        }
+
+        // Check if this is a Google-only user
+        if (user.authProvider === 'google' && !user.password) {
+          return done(null, false, { message: "Please use Google Sign In for this account" });
+        }
+
+        if (!user.password || !(await comparePasswords(password, user.password))) {
           return done(null, false);
         } else {
           return done(null, user);
