@@ -22,6 +22,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import WebSocketTest from "@/pages/WebSocketTest";
 import AuthPage from "@/pages/AuthPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
+import PrivacyPolicyPage from "@/pages/PrivacyPolicyPage";
 import NotFound from "@/pages/not-found";
 
 import Sidebar from "@/components/Sidebar";
@@ -47,12 +48,13 @@ function AppContent() {
   }, [location]);
 
   // Show public routes when user is not authenticated
-  if (!user && location !== "/auth" && location !== "/verify-email") {
+  if (!user && location !== "/auth" && location !== "/verify-email" && location !== "/privacy-policy") {
     return (
       <ErrorBoundary>
         <Switch>
           <Route path="/auth" component={AuthPage} />
           <Route path="/verify-email" component={VerifyEmailPage} />
+          <Route path="/privacy-policy" component={PrivacyPolicyPage} />
           <Route>
             <AuthPage />
           </Route>
@@ -68,6 +70,7 @@ function AppContent() {
         <Switch>
           <Route path="/auth" component={AuthPage} />
           <Route path="/verify-email" component={VerifyEmailPage} />
+          <Route path="/privacy-policy" component={PrivacyPolicyPage} />
           <Route>
             <AuthPage />
           </Route>

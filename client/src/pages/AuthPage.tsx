@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -332,7 +332,21 @@ export default function AuthPage() {
                     </form>
                   </Form>
                 </CardContent>
-                <CardFooter className="flex justify-center pb-6">
+                <CardFooter className="flex flex-col items-center pb-6 space-y-4">
+                  <p className="text-xs text-muted-foreground text-center">
+                    By creating an account, you agree to our{" "}
+                    <span className="text-primary underline cursor-pointer">
+                      Terms of Service
+                    </span>{" "}
+                    and{" "}
+                    <button 
+                      onClick={() => window.location.href = '/privacy-policy'}
+                      className="text-primary underline hover:text-primary/80 bg-transparent border-none p-0 font-inherit cursor-pointer"
+                    >
+                      Privacy Policy
+                    </button>
+                    .
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     Already have an account?{" "}
                     <Button 
