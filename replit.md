@@ -153,6 +153,8 @@ Sales Sherpa is a full-stack sales accountability and guidance platform built wi
 - `OPENAI_API_KEY`: AI integration
 - `SENDGRID_API_KEY`: Email notifications
 - `SESSION_SECRET`: Authentication security
+- `SALES_SHERPA_GOOGLE_CLIENT_ID`: Google OAuth Client ID for Gmail authentication
+- `SALES_SHERPA_GOOGLE_CLIENT_SECRET`: Google OAuth Client Secret for Gmail authentication
 
 ### Production Considerations
 - HTTPS required for secure cookies
