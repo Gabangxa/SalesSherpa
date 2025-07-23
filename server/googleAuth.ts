@@ -4,15 +4,15 @@ import { Express } from "express";
 import { storage } from "./storage";
 
 export function setupGoogleAuth(app: Express) {
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    console.warn("Google OAuth not configured - GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET required");
+  if (!process.env.SALES_SHERPA_GOOGLE_CLIENT_ID || !process.env.SALES_SHERPA_GOOGLE_CLIENT_SECRET) {
+    console.warn("Google OAuth not configured - SALES_SHERPA_GOOGLE_CLIENT_ID and SALES_SHERPA_GOOGLE_CLIENT_SECRET required");
     return;
   }
 
   // Google OAuth Strategy
   passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    clientID: process.env.SALES_SHERPA_GOOGLE_CLIENT_ID,
+    clientSecret: process.env.SALES_SHERPA_GOOGLE_CLIENT_SECRET,
     callbackURL: "/api/auth/google/callback"
   }, async (accessToken, refreshToken, profile, done) => {
     try {
