@@ -118,71 +118,12 @@ export default function AuthPage() {
                   <div className="space-y-4">
                     <GoogleSignInButton />
                     
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <Separator className="w-full" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                          Or continue with username
-                        </span>
-                      </div>
+                    {/* Traditional login form temporarily disabled */}
+                    <div className="text-center text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg border border-dashed">
+                      <p>Email/password login temporarily unavailable</p>
+                      <p className="text-xs mt-1">Please use Google Sign-In above</p>
                     </div>
                   </div>
-                  
-                  <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-5 mt-4">
-                      <FormField
-                        control={loginForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base">Username</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="your.username" 
-                                {...field} 
-                                className="h-11" 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={loginForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base">Password</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="••••••••" 
-                                {...field} 
-                                className="h-11" 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button 
-                        type="submit" 
-                        className="w-full h-11 mt-4 shadow-md text-base font-medium" 
-                        disabled={loginMutation.isPending}
-                      >
-                        {loginMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Logging in...
-                          </>
-                        ) : (
-                          "Login"
-                        )}
-                      </Button>
-                    </form>
-                  </Form>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4 pb-6">
                   <p className="text-sm text-muted-foreground">
@@ -195,9 +136,7 @@ export default function AuthPage() {
                       Sign up
                     </Button>
                   </p>
-                  <div className="flex justify-center">
-                    <ResendVerificationDialog />
-                  </div>
+
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -214,123 +153,12 @@ export default function AuthPage() {
                   <div className="space-y-4">
                     <GoogleSignInButton text="Sign up with Google" />
                     
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <Separator className="w-full" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                          Or create account manually
-                        </span>
-                      </div>
+                    {/* Traditional registration form temporarily disabled */}
+                    <div className="text-center text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg border border-dashed">
+                      <p>Email/password registration temporarily unavailable</p>
+                      <p className="text-xs mt-1">Please use Google Sign-Up above</p>
                     </div>
                   </div>
-                  
-                  <Form {...registerForm}>
-                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-5 mt-4">
-                      <FormField
-                        control={registerForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base">Username</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="your.username" 
-                                {...field} 
-                                className="h-11" 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base">Email Address</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="email"
-                                placeholder="john@example.com" 
-                                {...field} 
-                                className="h-11" 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base">Full Name</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="John Doe" 
-                                {...field} 
-                                className="h-11" 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="role"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base">Job Role</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Sales Professional" 
-                                {...field} 
-                                className="h-11" 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base">Password</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="••••••••" 
-                                {...field} 
-                                className="h-11" 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button 
-                        type="submit" 
-                        className="w-full h-11 mt-4 shadow-md text-base font-medium" 
-                        disabled={registerMutation.isPending}
-                      >
-                        {registerMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Creating account...
-                          </>
-                        ) : (
-                          "Create Account"
-                        )}
-                      </Button>
-                    </form>
-                  </Form>
                 </CardContent>
                 <CardFooter className="flex flex-col items-center pb-6 space-y-4">
                   <p className="text-xs text-muted-foreground text-center">
