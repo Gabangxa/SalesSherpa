@@ -13,7 +13,7 @@ export function setupGoogleAuth(app: Express) {
   passport.use(new GoogleStrategy({
     clientID: process.env.SALES_SHERPA_GOOGLE_CLIENT_ID,
     clientSecret: process.env.SALES_SHERPA_GOOGLE_CLIENT_SECRET,
-    callbackURL: "/api/auth/google/callback"
+    callbackURL: "https://30197771-7d7d-4669-afee-394245bebea9-00-39qi1s5b1epx1.picard.replit.dev/api/auth/google/callback"
   }, async (accessToken, refreshToken, profile, done) => {
     try {
       // Check if user exists with Google ID
