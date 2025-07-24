@@ -85,6 +85,7 @@ Sales Sherpa is a full-stack sales accountability and guidance platform built wi
 - **Disabled traditional email/password authentication**: Temporarily removed login/registration forms to focus on Google OAuth workflow
 - **Enhanced user experience**: Clean authentication pages showing only Google Sign-In options with helpful messaging about email verification being temporarily unavailable
 - **Maintained privacy policy integration**: Privacy policy remains accessible during registration process
+- **Updated for production deployment**: OAuth redirect URI configured for production domain https://sales-sherpa.org/
 
 ### Code Quality and Architecture Improvements (January 2025)
 - **Created shared utility functions**: Added `client/src/lib/goalUtils.ts` with consolidated category colors, formatting functions, and shared constants
