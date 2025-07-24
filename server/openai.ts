@@ -1,6 +1,10 @@
 import OpenAI from "openai";
 
 // Initialize the OpenAI client
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY environment variable is required");
+}
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -35,7 +39,7 @@ export async function initializeUserCache(userId: number, storage: any) {
     
     console.log(`CACHE INITIALIZED for user ${userId}:`);
     console.log(`- Goals: ${goals.length} items`);
-    goals.forEach(goal => console.log(`  * ${goal.title}: ${goal.currentAmount}/${goal.targetAmount}`));
+    goals.forEach((goal: any) => console.log(`  * ${goal.title}: ${goal.currentAmount}/${goal.targetAmount}`));
     console.log(`- Tasks: ${tasks.length} items`);
     
   } catch (error) {
@@ -206,6 +210,7 @@ Maintain a professional tone that balances friendliness with authority.`
     console.log(`AI Step D1: System prompt includes ${goalsContext.length + tasksContext.length} chars of context`);
     
     // Generate a response from OpenAI
+    console.log(`AI Step D2: Making API call to OpenAI...`);
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: messages as any,
@@ -213,30 +218,45 @@ Maintain a professional tone that balances friendliness with authority.`
       max_tokens: 200,
     });
 
-    const aiResponseText = response.choices[0].message.content || "I'm not sure how to respond to that. Could you provide more context?";
+    console.log(`AI Step D3: OpenAI API call successful, processing response...`);
+    const aiResponseText = response.choices[0]?.message?.content || "I'm not sure how to respond to that. Could you provide more context?";
     console.log(`AI Step E: OpenAI returned response (${aiResponseText.length} chars): "${aiResponseText.substring(0, 100)}..."`);
     
     return aiResponseText;
   } catch (error) {
-    console.error("OPENAI ERROR DETAILS:", {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : 'No stack',
-      name: error instanceof Error ? error.name : 'No name',
-      fullError: error
-    });
+    console.error("=== OPENAI ERROR DETAILS ===");
+    console.error("Error message:", error instanceof Error ? error.message : 'Unknown error');
+    console.error("Error name:", error instanceof Error ? error.name : 'No name');
+    console.error("Error stack:", error instanceof Error ? error.stack : 'No stack');
+    console.error("Full error object:", error);
+    console.error("API key present:", !!process.env.OPENAI_API_KEY);
+    console.error("API key prefix:", process.env.OPENAI_API_KEY?.substring(0, 7) + "...");
     
     // Check for specific API issues
     if (error instanceof Error) {
-      if (error.message.includes('API key')) {
-        console.error("API KEY ISSUE: Invalid or missing OpenAI API key");
+      if (error.message.includes('API key') || error.message.includes('Unauthorized')) {
+        console.error("❌ API KEY ISSUE: Invalid or missing OpenAI API key");
+        return "I'm having trouble connecting to my AI service due to authentication issues. Please check that the OpenAI API key is properly configured.";
       } else if (error.message.includes('rate limit')) {
-        console.error("RATE LIMIT: OpenAI API rate limit exceeded");
-      } else if (error.message.includes('quota')) {
-        console.error("QUOTA EXCEEDED: OpenAI API quota exceeded");
+        console.error("❌ RATE LIMIT: OpenAI API rate limit exceeded");
+        return "I'm currently experiencing high usage. Please wait a moment and try again.";
+      } else if (error.message.includes('quota') || error.message.includes('billing')) {
+        console.error("❌ QUOTA EXCEEDED: OpenAI API quota or billing issue");
+        return "There's a billing or quota issue with the AI service. Please contact support.";
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        console.error("❌ NETWORK ERROR: Connection issue with OpenAI API");
+        return "I'm having trouble connecting to the AI service. Please check your internet connection and try again.";
       }
     }
     
+    // Log additional debugging info
+    console.error("=== DEBUGGING INFO ===");
+    console.error("User ID:", userId);
+    console.error("Message length:", userMessage.length);
+    console.error("Conversation length:", conversation.length);
+    console.error("Model:", AI_MODEL);
+    
     // Fallback to a generic response if the API call fails
-    return "I'm experiencing some technical difficulties with my AI system. Please try again later or contact support if the issue persists.";
+    return "I'm experiencing technical difficulties accessing my AI capabilities. The error has been logged for investigation. Please try a simpler question or contact support if this persists.";
   }
 }
