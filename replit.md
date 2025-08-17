@@ -47,7 +47,7 @@ Sales Sherpa is a full-stack sales accountability and guidance platform built wi
 - Protected routes with middleware
 
 ### AI Integration
-- OpenAI GPT-4o integration for personalized sales guidance (Sales Sherpa Assistant)
+- OpenAI GPT-4.1-mini integration for personalized sales guidance (Sales Sherpa Assistant)
 - Context-aware responses using user goals and tasks with MCP-like caching architecture
 - Real-time access to user's actual goals data for personalized recommendations
 - Real-time chat interface with message history and professional styling

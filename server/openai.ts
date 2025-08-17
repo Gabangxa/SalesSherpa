@@ -9,8 +9,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// The newest OpenAI model is "gpt-4o" which was released May 13, 2024. Do not change this unless explicitly requested by the user
-const AI_MODEL = "gpt-4o";
+// Updated to gpt-4.1-mini as requested by user
+const AI_MODEL = "gpt-4.1-mini";
 
 // Cache for user goals and tasks to avoid repeated database calls
 const userContextCache = new Map<number, { goals: any[], tasks: any[], lastUpdated: number }>();
