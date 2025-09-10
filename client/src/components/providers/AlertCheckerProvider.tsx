@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useNotifications } from '@/hooks/use-notifications';
 import { useQuery } from '@tanstack/react-query';
 import { CheckInAlert } from '@shared/schema';
+import { useAuth } from '@/hooks/use-auth';
 import { 
   isTimeWithinMargin, 
   getBrowserTimezone, 
@@ -30,19 +31,21 @@ const AlertCheckerContext = createContext<AlertCheckerContextType | null>(null);
 
 export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { showNotification } = useNotifications();
+  const { user } = useAuth();
   const [triggeredAlerts, setTriggeredAlerts] = useState<number[]>([]);
   const [checkInProgress, setCheckInProgress] = useState(false);
   
-  // Get all alerts
+  // Get all alerts - only when user is authenticated
   const { data: alerts = [] } = useQuery<CheckInAlert[]>({
     queryKey: ['/api/check-in-alerts'],
-    refetchInterval: 60000, // Refetch every minute
+    enabled: !!user, // Only fetch when user is authenticated
+    refetchInterval: user ? 60000 : false, // Only refetch when user is authenticated
     staleTime: 55000,
   });
 
   // Check alerts and show notifications if needed
   const checkAlerts = useCallback(() => {
-    if (checkInProgress || !alerts || alerts.length === 0) return;
+    if (!user || checkInProgress || !alerts || alerts.length === 0) return;
 
     setCheckInProgress(true);
     
@@ -126,7 +129,7 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setCheckInProgress(false);
     }
-  }, [alerts, checkInProgress, showNotification, triggeredAlerts]);
+  }, [user, alerts, checkInProgress, showNotification, triggeredAlerts]);
 
   // Allow manually triggering a specific alert (for testing)
   const triggerAlert = useCallback((alertId: number) => {
@@ -148,8 +151,10 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [alerts, showNotification]);
 
-  // Check alerts every minute
+  // Check alerts every minute - only when user is authenticated
   useEffect(() => {
+    if (!user) return;
+    
     // Check immediately on mount
     checkAlerts();
     
@@ -161,7 +166,7 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => {
       clearInterval(intervalId);
     };
-  }, [checkAlerts]);
+  }, [checkAlerts, user]);
 
   // Reset triggered alerts on day change
   useEffect(() => {
