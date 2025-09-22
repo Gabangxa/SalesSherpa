@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { calculatePercentage, cn } from "@/lib/utils";
-import { formatGoalValue, getCategoryGradient, getBadgeColor } from "@/lib/goalUtils";
+import { calculatePercentage, isIncreaseGoal, cn } from "@/lib/utils";
+import { formatGoalValue, getCategoryGradient, getBadgeColor, getProgressDisplayText, getProgressColor } from "@/lib/goalUtils";
 import { 
   Card, 
   CardContent, 
@@ -26,7 +26,7 @@ export default function ProgressTracking() {
 
   // Moved to shared utilities
 
-  // Calculate overall progress
+  // Calculate overall progress (works for both increase and decrease goals)
   const totalGoals = goals.length;
   const completedGoals = goals.filter(goal => 
     calculatePercentage(goal.currentAmount, goal.targetAmount, goal.startingAmount ?? 0) >= 100
@@ -112,7 +112,10 @@ export default function ProgressTracking() {
                 // Handle legacy goals without startingAmount field
                 const startingAmount = goal.startingAmount ?? 0;
                 const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount, startingAmount);
+                const isIncrease = isIncreaseGoal(goal.targetAmount, startingAmount);
                 const isNegative = percentage < 0;
+                const progressText = getProgressDisplayText(percentage, goal.targetAmount, startingAmount);
+                const progressColorClass = getProgressColor(percentage, goal.targetAmount, startingAmount);
                 
                 return (
                   <div key={goal.id} className="rounded-xl p-4 bg-gradient-to-br from-slate-800/60 to-slate-700/60 backdrop-blur-sm border border-white/10 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-white/20 relative overflow-hidden">
@@ -126,15 +129,17 @@ export default function ProgressTracking() {
                         percentage >= 70 ? "bg-blue-500/20 text-blue-300 border-blue-500/30" : 
                         "bg-gray-600/20 text-gray-300 border-gray-500/30"
                       )}>
-                        {percentage}%
+                        {percentage}% {isIncrease ? '📈' : '📉'}
                       </Badge>
                     </div>
                     <Progress value={Math.max(0, percentage)} className="h-2 mb-2" />
-                    {isNegative && (
-                      <div className="text-xs text-red-400 mb-1">
-                        ⚠️ Below starting point by {Math.abs(percentage)}%
-                      </div>
-                    )}
+                    <div className={cn("text-xs mb-1", progressColorClass)}>
+                      {isNegative ? (
+                        `⚠️ ${isIncrease ? 'Below starting point' : 'Above starting point'} by ${Math.abs(percentage)}%`
+                      ) : (
+                        `${isIncrease ? '📈' : '📉'} ${progressText}`
+                      )}
+                    </div>
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <span>
                         {startingAmount > 0 

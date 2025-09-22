@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { calculatePercentage, cn } from "@/lib/utils";
-import { getCategoryColor, formatCategory, formatGoalValue } from "@/lib/goalUtils";
+import { calculatePercentage, isIncreaseGoal, cn } from "@/lib/utils";
+import { getCategoryColor, formatCategory, formatGoalValue, getProgressDisplayText, getProgressColor } from "@/lib/goalUtils";
 import { format } from "date-fns";
 import { Plus, Target, Edit, Trash2, Zap } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -156,7 +156,10 @@ export default function GoalsPage() {
             // Handle legacy goals without startingAmount field
             const startingAmount = goal.startingAmount ?? 0;
             const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount, startingAmount);
+            const isIncrease = isIncreaseGoal(goal.targetAmount, startingAmount);
             const isNegative = percentage < 0;
+            const progressText = getProgressDisplayText(percentage, goal.targetAmount, startingAmount);
+            const progressColorClass = getProgressColor(percentage, goal.targetAmount, startingAmount);
             
             return (
               <Card key={goal.id} className="overflow-hidden border-border/60 hover:shadow-md transition-shadow duration-200">
@@ -205,9 +208,9 @@ export default function GoalsPage() {
                     </span>
                     <span className={cn(
                       "text-sm font-medium",
-                      isNegative ? "text-red-500" : ""
+                      progressColorClass
                     )}>
-                      {percentage}% {isNegative ? "(Below Starting Point)" : "Complete"}
+                      {progressText} {isIncrease ? '📈' : '📉'}
                     </span>
                   </div>
                   
@@ -219,7 +222,7 @@ export default function GoalsPage() {
                   
                   {isNegative && (
                     <div className="text-xs text-red-500 mb-2">
-                      ⚠️ Below starting point by {Math.abs(percentage)}%
+                      ⚠️ {isIncrease ? 'Below starting point' : 'Above starting point'} by {Math.abs(percentage)}%
                     </div>
                   )}
                   

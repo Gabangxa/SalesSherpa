@@ -166,9 +166,11 @@ export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
   
   // Categories moved to shared utilities
 
-  // Watch the valueType to update field labels
+  // Watch the valueType and amounts to update field labels with goal direction awareness
   const valueType = form.watch("valueType");
-  const fieldLabels = getFieldLabels(valueType);
+  const targetAmount = form.watch("targetAmount");
+  const startingAmount = form.watch("startingAmount");
+  const fieldLabels = getFieldLabels(valueType, targetAmount, startingAmount);
   
   // Watch the category to show/hide custom category input
   const selectedCategory = form.watch("category");
