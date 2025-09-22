@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import { 
   Form,
   FormControl,
@@ -23,9 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/hooks/use-auth";
 import { Goal } from "@shared/schema";
 import { GOAL_CATEGORIES, getFieldLabels } from "@/lib/goalUtils";
+import { cn } from "@/lib/utils";
 
 // Define the form schema
 const formSchema = z.object({
@@ -33,8 +42,11 @@ const formSchema = z.object({
   targetAmount: z.coerce.number().int("Target must be a whole number").positive("Target must be a positive number"),
   currentAmount: z.coerce.number().int("Current amount must be a whole number").min(0, "Current amount must be 0 or greater"),
   startingAmount: z.coerce.number().int("Starting amount must be a whole number").min(0, "Starting amount must be 0 or greater"),
-  deadline: z.string().min(1, "Deadline is required"),
+  deadline: z.date({
+    required_error: "Please select a deadline date",
+  }),
   category: z.string().min(1, "Category is required"),
+  customCategory: z.string().optional(),
   valueType: z.enum(["monetary", "number", "percentage"], {
     required_error: "Please select a value type",
   }),
@@ -51,10 +63,16 @@ interface GoalFormProps {
 export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
   const { user } = useAuth();
   
-  // Get today's date in the format YYYY-MM-DD for the default deadline
-  const today = new Date().toISOString().split('T')[0];
+  // Get today's date for the default deadline
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  // Check if current goal uses a custom category
+  const isCustomCategory = goal && !GOAL_CATEGORIES.find(cat => cat.value === goal.category);
   
   // Setup the form with validation
   const form = useForm<FormValues>({
@@ -64,26 +82,39 @@ export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
       targetAmount: goal.targetAmount,
       currentAmount: goal.currentAmount,
       startingAmount: goal.startingAmount ?? 0,
-      deadline: new Date(goal.deadline).toISOString().split('T')[0],
-      category: goal.category,
-      valueType: goal.valueType ?? "number",
+      deadline: new Date(goal.deadline),
+      category: isCustomCategory ? "custom" : goal.category,
+      customCategory: isCustomCategory ? goal.category : "",
+      valueType: (goal.valueType ?? "number") as "monetary" | "number" | "percentage",
     } : {
       title: "",
       targetAmount: 10,
       currentAmount: 0,
       startingAmount: 0,
-      deadline: today,
+      deadline: tomorrow,
       category: "sales",
-      valueType: "number",
+      customCategory: "",
+      valueType: "number" as const,
     },
+  });
+  
+  // Set initial custom category state
+  useState(() => {
+    if (isCustomCategory) {
+      setShowCustomCategory(true);
+    }
   });
   
   // Setup the mutation for creating/updating a goal
   const saveGoalMutation = useMutation({
     mutationFn: (values: FormValues) => {
       setLoading(true);
-      // Convert string date to a proper Date object
-      const deadlineDate = new Date(values.deadline + 'T23:59:59');
+      // Set deadline time to end of day
+      const deadlineDate = new Date(values.deadline);
+      deadlineDate.setHours(23, 59, 59, 999);
+      
+      // Use custom category if "custom" is selected, otherwise use selected predefined category
+      const finalCategory = values.category === "custom" ? values.customCategory : values.category;
       
       const payload = {
         title: values.title,
@@ -91,7 +122,7 @@ export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
         currentAmount: parseInt(values.currentAmount.toString()),
         startingAmount: parseInt(values.startingAmount.toString()),
         deadline: deadlineDate,
-        category: values.category,
+        category: finalCategory,
         valueType: values.valueType
       };
       
@@ -138,6 +169,19 @@ export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
   // Watch the valueType to update field labels
   const valueType = form.watch("valueType");
   const fieldLabels = getFieldLabels(valueType);
+  
+  // Watch the category to show/hide custom category input
+  const selectedCategory = form.watch("category");
+  
+  // Update custom category visibility when category changes
+  useState(() => {
+    if (selectedCategory === "custom") {
+      setShowCustomCategory(true);
+    } else {
+      setShowCustomCategory(false);
+      form.setValue("customCategory", "");
+    }
+  });
   
   return (
     <Form {...form}>
@@ -243,11 +287,38 @@ export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
             control={form.control}
             name="deadline"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>Deadline</FormLabel>
-                <FormControl>
-                  <Input type="date" min={today} {...field} />
-                </FormControl>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        data-testid="button-deadline-picker"
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) => date < today}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 <FormDescription>
                   When do you aim to achieve this goal?
                 </FormDescription>
@@ -264,7 +335,7 @@ export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
                 <FormLabel>Category</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger data-testid="select-category">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                   </FormControl>
@@ -274,6 +345,9 @@ export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
                         {category.label}
                       </SelectItem>
                     ))}
+                    <SelectItem value="custom">
+                      ✏️ Custom Category
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <FormDescription>
@@ -284,6 +358,29 @@ export function GoalForm({ goal, onSuccess, onCancel }: GoalFormProps) {
             )}
           />
         </div>
+        
+        {showCustomCategory && (
+          <FormField
+            control={form.control}
+            name="customCategory"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Custom Category Name</FormLabel>
+                <FormControl>
+                  <Input 
+                    data-testid="input-custom-category"
+                    placeholder="Enter your custom category (e.g., Personal Development, Health, etc.)" 
+                    {...field} 
+                  />
+                </FormControl>
+                <FormDescription>
+                  Create a custom category that fits your specific goal
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         
         <div className="flex justify-end space-x-2 pt-4">
           {onCancel && (
