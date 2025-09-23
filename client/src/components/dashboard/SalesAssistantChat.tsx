@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { formatTime } from "@/lib/dateUtils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Maximize2 } from "lucide-react";
+import { Maximize2, Bot } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { getUserInitials } from "@/lib/utils";
@@ -90,9 +90,7 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
       <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm">
         <div className="flex items-center">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
-            </svg>
+            <Bot className="h-7 w-7 text-white" />
           </div>
           <div className="ml-4">
             <h2 className="text-lg font-bold text-white">Sales Sherpa Assistant</h2>
@@ -120,9 +118,7 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-60 text-center px-6">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
-                  </svg>
+                  <Bot className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="text-lg font-medium mb-2">Welcome to your Sales Sherpa Assistant</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -154,9 +150,7 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
                   >
                     {msg.sender === 'assistant' && (
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center shadow-lg border border-white/10">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
-                        </svg>
+                        <Bot className="h-5 w-5 text-white" />
                       </div>
                     )}
                     
@@ -206,21 +200,14 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
                       </div>
                     </div>
                     
-                    {msg.sender === 'user' && (
-                      <div className="w-9 h-9 rounded-full bg-secondary flex-shrink-0 flex items-center justify-center ring-2 ring-background">
-                        <span className="text-xs font-medium text-secondary-foreground">{userInitials}</span>
-                      </div>
-                    )}
                   </div>
                 ))}
                 
                 {/* AI thinking indicator */}
                 {waitingForResponse && (
                   <div className="flex mb-5">
-                    <div className="w-9 h-9 rounded-full bg-primary/20 flex-shrink-0 flex items-center justify-center ring-2 ring-background">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 01-.659 1.591L9.5 14.5m3.25-3.125L13.1 14.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0019.5 7.5h-1.5m-15 0A2.25 2.25 0 004.5 7.5h1.5m0 0v5.25M4.5 7.5h7.5" />
-                      </svg>
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center shadow-lg border border-white/10">
+                      <Bot className="h-5 w-5 text-white" />
                     </div>
                     
                     <div className="ml-3 bg-muted rounded-2xl rounded-tl-none py-3 px-4 max-w-[85%] shadow-sm min-w-[80px]">
