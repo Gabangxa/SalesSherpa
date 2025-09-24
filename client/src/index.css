@@ -4,32 +4,32 @@
 
 @layer base {
   :root {
-    /* Light theme variables - Traditional and neutral */
-    --background: 250 250 250;           /* Very light gray background */
-    --foreground: 39 39 42;              /* Dark gray for text */
-    --card: 255 255 255;                 /* Pure white for cards */
-    --card-foreground: 39 39 42;         /* Dark gray for card text */
-    --popover: 255 255 255;              /* White for popovers */
-    --popover-foreground: 39 39 42;      /* Dark gray for popover text */
-    --primary: 24 24 27;                 /* Traditional dark gray */
-    --primary-foreground: 250 250 250;   /* Light text on primary */
-    --secondary: 244 244 245;            /* Light neutral gray */
-    --secondary-foreground: 39 39 42;    /* Dark gray text */
-    --muted: 244 244 245;                /* Subtle neutral background */
-    --muted-foreground: 113 113 122;     /* Medium gray text */
-    --accent: 244 244 245;               /* Light neutral accent */
-    --accent-foreground: 39 39 42;       /* Dark gray text */
-    --destructive: 239 68 68;            /* Traditional red for errors */
-    --destructive-foreground: 250 250 250; /* Light text on destructive */
-    --border: 228 228 231;               /* Light neutral border */
-    --input: 228 228 231;                /* Input border */
-    --ring: 24 24 27;                    /* Focus ring - same as primary */
-    --chart-1: 39 39 42;                 /* Traditional chart colors */
-    --chart-2: 113 113 122;
-    --chart-3: 161 161 170;
-    --chart-4: 212 212 216;
-    --chart-5: 244 244 245;
-    --radius: 0.5rem;                    /* Slightly smaller border radius */
+    /* Light theme variables - Dark slate aesthetic inspired by right panel */
+    --background: 30 41 59;              /* Slate-800 background like right panel */
+    --foreground: 248 250 252;           /* White text for excellent contrast */
+    --card: 51 65 85;                    /* Slightly lighter slate for card distinction */
+    --card-foreground: 248 250 252;      /* White text on cards */
+    --popover: 51 65 85;                 /* Slate for popovers */
+    --popover-foreground: 248 250 252;   /* White text on popovers */
+    --primary: 255 255 255;              /* White as primary for contrast */
+    --primary-foreground: 30 41 59;      /* Dark slate text on white primary */
+    --secondary: 51 65 85;               /* Medium slate for secondary elements */
+    --secondary-foreground: 226 232 240; /* Light gray text on secondary */
+    --muted: 51 65 85;                   /* Muted slate background */
+    --muted-foreground: 203 213 225;     /* Light slate text for muted content */
+    --accent: 71 85 105;                 /* Lighter slate accent */
+    --accent-foreground: 248 250 252;    /* White text on accent */
+    --destructive: 239 68 68;            /* Keep traditional red for errors */
+    --destructive-foreground: 248 250 252; /* White text on destructive */
+    --border: 71 85 105;                 /* Slate border for definition */
+    --input: 71 85 105;                  /* Slate input borders */
+    --ring: 255 255 255;                 /* White focus ring for visibility */
+    --chart-1: 248 250 252;              /* White chart colors for contrast */
+    --chart-2: 226 232 240;
+    --chart-3: 203 213 225;
+    --chart-4: 148 163 184;
+    --chart-5: 100 116 139;
+    --radius: 0.75rem;                   /* Slightly larger radius for modern feel */
   }
   
   .dark {
