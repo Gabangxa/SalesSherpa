@@ -107,16 +107,16 @@ export default function AuthPage() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsList className="grid w-full grid-cols-2 mb-8 bg-white/10 border-white/10">
               <TabsTrigger value="login" className="text-base py-3">Login</TabsTrigger>
               <TabsTrigger value="register" className="text-base py-3">Register</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
-              <Card className="border-border/40 shadow-lg">
+              <Card className="border-white/10 shadow-xl bg-white/10 backdrop-blur-sm text-white">
                 <CardHeader>
-                  <CardTitle className="text-2xl">Login</CardTitle>
-                  <CardDescription className="text-base">
+                  <CardTitle className="text-2xl text-white">Login</CardTitle>
+                  <CardDescription className="text-base text-white/80">
                     Sign in to access your Sales Sherpa accountability platform
                   </CardDescription>
                 </CardHeader>
@@ -125,18 +125,18 @@ export default function AuthPage() {
                     <GoogleSignInButton />
                     
                     {/* Traditional login form temporarily disabled */}
-                    <div className="text-center text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg border border-dashed">
+                    <div className="text-center text-sm text-white/70 bg-white/5 p-4 rounded-lg border border-dashed border-white/20">
                       <p>Email/password login temporarily unavailable</p>
                       <p className="text-xs mt-1">Please use Google Sign-In above</p>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4 pb-6">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-white/80">
                     Don't have an account?{" "}
                     <Button 
                       variant="link" 
-                      className="p-0 font-semibold text-primary" 
+                      className="p-0 font-semibold text-white hover:text-white/80" 
                       onClick={() => setActiveTab("register")}
                     >
                       Sign up
@@ -148,10 +148,10 @@ export default function AuthPage() {
             </TabsContent>
             
             <TabsContent value="register">
-              <Card className="border-border/40 shadow-lg">
+              <Card className="border-white/10 shadow-xl bg-white/10 backdrop-blur-sm text-white">
                 <CardHeader>
-                  <CardTitle className="text-2xl">Create an Account</CardTitle>
-                  <CardDescription className="text-base">
+                  <CardTitle className="text-2xl text-white">Create an Account</CardTitle>
+                  <CardDescription className="text-base text-white/80">
                     Join Sales Sherpa to stay accountable and achieve your sales goals
                   </CardDescription>
                 </CardHeader>
@@ -160,32 +160,32 @@ export default function AuthPage() {
                     <GoogleSignInButton text="Sign up with Google" />
                     
                     {/* Traditional registration form temporarily disabled */}
-                    <div className="text-center text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg border border-dashed">
+                    <div className="text-center text-sm text-white/70 bg-white/5 p-4 rounded-lg border border-dashed border-white/20">
                       <p>Email/password registration temporarily unavailable</p>
                       <p className="text-xs mt-1">Please use Google Sign-Up above</p>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col items-center pb-6 space-y-4">
-                  <p className="text-xs text-muted-foreground text-center">
+                  <p className="text-xs text-white/70 text-center">
                     By creating an account, you agree to our{" "}
-                    <span className="text-primary underline cursor-pointer">
+                    <span className="text-white underline cursor-pointer">
                       Terms of Service
                     </span>{" "}
                     and{" "}
                     <button 
                       onClick={() => window.location.href = '/privacy-policy'}
-                      className="text-primary underline hover:text-primary/80 bg-transparent border-none p-0 font-inherit cursor-pointer"
+                      className="text-white underline hover:text-white/80 bg-transparent border-none p-0 font-inherit cursor-pointer"
                     >
                       Privacy Policy
                     </button>
                     .
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-white/80">
                     Already have an account?{" "}
                     <Button 
                       variant="link" 
-                      className="p-0 font-semibold text-primary" 
+                      className="p-0 font-semibold text-white hover:text-white/80" 
                       onClick={() => setActiveTab("login")}
                     >
                       Login
