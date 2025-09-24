@@ -4,32 +4,32 @@
 
 @layer base {
   :root {
-    /* Light theme variables - Sleek and lightweight, not too white */
-    --background: 245 247 250;           /* Soft off-white with hint of blue */
-    --foreground: 15 23 42;              /* Deep slate for text */
-    --card: 255 255 255;                 /* Pure white for cards to stand out */
-    --card-foreground: 15 23 42;         /* Deep slate for card text */
+    /* Light theme variables - Traditional and neutral */
+    --background: 250 250 250;           /* Very light gray background */
+    --foreground: 39 39 42;              /* Dark gray for text */
+    --card: 255 255 255;                 /* Pure white for cards */
+    --card-foreground: 39 39 42;         /* Dark gray for card text */
     --popover: 255 255 255;              /* White for popovers */
-    --popover-foreground: 15 23 42;      /* Deep slate for popover text */
-    --primary: 59 130 246;               /* Professional blue */
-    --primary-foreground: 248 250 252;   /* Light text on primary */
-    --secondary: 241 245 249;            /* Very light blue-gray */
-    --secondary-foreground: 51 65 85;    /* Medium slate */
-    --muted: 248 250 252;                /* Subtle background */
-    --muted-foreground: 100 116 139;     /* Muted text */
-    --accent: 236 254 255;               /* Light cyan accent */
-    --accent-foreground: 22 78 99;       /* Dark cyan text */
-    --destructive: 239 68 68;            /* Red for errors */
-    --destructive-foreground: 248 250 252; /* Light text on destructive */
-    --border: 226 232 240;               /* Light border */
-    --input: 226 232 240;                /* Input border */
-    --ring: 59 130 246;                  /* Focus ring - same as primary */
-    --chart-1: 12 74 110;                /* Chart colors */
-    --chart-2: 53 162 235;
-    --chart-3: 255 99 132;
-    --chart-4: 255 159 64;
-    --chart-5: 153 102 255;
-    --radius: 0.75rem;                   /* Border radius */
+    --popover-foreground: 39 39 42;      /* Dark gray for popover text */
+    --primary: 24 24 27;                 /* Traditional dark gray */
+    --primary-foreground: 250 250 250;   /* Light text on primary */
+    --secondary: 244 244 245;            /* Light neutral gray */
+    --secondary-foreground: 39 39 42;    /* Dark gray text */
+    --muted: 244 244 245;                /* Subtle neutral background */
+    --muted-foreground: 113 113 122;     /* Medium gray text */
+    --accent: 244 244 245;               /* Light neutral accent */
+    --accent-foreground: 39 39 42;       /* Dark gray text */
+    --destructive: 239 68 68;            /* Traditional red for errors */
+    --destructive-foreground: 250 250 250; /* Light text on destructive */
+    --border: 228 228 231;               /* Light neutral border */
+    --input: 228 228 231;                /* Input border */
+    --ring: 24 24 27;                    /* Focus ring - same as primary */
+    --chart-1: 39 39 42;                 /* Traditional chart colors */
+    --chart-2: 113 113 122;
+    --chart-3: 161 161 170;
+    --chart-4: 212 212 216;
+    --chart-5: 244 244 245;
+    --radius: 0.5rem;                    /* Slightly smaller border radius */
   }
   
   .dark {
