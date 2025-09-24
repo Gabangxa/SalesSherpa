@@ -91,13 +91,19 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left section - Forms */}
-      <div className="w-full md:w-1/2 p-6 flex items-center justify-center bg-muted/20">
-        <div className="w-full max-w-md">
+      <div className="w-full md:w-1/2 p-6 flex items-center justify-center bg-gradient-to-br from-slate-700 to-slate-800 relative overflow-hidden">
+        {/* Subtle decorative elements for the left panel */}
+        <div className="absolute inset-0 overflow-hidden z-0">
+          <div className="absolute -left-24 -top-24 w-64 h-64 bg-white/5 rounded-full blur-xl"></div>
+          <div className="absolute -right-16 bottom-1/4 w-48 h-48 bg-white/3 rounded-full blur-xl"></div>
+        </div>
+        
+        <div className="w-full max-w-md relative z-10">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            <h2 className="text-3xl font-bold text-white drop-shadow-sm">
               Welcome to Sales Sherpa
             </h2>
-            <p className="text-muted-foreground mt-2">Access your sales accountability and guidance platform</p>
+            <p className="text-white/80 mt-2">Access your sales accountability and guidance platform</p>
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
