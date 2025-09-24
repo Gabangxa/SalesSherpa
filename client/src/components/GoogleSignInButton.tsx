@@ -18,7 +18,7 @@ export function GoogleSignInButton({
     <Button
       onClick={handleGoogleSignIn}
       variant="outline"
-      className={`w-full h-11 border-border/60 hover:bg-muted/50 ${className}`}
+      className={`w-full h-11 bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 hover:border-white/30 text-white transition-all duration-300 shadow-lg hover:shadow-xl ${className}`}
       type="button"
     >
       <Chrome className="w-4 h-4 mr-2 text-[#4285F4]" />
