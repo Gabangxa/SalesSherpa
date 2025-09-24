@@ -7,6 +7,7 @@ import { Maximize2, Bot } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { getUserInitials } from "@/lib/utils";
+import { webSocketService, WebSocketMessageType } from "@/lib/websocketService";
 
 interface ChatMessage {
   id: number;
@@ -27,10 +28,10 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
   // State to track if we're waiting for an AI response
   const [waitingForResponse, setWaitingForResponse] = useState(false);
   
-  // Fetch chat messages with automatic polling
-  const { data: messages = [], isLoading, refetch } = useQuery<ChatMessage[]>({
+  // Fetch chat messages (no more polling - WebSocket will notify us)
+  const { data: messages = [], isLoading } = useQuery<ChatMessage[]>({
     queryKey: ['/api/chat'],
-    refetchInterval: waitingForResponse ? 1000 : false, // Poll every second when waiting for a response
+    staleTime: 300000, // 5 minutes - since we get real-time updates via WebSocket
   });
   
   // Send message mutation
@@ -43,27 +44,9 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
       });
     },
     onSuccess: () => {
-      // Immediately fetch new messages
+      // Immediately fetch new messages to show the user's message
       queryClient.invalidateQueries({ queryKey: ['/api/chat'] });
-      
-      // Set up a check to see if AI has responded
-      const checkForResponse = async () => {
-        const { data: latestMessages } = await refetch();
-        
-        // Check if the last message is from the assistant
-        if (latestMessages && latestMessages.length > 0) {
-          const lastMessage = latestMessages[latestMessages.length - 1];
-          if (lastMessage.sender === 'assistant') {
-            setWaitingForResponse(false); // Stop polling when we get the AI response
-          } else {
-            // If we still don't have a response, check again in a moment
-            setTimeout(checkForResponse, 1000);
-          }
-        }
-      };
-      
-      // Start checking for the response
-      setTimeout(checkForResponse, 1000);
+      // Note: AI response will come via WebSocket, no need to poll
     }
   });
 
@@ -77,6 +60,34 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
     setMessage('');
   };
 
+  // Listen for WebSocket AI response messages
+  useEffect(() => {
+    // Connect to WebSocket service if not already connected
+    if (webSocketService.getStatus() === 'CLOSED') {
+      webSocketService.connect();
+    }
+    
+    // Subscribe to MESSAGE type WebSocket messages for AI responses
+    const unsubscribe = webSocketService.on(WebSocketMessageType.MESSAGE, (payload) => {
+      if (payload.type === 'ai_chat_response') {
+        console.log('Received AI response via WebSocket:', payload);
+        
+        // Stop waiting for response
+        setWaitingForResponse(false);
+        
+        // Refresh chat messages to show the new AI response
+        queryClient.invalidateQueries({ queryKey: ['/api/chat'] });
+      }
+    });
+    
+    console.log('SalesAssistantChat: Subscribed to WebSocket AI responses');
+    
+    return () => {
+      unsubscribe();
+      console.log('SalesAssistantChat: Unsubscribed from WebSocket AI responses');
+    };
+  }, []);
+  
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

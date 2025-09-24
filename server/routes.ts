@@ -335,16 +335,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           log(`AI response saved successfully with ID: ${savedAIMessage.id}`, "chat");
           
+          // Step 4: Send WebSocket notification to user about new AI response
+          const aiResponseMessage: WebSocketMessage = {
+            type: WebSocketMessageType.MESSAGE,
+            payload: {
+              type: 'ai_chat_response',
+              messageId: savedAIMessage.id,
+              message: aiResponse,
+              sender: 'assistant',
+              timestamp: savedAIMessage.timestamp
+            },
+            timestamp: Date.now()
+          };
+          
+          sendMessageToUser(req.body.userId, aiResponseMessage);
+          log(`Sent WebSocket notification to user ${req.body.userId} about AI response`);
+          
         } catch (error) {
           log(`AI processing error: ${error instanceof Error ? error.message : 'Unknown error'}`, "chat");
           
           // Save fallback response
-          await storage.createChatMessage({
+          const fallbackMessage = await storage.createChatMessage({
             userId: req.body.userId,
             message: "I'm experiencing technical difficulties accessing your goals data. Please try again.",
             sender: 'assistant',
             timestamp: new Date()
           });
+          
+          // Send WebSocket notification for fallback response too
+          const fallbackResponseMessage: WebSocketMessage = {
+            type: WebSocketMessageType.MESSAGE,
+            payload: {
+              type: 'ai_chat_response',
+              messageId: fallbackMessage.id,
+              message: fallbackMessage.message,
+              sender: 'assistant',
+              timestamp: fallbackMessage.timestamp
+            },
+            timestamp: Date.now()
+          };
+          
+          sendMessageToUser(req.body.userId, fallbackResponseMessage);
+          log(`Sent WebSocket notification to user ${req.body.userId} about fallback AI response`);
         }
       }
       
