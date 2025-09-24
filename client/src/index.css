@@ -3,6 +3,63 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Light theme variables - Sleek and lightweight, not too white */
+    --background: 245 247 250;           /* Soft off-white with hint of blue */
+    --foreground: 15 23 42;              /* Deep slate for text */
+    --card: 255 255 255;                 /* Pure white for cards to stand out */
+    --card-foreground: 15 23 42;         /* Deep slate for card text */
+    --popover: 255 255 255;              /* White for popovers */
+    --popover-foreground: 15 23 42;      /* Deep slate for popover text */
+    --primary: 59 130 246;               /* Professional blue */
+    --primary-foreground: 248 250 252;   /* Light text on primary */
+    --secondary: 241 245 249;            /* Very light blue-gray */
+    --secondary-foreground: 51 65 85;    /* Medium slate */
+    --muted: 248 250 252;                /* Subtle background */
+    --muted-foreground: 100 116 139;     /* Muted text */
+    --accent: 236 254 255;               /* Light cyan accent */
+    --accent-foreground: 22 78 99;       /* Dark cyan text */
+    --destructive: 239 68 68;            /* Red for errors */
+    --destructive-foreground: 248 250 252; /* Light text on destructive */
+    --border: 226 232 240;               /* Light border */
+    --input: 226 232 240;                /* Input border */
+    --ring: 59 130 246;                  /* Focus ring - same as primary */
+    --chart-1: 12 74 110;                /* Chart colors */
+    --chart-2: 53 162 235;
+    --chart-3: 255 99 132;
+    --chart-4: 255 159 64;
+    --chart-5: 153 102 255;
+    --radius: 0.75rem;                   /* Border radius */
+  }
+  
+  .dark {
+    /* Dark theme variables - Enhanced for better contrast */
+    --background: 8 12 16;               /* Very dark background */
+    --foreground: 248 250 252;           /* Light text */
+    --card: 15 23 42;                    /* Dark slate cards */
+    --card-foreground: 248 250 252;      /* Light text on cards */
+    --popover: 15 23 42;                 /* Dark popover */
+    --popover-foreground: 248 250 252;   /* Light popover text */
+    --primary: 59 130 246;               /* Same blue primary */
+    --primary-foreground: 248 250 252;   /* Light text on primary */
+    --secondary: 30 41 59;               /* Dark secondary */
+    --secondary-foreground: 248 250 252; /* Light text on secondary */
+    --muted: 30 41 59;                   /* Muted dark */
+    --muted-foreground: 148 163 184;     /* Muted light text */
+    --accent: 30 58 138;                 /* Dark blue accent */
+    --accent-foreground: 248 250 252;    /* Light text on accent */
+    --destructive: 239 68 68;            /* Same red */
+    --destructive-foreground: 248 250 252; /* Light text */
+    --border: 51 65 85;                  /* Dark border */
+    --input: 51 65 85;                   /* Dark input border */
+    --ring: 59 130 246;                  /* Same focus ring */
+    --chart-1: 59 130 246;
+    --chart-2: 16 185 129;
+    --chart-3: 245 101 101;
+    --chart-4: 251 191 36;
+    --chart-5: 168 85 247;
+  }
+
   * {
     @apply border-border;
   }
@@ -11,13 +68,22 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
   
-  /* Improve text contrast in dark mode */
+  /* Improve text contrast for both themes */
   .dark .text-muted-foreground {
     @apply text-slate-300;
   }
   
   .dark .text-gray-500 {
     @apply text-slate-300;
+  }
+  
+  /* Light theme specific improvements */
+  html:not(.dark) .text-muted-foreground {
+    @apply text-slate-600;
+  }
+  
+  html:not(.dark) .text-gray-500 {
+    @apply text-slate-600;
   }
   
   /* Improve form descriptions in dark mode */
@@ -27,7 +93,7 @@
   
   /* Make headings more visible */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-bold text-primary-foreground;
+    @apply font-bold text-foreground;
   }
   
   /* Fix spacing throughout the app */
@@ -64,9 +130,9 @@
     @apply text-primary-foreground hover:bg-primary/90;
   }
   
-  /* Improve progress bar contrast */
+  /* Better progress bar styling for both themes */
   .dark .bg-gray-200 {
-    @apply bg-gray-700;
+    background-color: hsl(var(--border));
   }
   
   /* Fix card padding and spacing */
@@ -74,9 +140,10 @@
     @apply p-4;
   }
   
-  /* Improve dialog contrast in dark mode */
+  /* Better dialog styling for both themes */
   .dark .bg-gray-100 {
-    @apply bg-gray-800 text-gray-200;
+    background-color: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
   }
   
   /* Fix any flickering during dark mode transitions */
