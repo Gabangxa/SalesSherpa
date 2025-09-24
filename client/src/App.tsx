@@ -97,7 +97,7 @@ function AppContent() {
         currentPath={location}
       />
       
-      <main className="flex-1 overflow-y-auto bg-background pt-16 lg:pt-0">
+      <main className="flex-1 overflow-y-auto bg-neutral-50 pt-16 lg:pt-0">
         <ErrorBoundary>
           <Switch>
             <ProtectedRoute path="/" component={Dashboard} />
