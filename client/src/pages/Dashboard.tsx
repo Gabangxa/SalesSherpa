@@ -19,7 +19,7 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-[#1a1b1c] text-left">
+    <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-left">
       {/* Welcome header with improved styling */}
       <div className="mb-8">
         <WelcomeSection name={user?.name || "Jordan"} />

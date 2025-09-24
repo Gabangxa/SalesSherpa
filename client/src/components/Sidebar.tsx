@@ -46,13 +46,13 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-card border-r border-border p-5">
       <div className="flex items-center mb-8">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center shadow-md">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center shadow-md">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
           </svg>
         </div>
         <div className="ml-3 flex-1">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Sales Sherpa</h1>
+          <h1 className="text-xl font-bold text-foreground">Sales Sherpa</h1>
           <p className="text-xs text-muted-foreground">Accountability & Guidance</p>
         </div>
         <ThemeToggle />
