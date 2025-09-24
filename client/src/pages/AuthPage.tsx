@@ -193,7 +193,7 @@ export default function AuthPage() {
       </div>
       
       {/* Right section - Hero image and info */}
-      <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-primary/90 to-primary flex-col justify-center items-center p-12 text-white relative overflow-hidden">
+      <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-slate-800 to-slate-900 flex-col justify-center items-center p-12 text-white relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute inset-0 overflow-hidden z-0">
           <div className="absolute -right-24 -top-24 w-96 h-96 bg-white/10 rounded-full blur-xl"></div>
