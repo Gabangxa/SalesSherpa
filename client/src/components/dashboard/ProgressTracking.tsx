@@ -64,7 +64,7 @@ export default function ProgressTracking() {
 
   if (isLoading) {
     return (
-      <Card className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/10">
+      <Card className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-2xl shadow-2xl shadow-black/50 border border-white/10 overflow-hidden transition-all duration-300 hover:shadow-3xl hover:shadow-primary/20 hover:border-white/30 hover:scale-[1.02] transform-gpu">
         <CardHeader className="bg-gradient-to-r from-emerald-600/20 to-blue-600/20 backdrop-blur-sm border-b border-white/10">
           <CardTitle className="text-xl font-bold flex items-center gap-3 text-white">
             <Target className="h-6 w-6" />
@@ -81,7 +81,7 @@ export default function ProgressTracking() {
   }
 
   return (
-    <Card className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/10 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-white/20">
+    <Card className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-2xl shadow-2xl shadow-black/50 border border-white/10 overflow-hidden transition-all duration-300 hover:shadow-3xl hover:shadow-primary/20 hover:border-white/30 hover:scale-[1.02] transform-gpu">
       <CardHeader className="bg-gradient-to-r from-emerald-600/20 to-blue-600/20 backdrop-blur-sm border-b border-white/10 pb-6">
         <CardTitle className="text-xl font-bold flex items-center justify-between text-white">
           <div className="flex items-center gap-3">
