@@ -185,6 +185,208 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Team Collaboration Routes
+  // Team routes
+  app.get("/api/teams/user/:userId", authenticateUser, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Security: Users can only access their own teams
+      if (userId !== req.body.userId) {
+        return res.status(403).json({ message: "Not authorized to view teams for this user" });
+      }
+      
+      const teams = await storage.getUserTeams(userId);
+      return res.status(200).json(teams);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  app.post("/api/teams", authenticateUser, async (req, res) => {
+    try {
+      const teamData = {
+        ...req.body,
+        ownerId: req.body.userId
+      };
+      
+      const team = await storage.createTeam(teamData);
+      
+      // Create team activity for team creation
+      await storage.createTeamActivity({
+        teamId: team.id,
+        userId: req.body.userId,
+        activityType: 'team_created',
+        description: `Team "${team.name}" was created`,
+      });
+      
+      // Send WebSocket notification to team owner about new team
+      const teamCreatedMessage: WebSocketMessage = {
+        type: WebSocketMessageType.NOTIFICATION,
+        payload: {
+          type: 'team_created',
+          team: team,
+          timestamp: new Date().toISOString()
+        },
+        timestamp: Date.now()
+      };
+      
+      sendMessageToUser(req.body.userId, teamCreatedMessage);
+      log(`Sent WebSocket notification to user ${req.body.userId} about team creation: ${team.name}`);
+      
+      return res.status(201).json(team);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  app.post("/api/teams/join", authenticateUser, async (req, res) => {
+    try {
+      const { inviteCode } = req.body;
+      const userId = req.body.userId;
+      
+      // Find team by invite code
+      const team = await storage.getTeamByInviteCode(inviteCode);
+      if (!team) {
+        return res.status(404).json({ message: "Invalid invite code" });
+      }
+      
+      // Check if user is already a member
+      const existingMembership = await storage.getUserTeamMembership(userId, team.id);
+      if (existingMembership) {
+        return res.status(409).json({ message: "Already a member of this team" });
+      }
+      
+      // Add user to team
+      const membership = await storage.createTeamMembership({
+        teamId: team.id,
+        userId,
+        role: 'member'
+      });
+      
+      // Get user details for activity log
+      const user = await storage.getUser(userId);
+      
+      // Create team activity for member joining
+      await storage.createTeamActivity({
+        teamId: team.id,
+        userId,
+        activityType: 'member_joined',
+        description: `${user?.name || 'Unknown'} joined the team`,
+      });
+      
+      // Send WebSocket notification to all team members about new member
+      const teamMemberships = await storage.getTeamMemberships(team.id);
+      const memberJoinedMessage: WebSocketMessage = {
+        type: WebSocketMessageType.NOTIFICATION,
+        payload: {
+          type: 'member_joined',
+          team: team,
+          user: { id: user?.id, name: user?.name },
+          timestamp: new Date().toISOString()
+        },
+        timestamp: Date.now()
+      };
+      
+      // Broadcast to all team members
+      for (const member of teamMemberships) {
+        sendMessageToUser(member.userId, memberJoinedMessage);
+      }
+      log(`Broadcasted member joined notification to team ${team.name} (${teamMemberships.length} members)`);
+      
+      return res.status(201).json({ team, membership });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Shared goals routes
+  app.post("/api/shared-goals", authenticateUser, async (req, res) => {
+    try {
+      const { goalId, teamId, canEdit } = req.body;
+      const userId = req.body.userId;
+      
+      // Verify user owns the goal
+      const goal = await storage.getGoal(goalId);
+      if (!goal || goal.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized to share this goal" });
+      }
+      
+      // Verify user is member of the team
+      const membership = await storage.getUserTeamMembership(userId, teamId);
+      if (!membership) {
+        return res.status(403).json({ message: "Not a member of this team" });
+      }
+      
+      // Create shared goal
+      const sharedGoal = await storage.createSharedGoal({
+        goalId,
+        teamId,
+        sharedBy: userId,
+        canEdit: canEdit || false
+      });
+      
+      // Get user and team details
+      const user = await storage.getUser(userId);
+      const team = await storage.getTeam(teamId);
+      
+      // Create team activity
+      await storage.createTeamActivity({
+        teamId,
+        userId,
+        activityType: 'goal_shared',
+        description: `${user?.name || 'Unknown'} shared goal "${goal.title}" with the team`,
+        metadata: JSON.stringify({ goalId, goalTitle: goal.title })
+      });
+      
+      // Send WebSocket notification to all team members about shared goal
+      const teamMemberships = await storage.getTeamMemberships(teamId);
+      const goalSharedMessage: WebSocketMessage = {
+        type: WebSocketMessageType.NOTIFICATION,
+        payload: {
+          type: 'goal_shared',
+          goal: goal,
+          team: team,
+          sharedBy: { id: user?.id, name: user?.name },
+          canEdit,
+          timestamp: new Date().toISOString()
+        },
+        timestamp: Date.now()
+      };
+      
+      // Broadcast to all team members except the sharer
+      for (const member of teamMemberships) {
+        if (member.userId !== userId) {
+          sendMessageToUser(member.userId, goalSharedMessage);
+        }
+      }
+      log(`Broadcasted goal sharing notification to team ${team?.name} (${teamMemberships.length - 1} members notified)`);
+      
+      return res.status(201).json(sharedGoal);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Team activity feed
+  app.get("/api/teams/:teamId/activities", authenticateUser, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      // Verify user is member of the team
+      const membership = await storage.getUserTeamMembership(req.body.userId, teamId);
+      if (!membership) {
+        return res.status(403).json({ message: "Not a member of this team" });
+      }
+      
+      const activities = await storage.getTeamActivities(teamId, limit);
+      return res.status(200).json(activities);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
   // Tasks routes
   app.get("/api/tasks", authenticateUser, async (req, res) => {
     try {

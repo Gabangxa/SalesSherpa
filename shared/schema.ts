@@ -74,6 +74,85 @@ export const insertGoalSchema = baseGoalSchema.extend({
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type Goal = typeof goals.$inferSelect;
 
+// Teams schema for multi-user collaboration
+export const teams = pgTable("teams", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  ownerId: integer("owner_id").notNull(),
+  inviteCode: text("invite_code").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTeamSchema = createInsertSchema(teams).pick({
+  name: true,
+  description: true,
+  ownerId: true,
+});
+
+export type InsertTeam = z.infer<typeof insertTeamSchema>;
+export type Team = typeof teams.$inferSelect;
+
+// Team memberships for user-team relationships
+export const teamMemberships = pgTable("team_memberships", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").notNull(),
+  userId: integer("user_id").notNull(),
+  role: text("role").notNull().default("member"), // "owner", "admin", "member"
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+});
+
+export const insertTeamMembershipSchema = createInsertSchema(teamMemberships).pick({
+  teamId: true,
+  userId: true,
+  role: true,
+});
+
+export type InsertTeamMembership = z.infer<typeof insertTeamMembershipSchema>;
+export type TeamMembership = typeof teamMemberships.$inferSelect;
+
+// Shared goals - extending goals to support team sharing
+export const sharedGoals = pgTable("shared_goals", {
+  id: serial("id").primaryKey(),
+  goalId: integer("goal_id").notNull(),
+  teamId: integer("team_id").notNull(),
+  sharedBy: integer("shared_by").notNull(),
+  sharedAt: timestamp("shared_at").defaultNow().notNull(),
+  canEdit: boolean("can_edit").notNull().default(false), // Team members can edit shared goal
+});
+
+export const insertSharedGoalSchema = createInsertSchema(sharedGoals).pick({
+  goalId: true,
+  teamId: true,
+  sharedBy: true,
+  canEdit: true,
+});
+
+export type InsertSharedGoal = z.infer<typeof insertSharedGoalSchema>;
+export type SharedGoal = typeof sharedGoals.$inferSelect;
+
+// Team activity feed for collaboration tracking
+export const teamActivities = pgTable("team_activities", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").notNull(),
+  userId: integer("user_id").notNull(),
+  activityType: text("activity_type").notNull(), // "goal_shared", "goal_updated", "member_joined", etc.
+  description: text("description").notNull(),
+  metadata: text("metadata"), // JSON string for additional data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTeamActivitySchema = createInsertSchema(teamActivities).pick({
+  teamId: true,
+  userId: true,
+  activityType: true,
+  description: true,
+  metadata: true,
+});
+
+export type InsertTeamActivity = z.infer<typeof insertTeamActivitySchema>;
+export type TeamActivity = typeof teamActivities.$inferSelect;
+
 // Tasks schema
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
@@ -223,13 +302,70 @@ export const usersRelations = relations(users, ({ many }) => ({
   chatMessages: many(chatMessages),
   salesMetrics: many(salesMetrics),
   checkInAlerts: many(checkInAlerts),
+  // Team collaboration relations
+  ownedTeams: many(teams, { relationName: 'TeamOwner' }),
+  teamMemberships: many(teamMemberships),
+  teamActivities: many(teamActivities),
 }));
 
-export const goalsRelations = relations(goals, ({ one }) => ({
+// Team relations
+export const teamsRelations = relations(teams, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [teams.ownerId],
+    references: [users.id],
+    relationName: 'TeamOwner'
+  }),
+  memberships: many(teamMemberships),
+  sharedGoals: many(sharedGoals),
+  activities: many(teamActivities),
+}));
+
+// Team membership relations
+export const teamMembershipsRelations = relations(teamMemberships, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamMemberships.teamId],
+    references: [teams.id]
+  }),
+  user: one(users, {
+    fields: [teamMemberships.userId],
+    references: [users.id]
+  }),
+}));
+
+// Shared goals relations
+export const sharedGoalsRelations = relations(sharedGoals, ({ one }) => ({
+  goal: one(goals, {
+    fields: [sharedGoals.goalId],
+    references: [goals.id]
+  }),
+  team: one(teams, {
+    fields: [sharedGoals.teamId],
+    references: [teams.id]
+  }),
+  sharedByUser: one(users, {
+    fields: [sharedGoals.sharedBy],
+    references: [users.id]
+  }),
+}));
+
+// Team activities relations
+export const teamActivitiesRelations = relations(teamActivities, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamActivities.teamId],
+    references: [teams.id]
+  }),
+  user: one(users, {
+    fields: [teamActivities.userId],
+    references: [users.id]
+  }),
+}));
+
+export const goalsRelations = relations(goals, ({ one, many }) => ({
   user: one(users, {
     fields: [goals.userId],
     references: [users.id],
   }),
+  sharedGoals: many(sharedGoals),
 }));
 
 export const tasksRelations = relations(tasks, ({ one }) => ({

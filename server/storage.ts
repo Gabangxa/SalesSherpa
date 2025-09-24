@@ -9,6 +9,10 @@ import {
   ChatMessage, 
   SalesMetrics, 
   CheckInAlert,
+  Team,
+  TeamMembership,
+  SharedGoal,
+  TeamActivity,
   InsertUser, 
   InsertGoal, 
   InsertTask, 
@@ -17,6 +21,10 @@ import {
   InsertChatMessage, 
   InsertSalesMetrics,
   InsertCheckInAlert,
+  InsertTeam,
+  InsertTeamMembership,
+  InsertSharedGoal,
+  InsertTeamActivity,
   users,
   goals,
   tasks,
@@ -24,7 +32,11 @@ import {
   timeOff,
   chatMessages,
   salesMetrics,
-  checkInAlerts
+  checkInAlerts,
+  teams,
+  teamMemberships,
+  sharedGoals,
+  teamActivities
 } from "@shared/schema";
 import { db } from "./db";
 import session from "express-session";
@@ -85,6 +97,32 @@ export interface IStorage {
   updateCheckInAlert(id: number, updates: Partial<CheckInAlert>): Promise<CheckInAlert | undefined>;
   deleteCheckInAlert(id: number): Promise<boolean>;
   getAllUsersWithAlerts(): Promise<User[]>;
+  
+  // Team collaboration operations
+  // Team operations
+  getTeam(id: number): Promise<Team | undefined>;
+  getTeamByInviteCode(inviteCode: string): Promise<Team | undefined>;
+  getUserTeams(userId: number): Promise<Team[]>;
+  createTeam(team: InsertTeam): Promise<Team>;
+  updateTeam(id: number, updates: Partial<Team>): Promise<Team | undefined>;
+  deleteTeam(id: number): Promise<boolean>;
+  
+  // Team membership operations
+  getTeamMemberships(teamId: number): Promise<TeamMembership[]>;
+  getUserTeamMembership(userId: number, teamId: number): Promise<TeamMembership | undefined>;
+  createTeamMembership(membership: InsertTeamMembership): Promise<TeamMembership>;
+  updateTeamMembership(id: number, updates: Partial<TeamMembership>): Promise<TeamMembership | undefined>;
+  deleteTeamMembership(id: number): Promise<boolean>;
+  
+  // Shared goals operations
+  getSharedGoals(teamId: number): Promise<SharedGoal[]>;
+  getUserSharedGoals(userId: number): Promise<SharedGoal[]>;
+  createSharedGoal(sharedGoal: InsertSharedGoal): Promise<SharedGoal>;
+  deleteSharedGoal(id: number): Promise<boolean>;
+  
+  // Team activity operations
+  getTeamActivities(teamId: number, limit?: number): Promise<TeamActivity[]>;
+  createTeamActivity(activity: InsertTeamActivity): Promise<TeamActivity>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -341,6 +379,165 @@ export class DatabaseStorage implements IStorage {
       .groupBy(users.id);
     
     return usersWithAlerts;
+  }
+  
+  // Team collaboration operations implementation
+  // Team operations
+  async getTeam(id: number): Promise<Team | undefined> {
+    const [team] = await db.select().from(teams).where(eq(teams.id, id));
+    return team || undefined;
+  }
+  
+  async getTeamByInviteCode(inviteCode: string): Promise<Team | undefined> {
+    const [team] = await db.select().from(teams).where(eq(teams.inviteCode, inviteCode));
+    return team || undefined;
+  }
+  
+  async getUserTeams(userId: number): Promise<Team[]> {
+    const userTeams = await db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        description: teams.description,
+        ownerId: teams.ownerId,
+        inviteCode: teams.inviteCode,
+        createdAt: teams.createdAt
+      })
+      .from(teams)
+      .innerJoin(teamMemberships, eq(teams.id, teamMemberships.teamId))
+      .where(eq(teamMemberships.userId, userId));
+    return userTeams;
+  }
+  
+  async createTeam(team: InsertTeam): Promise<Team> {
+    // Generate unique invite code
+    const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    
+    const [newTeam] = await db
+      .insert(teams)
+      .values({ ...team, inviteCode })
+      .returning();
+      
+    // Automatically add the owner as a team member
+    await this.createTeamMembership({
+      teamId: newTeam.id,
+      userId: team.ownerId,
+      role: 'owner'
+    });
+    
+    return newTeam;
+  }
+  
+  async updateTeam(id: number, updates: Partial<Team>): Promise<Team | undefined> {
+    const [updatedTeam] = await db
+      .update(teams)
+      .set(updates)
+      .where(eq(teams.id, id))
+      .returning();
+    return updatedTeam || undefined;
+  }
+  
+  async deleteTeam(id: number): Promise<boolean> {
+    // Delete team memberships first (foreign key constraint)
+    await db.delete(teamMemberships).where(eq(teamMemberships.teamId, id));
+    // Delete shared goals for this team
+    await db.delete(sharedGoals).where(eq(sharedGoals.teamId, id));
+    // Delete team activities
+    await db.delete(teamActivities).where(eq(teamActivities.teamId, id));
+    // Finally delete the team
+    const result = await db.delete(teams).where(eq(teams.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+  
+  // Team membership operations
+  async getTeamMemberships(teamId: number): Promise<TeamMembership[]> {
+    const memberships = await db.select().from(teamMemberships).where(eq(teamMemberships.teamId, teamId));
+    return memberships;
+  }
+  
+  async getUserTeamMembership(userId: number, teamId: number): Promise<TeamMembership | undefined> {
+    const [membership] = await db
+      .select()
+      .from(teamMemberships)
+      .where(eq(teamMemberships.userId, userId))
+      .where(eq(teamMemberships.teamId, teamId));
+    return membership || undefined;
+  }
+  
+  async createTeamMembership(membership: InsertTeamMembership): Promise<TeamMembership> {
+    const [newMembership] = await db
+      .insert(teamMemberships)
+      .values(membership)
+      .returning();
+    return newMembership;
+  }
+  
+  async updateTeamMembership(id: number, updates: Partial<TeamMembership>): Promise<TeamMembership | undefined> {
+    const [updatedMembership] = await db
+      .update(teamMemberships)
+      .set(updates)
+      .where(eq(teamMemberships.id, id))
+      .returning();
+    return updatedMembership || undefined;
+  }
+  
+  async deleteTeamMembership(id: number): Promise<boolean> {
+    const result = await db.delete(teamMemberships).where(eq(teamMemberships.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+  
+  // Shared goals operations
+  async getSharedGoals(teamId: number): Promise<SharedGoal[]> {
+    const sharedGoalsList = await db.select().from(sharedGoals).where(eq(sharedGoals.teamId, teamId));
+    return sharedGoalsList;
+  }
+  
+  async getUserSharedGoals(userId: number): Promise<SharedGoal[]> {
+    const userSharedGoals = await db
+      .select({
+        id: sharedGoals.id,
+        goalId: sharedGoals.goalId,
+        teamId: sharedGoals.teamId,
+        sharedBy: sharedGoals.sharedBy,
+        sharedAt: sharedGoals.sharedAt,
+        canEdit: sharedGoals.canEdit
+      })
+      .from(sharedGoals)
+      .innerJoin(teamMemberships, eq(sharedGoals.teamId, teamMemberships.teamId))
+      .where(eq(teamMemberships.userId, userId));
+    return userSharedGoals;
+  }
+  
+  async createSharedGoal(sharedGoal: InsertSharedGoal): Promise<SharedGoal> {
+    const [newSharedGoal] = await db
+      .insert(sharedGoals)
+      .values(sharedGoal)
+      .returning();
+    return newSharedGoal;
+  }
+  
+  async deleteSharedGoal(id: number): Promise<boolean> {
+    const result = await db.delete(sharedGoals).where(eq(sharedGoals.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+  
+  // Team activity operations
+  async getTeamActivities(teamId: number, limit: number = 50): Promise<TeamActivity[]> {
+    const activities = await db
+      .select()
+      .from(teamActivities)
+      .where(eq(teamActivities.teamId, teamId))
+      .orderBy(desc(teamActivities.createdAt))
+      .limit(limit);
+    return activities;
+  }
+  
+  async createTeamActivity(activity: InsertTeamActivity): Promise<TeamActivity> {
+    const [newActivity] = await db
+      .insert(teamActivities)
+      .values(activity)
+      .returning();
+    return newActivity;
   }
 
   // Setup initial demo data
