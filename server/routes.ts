@@ -13,8 +13,10 @@ import {
   insertGoalSchema, 
   insertTimeOffSchema, 
   insertChatMessageSchema, 
-  insertCheckInAlertSchema 
+  insertCheckInAlertSchema,
+  CheckInAlert
 } from "@shared/schema";
+import { DateTime } from "luxon";
 
 // WebSocket message types
 enum WebSocketMessageType {
@@ -495,10 +497,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   wss.on('connection', (ws: WebSocket, req: any) => {
     // Generate a unique session ID for this connection
     const sessionId = Math.random().toString(36).substring(2, 15);
-    log(`WebSocket client connected (Session: ${sessionId})`);
     
-    // Store client connection with session info
-    clients.set(ws, { sessionId });
+    // Try to get user ID from session if authenticated
+    const userId = req.session?.passport?.user;
+    
+    log(`WebSocket client connected (Session: ${sessionId}, User: ${userId || 'anonymous'})`);
+    
+    // Store client connection with session and user info
+    clients.set(ws, { sessionId, userId });
     
     // Send welcome message
     const welcomeMessage: WebSocketMessage = {
@@ -640,6 +646,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     broadcastMessage(updateMessage);
   }
   
+  // Helper function to send message to specific user's connections
+  function sendMessageToUser(userId: number, message: WebSocketMessage): void {
+    clients.forEach((clientInfo, ws) => {
+      if (clientInfo.userId === userId && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+      }
+    });
+  }
+  
+  // Background alert checking service
+  startAlertCheckingService();
+  
+  // Background alert checking function
+  async function startAlertCheckingService() {
+    log('Starting background alert checking service...');
+    
+    // Day of week mapping to match client-side
+    const dayMapping: { [key: number]: string } = {
+      0: 'sunday',
+      1: 'monday', 
+      2: 'tuesday',
+      3: 'wednesday',
+      4: 'thursday',
+      5: 'friday',
+      6: 'saturday',
+    };
+    
+    // Check alerts every 30 seconds for more responsive notifications
+    setInterval(async () => {
+      try {
+        // Get all users who have enabled alerts
+        const usersWithAlerts = await storage.getAllUsersWithAlerts();
+        
+        for (const user of usersWithAlerts) {
+          try {
+            const alerts = await storage.getCheckInAlerts(user.id);
+            const enabledAlerts = alerts.filter(alert => alert.enabled);
+            
+            if (enabledAlerts.length === 0) continue;
+            
+            // Get current time and day
+            const now = new Date();
+            const currentDay = dayMapping[now.getDay()];
+            
+            for (const alert of enabledAlerts) {
+              // Check if current day is in alert's days
+              if (!alert.days.includes(currentDay)) continue;
+              
+              // Get current time in alert's timezone
+              const alertTimezone = alert.timezone || 'America/New_York';
+              const currentTimeInAlertTz = DateTime.now().setZone(alertTimezone);
+              const currentTimeStr = currentTimeInAlertTz.toFormat('HH:mm');
+              
+              // Parse alert time
+              const [alertHour, alertMinute] = alert.time.split(':').map(Number);
+              const alertTime = DateTime.now().setZone(alertTimezone).set({ 
+                hour: alertHour, 
+                minute: alertMinute,
+                second: 0,
+                millisecond: 0
+              });
+              
+              // Check if current time is within 2 minutes of alert time
+              const timeDiff = Math.abs(currentTimeInAlertTz.diff(alertTime, 'minutes').minutes);
+              
+              if (timeDiff <= 2) {
+                // Send WebSocket notification to user
+                const alertMessage: WebSocketMessage = {
+                  type: WebSocketMessageType.ALERT,
+                  payload: {
+                    type: 'check_in_alert',
+                    alertId: alert.id,
+                    title: alert.title,
+                    message: alert.message,
+                    timestamp: new Date().toISOString()
+                  },
+                  timestamp: Date.now()
+                };
+                
+                sendMessageToUser(user.id, alertMessage);
+                log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
+              }
+            }
+          } catch (error) {
+            log(`Error checking alerts for user ${user.id}: ${error}`);
+          }
+        }
+      } catch (error) {
+        log(`Error in alert checking service: ${error}`);
+      }
+    }, 30000); // Check every 30 seconds
+  }
+
   return httpServer;
 }
 

@@ -84,6 +84,7 @@ export interface IStorage {
   createCheckInAlert(alert: InsertCheckInAlert): Promise<CheckInAlert>;
   updateCheckInAlert(id: number, updates: Partial<CheckInAlert>): Promise<CheckInAlert | undefined>;
   deleteCheckInAlert(id: number): Promise<boolean>;
+  getAllUsersWithAlerts(): Promise<User[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -315,7 +316,31 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(checkInAlerts)
       .where(eq(checkInAlerts.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getAllUsersWithAlerts(): Promise<User[]> {
+    // Get all users who have at least one enabled check-in alert
+    const usersWithAlerts = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        emailVerified: users.emailVerified,
+        verificationToken: users.verificationToken,
+        verificationTokenExpiry: users.verificationTokenExpiry,
+        password: users.password,
+        authProvider: users.authProvider,
+        googleId: users.googleId
+      })
+      .from(users)
+      .innerJoin(checkInAlerts, eq(users.id, checkInAlerts.userId))
+      .where(eq(checkInAlerts.enabled, true))
+      .groupBy(users.id);
+    
+    return usersWithAlerts;
   }
 
   // Setup initial demo data

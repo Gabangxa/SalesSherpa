@@ -3,14 +3,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useQuery } from '@tanstack/react-query';
 import { CheckInAlert } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
-import { 
-  isTimeWithinMargin, 
-  getBrowserTimezone, 
-  getCurrentTimeInTimezone, 
-  convertTimeZone, 
-  formatTimeString,
-  parseTimeString
-} from '@/lib/luxonTimezoneUtils';
+import { webSocketService, WebSocketMessageType } from '@/lib/websocketService';
 
 // Day of week mapping
 const dayMapping: { [key: number]: string } = {
@@ -35,101 +28,47 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [triggeredAlerts, setTriggeredAlerts] = useState<number[]>([]);
   const [checkInProgress, setCheckInProgress] = useState(false);
   
-  // Get all alerts - only when user is authenticated
+  // Get all alerts - only when user is authenticated (no more polling, just initial fetch)
   const { data: alerts = [] } = useQuery<CheckInAlert[]>({
     queryKey: ['/api/check-in-alerts'],
     enabled: !!user, // Only fetch when user is authenticated
-    refetchInterval: user ? 60000 : false, // Only refetch when user is authenticated
-    staleTime: 55000,
+    staleTime: 300000, // 5 minutes - since we get real-time updates via WebSocket
   });
 
-  // Check alerts and show notifications if needed
-  const checkAlerts = useCallback(() => {
-    if (!user || checkInProgress || !alerts || alerts.length === 0) return;
-
-    setCheckInProgress(true);
+  // Handle WebSocket alert messages from server
+  const handleWebSocketAlert = useCallback((payload: any) => {
+    if (payload.type !== 'check_in_alert') return;
     
-    try {
-      // Get current time and day using Luxon
-      const now = new Date();
-      const currentDay = dayMapping[now.getDay()];
-      const userTimezone = getBrowserTimezone();
-      
-      // Get the current time in the user's timezone in HH:MM format using Luxon
-      const currentDateTime = getCurrentTimeInTimezone(userTimezone);
-      const currentTime = formatTimeString(currentDateTime);
-      
-      console.log(`Current check time: ${currentTime}, Day: ${currentDay}, User timezone: ${userTimezone}`);
-      console.log(`Current alerts to check: ${alerts.length}`);
-      console.log(`Already triggered alerts: ${triggeredAlerts.join(', ') || 'none'}`);
-      console.log('---------------------');
-      
-      alerts.forEach(alert => {
-        console.log(`Checking alert: ${alert.id} - ${alert.title}`);
-        console.log(`  Status: ${alert.enabled ? 'Enabled' : 'Disabled'}`);
-        console.log(`  Time: ${alert.time} (Timezone: ${alert.timezone || 'not set'})`);
-        console.log(`  Days: ${alert.days.join(', ')}`);
-        
-        // Skip if not enabled or already triggered
-        if (!alert.enabled) {
-          console.log('  Skipping: Alert not enabled');
-          return;
-        }
-        
-        if (triggeredAlerts.includes(alert.id)) {
-          console.log('  Skipping: Alert already triggered recently');
-          return;
-        }
-        
-        // Skip if the current day is not in the alert's days
-        if (!alert.days.includes(currentDay)) {
-          console.log(`  Skipping: Current day (${currentDay}) not in alert days`);
-          return;
-        }
-        
-        // Convert alert time to user's timezone if needed using Luxon
-        const alertTimeInUserTimezone = alert.timezone !== userTimezone 
-          ? convertTimeZone(alert.time, alert.timezone, userTimezone)
-          : alert.time;
-        
-        console.log(`  Alert time in user timezone: ${alertTimeInUserTimezone}`);
-        
-        // Check if it's time to trigger the alert using Luxon
-        // Pass the timestring and timezone with a 2-minute margin
-        if (isTimeWithinMargin(alertTimeInUserTimezone, userTimezone, 2)) {
-          console.log('  ✓ TIME MATCH FOUND - TRIGGERING ALERT');
-          
-          // Show notification
-          showNotification({
-            title: alert.title,
-            description: alert.message,
-            variant: 'alert',
-            duration: 15000, // Show for 15 seconds
-            position: 'topLeft', // Ensure it always appears on the left
-          });
-          
-          // Mark as triggered to avoid repeated notifications
-          setTriggeredAlerts(prev => [...prev, alert.id]);
-          console.log(`  Alert ${alert.id} marked as triggered`);
-          
-          // After 3 minutes, allow this alert to trigger again
-          const resetTimeMs = 3 * 60 * 1000; // 3 minutes
-          console.log(`  Will reset triggered status in ${resetTimeMs/1000} seconds`);
-          
-          setTimeout(() => {
-            setTriggeredAlerts(prev => {
-              console.log(`Removing alert ${alert.id} from triggered list`);
-              return prev.filter(id => id !== alert.id);
-            });
-          }, resetTimeMs);
-        } else {
-          console.log('  ✗ Time does not match current time');
-        }
-      });
-    } finally {
-      setCheckInProgress(false);
+    const alertId = payload.alertId;
+    
+    // Check if alert was already triggered recently
+    if (triggeredAlerts.includes(alertId)) {
+      console.log(`Alert ${alertId} already triggered recently, skipping`);
+      return;
     }
-  }, [user, alerts, checkInProgress, showNotification, triggeredAlerts]);
+    
+    console.log(`Received WebSocket alert notification: ${payload.title}`);
+    
+    // Show notification
+    showNotification({
+      title: payload.title,
+      description: payload.message,
+      variant: 'alert',
+      duration: 15000, // Show for 15 seconds
+      position: 'topLeft',
+    });
+    
+    // Mark as triggered to avoid repeated notifications
+    setTriggeredAlerts(prev => [...prev, alertId]);
+    
+    // After 3 minutes, allow this alert to trigger again
+    setTimeout(() => {
+      setTriggeredAlerts(prev => {
+        console.log(`Removing alert ${alertId} from triggered list`);
+        return prev.filter(id => id !== alertId);
+      });
+    }, 3 * 60 * 1000); // 3 minutes
+  }, [showNotification, triggeredAlerts]);
 
   // Allow manually triggering a specific alert (for testing)
   const triggerAlert = useCallback((alertId: number) => {
@@ -151,31 +90,35 @@ export const AlertCheckerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [alerts, showNotification]);
 
-  // Check alerts every minute - only when user is authenticated
+  // Listen for WebSocket alert messages - only when user is authenticated
   useEffect(() => {
     if (!user) return;
     
-    // Check immediately on mount
-    checkAlerts();
+    // Connect to WebSocket service if not already connected
+    if (webSocketService.getStatus() === 'CLOSED') {
+      webSocketService.connect();
+    }
     
-    // Set up interval to check every minute
-    const intervalId = setInterval(() => {
-      checkAlerts();
-    }, 60000);
+    // Subscribe to ALERT type messages
+    const unsubscribe = webSocketService.on(WebSocketMessageType.ALERT, (payload) => {
+      handleWebSocketAlert(payload);
+    });
+    
+    console.log('AlertCheckerProvider: Subscribed to WebSocket alerts');
     
     return () => {
-      clearInterval(intervalId);
+      unsubscribe();
+      console.log('AlertCheckerProvider: Unsubscribed from WebSocket alerts');
     };
-  }, [checkAlerts, user]);
+  }, [handleWebSocketAlert, user]);
 
   // Reset triggered alerts on day change
   useEffect(() => {
     const resetTriggeredAlerts = () => {
-      // Use Luxon for better timezone handling
-      const now = getCurrentTimeInTimezone(getBrowserTimezone());
+      const now = new Date();
       
-      // Reset at midnight
-      if (now.hour === 0 && now.minute === 0) {
+      // Reset at midnight (within 1 minute window)
+      if (now.getHours() === 0 && now.getMinutes() === 0) {
         console.log('Midnight detected, resetting all triggered alerts');
         setTriggeredAlerts([]);
       }
