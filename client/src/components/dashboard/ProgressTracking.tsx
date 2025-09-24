@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { queryClient } from "@/lib/queryClient";
 import { calculatePercentage, isIncreaseGoal, cn } from "@/lib/utils";
 import { formatGoalValue, getCategoryGradient, getBadgeColor, getProgressDisplayText, getProgressColor } from "@/lib/goalUtils";
 import { 
@@ -14,6 +16,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useLocation } from 'wouter';
 import { Goal } from "@shared/schema";
+import { webSocketService, WebSocketMessageType } from "@/lib/websocketService";
 
 // Moved to shared utilities
 
@@ -22,7 +25,33 @@ export default function ProgressTracking() {
   
   const { data: goals = [], isLoading } = useQuery<Goal[]>({
     queryKey: ['/api/goals'],
+    staleTime: 1000 * 60 * 15, // 15 minutes - longer since WebSocket provides real-time updates
   });
+  
+  // Listen for WebSocket goal update notifications
+  useEffect(() => {
+    // Connect to WebSocket service if not already connected
+    if (webSocketService.getStatus() === 'CLOSED') {
+      webSocketService.connect();
+    }
+    
+    // Subscribe to NOTIFICATION type WebSocket messages for goal updates
+    const unsubscribe = webSocketService.on(WebSocketMessageType.NOTIFICATION, (payload) => {
+      if (['goal_created', 'goal_updated', 'goal_deleted'].includes(payload.type)) {
+        console.log(`ProgressTracking: Received WebSocket goal notification: ${payload.type}`);
+        
+        // Refresh goals data to show the changes in real-time
+        queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      }
+    });
+    
+    console.log('ProgressTracking: Subscribed to WebSocket goal notifications');
+    
+    return () => {
+      unsubscribe();
+      console.log('ProgressTracking: Unsubscribed from WebSocket goal notifications');
+    };
+  }, []);
 
   // Moved to shared utilities
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   Card, 
@@ -17,6 +17,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { GoalDialog } from "@/components/dialogs/GoalDialog";
 import { Goal } from "@shared/schema";
+import { webSocketService, WebSocketMessageType } from "@/lib/websocketService";
 
 export default function GoalsPage() {
   const { toast } = useToast();
@@ -97,11 +98,36 @@ export default function GoalsPage() {
     }
   }, [deleteGoal]);
 
-  // Fetch goals
+  // Fetch goals (longer stale time since we get real-time updates via WebSocket)
   const { data: goals = [], isLoading } = useQuery<Goal[]>({
     queryKey: ['/api/goals'],
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 15, // 15 minutes - longer since WebSocket provides real-time updates
   });
+  
+  // Listen for WebSocket goal update notifications
+  useEffect(() => {
+    // Connect to WebSocket service if not already connected
+    if (webSocketService.getStatus() === 'CLOSED') {
+      webSocketService.connect();
+    }
+    
+    // Subscribe to NOTIFICATION type WebSocket messages for goal updates
+    const unsubscribe = webSocketService.on(WebSocketMessageType.NOTIFICATION, (payload) => {
+      if (['goal_created', 'goal_updated', 'goal_deleted'].includes(payload.type)) {
+        console.log(`Received WebSocket goal notification: ${payload.type}`, payload);
+        
+        // Refresh goals data to show the changes
+        queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      }
+    });
+    
+    console.log('GoalsPage: Subscribed to WebSocket goal notifications');
+    
+    return () => {
+      unsubscribe();
+      console.log('GoalsPage: Unsubscribed from WebSocket goal notifications');
+    };
+  }, []);
 
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8">

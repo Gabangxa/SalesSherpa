@@ -81,6 +81,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update AI cache with just this new goal (differential update)
       updateGoalInCache(validatedData.userId, goal, 'add');
       
+      // Send WebSocket notification to user about new goal
+      const goalCreatedMessage: WebSocketMessage = {
+        type: WebSocketMessageType.NOTIFICATION,
+        payload: {
+          type: 'goal_created',
+          goal: goal,
+          timestamp: new Date().toISOString()
+        },
+        timestamp: Date.now()
+      };
+      
+      sendMessageToUser(validatedData.userId, goalCreatedMessage);
+      log(`Sent WebSocket notification to user ${validatedData.userId} about goal creation: ${goal.title}`);
+      
       return res.status(201).json(goal);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -111,6 +125,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update AI cache with just this updated goal (differential update)
       if (updatedGoal) {
         updateGoalInCache(req.body.userId, updatedGoal, 'update');
+        
+        // Send WebSocket notification to user about goal update
+        const goalUpdatedMessage: WebSocketMessage = {
+          type: WebSocketMessageType.NOTIFICATION,
+          payload: {
+            type: 'goal_updated',
+            goal: updatedGoal,
+            timestamp: new Date().toISOString()
+          },
+          timestamp: Date.now()
+        };
+        
+        sendMessageToUser(req.body.userId, goalUpdatedMessage);
+        log(`Sent WebSocket notification to user ${req.body.userId} about goal update: ${updatedGoal.title}`);
       }
       
       return res.status(200).json(updatedGoal);
@@ -134,6 +162,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update AI cache to remove this deleted goal (differential update)
       updateGoalInCache(req.body.userId, goal, 'delete');
+      
+      // Send WebSocket notification to user about goal deletion
+      const goalDeletedMessage: WebSocketMessage = {
+        type: WebSocketMessageType.NOTIFICATION,
+        payload: {
+          type: 'goal_deleted',
+          goalId: goal.id,
+          goalTitle: goal.title,
+          timestamp: new Date().toISOString()
+        },
+        timestamp: Date.now()
+      };
+      
+      sendMessageToUser(req.body.userId, goalDeletedMessage);
+      log(`Sent WebSocket notification to user ${req.body.userId} about goal deletion: ${goal.title}`);
       
       await storage.deleteGoal(goalId);
       return res.status(204).send();
