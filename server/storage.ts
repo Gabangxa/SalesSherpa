@@ -1,5 +1,5 @@
 import connectPg from "connect-pg-simple";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, and, arrayContains } from "drizzle-orm";
 import { 
   User, 
   Goal, 
@@ -41,6 +41,7 @@ import {
 import { db } from "./db";
 import session from "express-session";
 import { pool } from "./db";
+import { UserRole } from "./constants";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -97,7 +98,8 @@ export interface IStorage {
   updateCheckInAlert(id: number, updates: Partial<CheckInAlert>): Promise<CheckInAlert | undefined>;
   deleteCheckInAlert(id: number): Promise<boolean>;
   getAllUsersWithAlerts(): Promise<User[]>;
-  
+  getCheckInAlertsByDayAndTime(day: string, time: string): Promise<CheckInAlert[]>;
+
   // Team collaboration operations
   // Team operations
   getTeam(id: number): Promise<Team | undefined>;
@@ -371,6 +373,8 @@ export class DatabaseStorage implements IStorage {
         verificationTokenExpiry: users.verificationTokenExpiry,
         password: users.password,
         authProvider: users.authProvider,
+        profileImage: users.profileImage,
+        createdAt: users.createdAt,
         googleId: users.googleId
       })
       .from(users)
@@ -379,6 +383,30 @@ export class DatabaseStorage implements IStorage {
       .groupBy(users.id);
     
     return usersWithAlerts;
+  }
+
+  async getCheckInAlertsByDayAndTime(day: string, time: string): Promise<CheckInAlert[]> {
+    // This requires Drizzle's array operators to check if 'day' is in the 'days' array
+    // Since we are using Postgres, we can use arrayContains (needs verification if 'days' is strictly array type in DB)
+    // The schema defines 'days' as text[].
+
+    // Note: 'time' matching might need to be approximate (handled in application logic usually),
+    // but here we can look for exact matches if the time format is consistent.
+    // The scheduler checks every 30s, so we might want to query a range or let the app logic handle it.
+    // However, to keep it efficient, we can fetch all enabled alerts for the specific day, and then filter by time in memory
+    // OR simply return all alerts for the day.
+
+    // Let's query by day first.
+    return db
+      .select()
+      .from(checkInAlerts)
+      .where(
+        and(
+          eq(checkInAlerts.enabled, true),
+          // arrayContains is correct for Postgres array column
+          arrayContains(checkInAlerts.days, [day])
+        )
+      );
   }
   
   // Team collaboration operations implementation
@@ -422,7 +450,7 @@ export class DatabaseStorage implements IStorage {
     await this.createTeamMembership({
       teamId: newTeam.id,
       userId: team.ownerId,
-      role: 'owner'
+      role: UserRole.OWNER
     });
     
     return newTeam;
