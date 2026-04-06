@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { sendEmail, generateVerificationToken, generateVerificationEmail } from "./emailService";
 import { z } from "zod";
 import { setupAuth } from "./auth";
-import { generateAIResponse, initializeUserCache, updateGoalInCache, updateTaskInCache } from "./openai";
+import { generateResponse, handleCheckInFlow } from "./ai/index";
+import type { FlowType } from "./ai/checkInFlow";
 import { WebSocketServer, WebSocket } from 'ws';
 import { log } from "./vite";
 import { 
@@ -78,9 +79,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const goal = await storage.createGoal(validatedData);
       
-      // Update AI cache with just this new goal (differential update)
-      updateGoalInCache(validatedData.userId, goal, 'add');
-      
       // Send WebSocket notification to user about new goal
       const goalCreatedMessage: WebSocketMessage = {
         type: WebSocketMessageType.NOTIFICATION,
@@ -122,10 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updatedGoal = await storage.updateGoal(goalId, req.body);
       
-      // Update AI cache with just this updated goal (differential update)
       if (updatedGoal) {
-        updateGoalInCache(req.body.userId, updatedGoal, 'update');
-        
         // Send WebSocket notification to user about goal update
         const goalUpdatedMessage: WebSocketMessage = {
           type: WebSocketMessageType.NOTIFICATION,
@@ -159,9 +154,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (goal.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
-      // Update AI cache to remove this deleted goal (differential update)
-      updateGoalInCache(req.body.userId, goal, 'delete');
       
       // Send WebSocket notification to user about goal deletion
       const goalDeletedMessage: WebSocketMessage = {
@@ -464,6 +456,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Guided check-in flow — replaces the raw form-based check-in for chat UI
+  // POST /api/check-in-flow { flowType: "morning" | "evening", message: string }
+  // Call with empty message to start the flow. Keep calling with user answers until isComplete.
+  app.post("/api/check-in-flow", authenticateUser, async (req, res) => {
+    try {
+      const { flowType, message = "" } = req.body as { flowType: FlowType; message?: string };
+
+      if (!flowType || !["morning", "evening"].includes(flowType)) {
+        return res.status(400).json({ message: "flowType must be 'morning' or 'evening'" });
+      }
+
+      const result = await handleCheckInFlow(
+        req.body.userId,
+        flowType,
+        message,
+        storage
+      );
+
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error during check-in flow" });
+    }
+  });
+
   app.post("/api/check-ins", authenticateUser, async (req, res) => {
     try {
       const validatedData = insertCheckInSchema.parse({
@@ -560,14 +576,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Initialize cache and generate response synchronously to ensure proper data flow
         try {
-          // Step 1: Ensure cache is populated with current user data
-          await initializeUserCache(req.body.userId, storage);
-          
-          // Step 2: Generate AI response with cached context
-          const aiResponse = await generateAIResponse(
-            validatedData.message, 
+          const aiResponse = await generateResponse(
+            req.body.userId,
+            validatedData.message,
             recentMessages.slice(-10),
-            req.body.userId
+            storage
           );
           
           // Step 3: Save AI response

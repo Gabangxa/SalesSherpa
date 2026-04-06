@@ -73,7 +73,7 @@ export interface IStorage {
   deleteTask(id: number): Promise<boolean>;
   
   // Check-in operations
-  getCheckIns(userId: number): Promise<CheckIn[]>;
+  getCheckIns(userId: number, limit?: number): Promise<CheckIn[]>;
   getCheckIn(id: number): Promise<CheckIn | undefined>;
   createCheckIn(checkIn: InsertCheckIn): Promise<CheckIn>;
   
@@ -257,8 +257,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Check-in operations
-  async getCheckIns(userId: number): Promise<CheckIn[]> {
-    return db.select().from(checkIns).where(eq(checkIns.userId, userId)).orderBy(desc(checkIns.date));
+  async getCheckIns(userId: number, limit?: number): Promise<CheckIn[]> {
+    const query = db.select().from(checkIns).where(eq(checkIns.userId, userId)).orderBy(desc(checkIns.date));
+    return limit ? query.limit(limit) : query;
   }
 
   async getCheckIn(id: number): Promise<CheckIn | undefined> {
