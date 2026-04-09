@@ -77,6 +77,8 @@ app.use((req, res, next) => {
     log(`Database initialization error: ${error instanceof Error ? error.message : String(error)}`);
   }
   
+  app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -96,10 +98,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  const port = parseInt(process.env.PORT || '5000', 10);
   server.listen({
     port,
     host: "0.0.0.0",
