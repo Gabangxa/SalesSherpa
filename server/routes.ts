@@ -1,5 +1,14 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+
+let alertInterval: ReturnType<typeof setInterval> | null = null;
+
+export function stopAlertService() {
+  if (alertInterval) {
+    clearInterval(alertInterval);
+    alertInterval = null;
+  }
+}
 import { storage } from "./storage";
 import { sendEmail, generateVerificationToken, generateVerificationEmail } from "./emailService";
 import { z } from "zod";
@@ -964,7 +973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
     
     // Check alerts every 30 seconds for more responsive notifications
-    setInterval(async () => {
+    alertInterval = setInterval(async () => {
       try {
         // Get all users who have enabled alerts
         const usersWithAlerts = await storage.getAllUsersWithAlerts();
