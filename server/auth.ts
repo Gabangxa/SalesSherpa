@@ -48,8 +48,12 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
+  if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET environment variable is required");
+  }
+
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "sales-coach-secret-key",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: new PostgresSessionStore({ 
@@ -163,9 +167,10 @@ export function setupAuth(app: Express) {
       });
 
       // Send verification email
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? `https://${req.get('host')}`
-        : `http://${req.get('host')}`;
+      const baseUrl = process.env.BASE_URL ||
+        (process.env.NODE_ENV === 'production'
+          ? `https://${req.get('host')}`
+          : `http://${req.get('host')}`);
       
       const emailContent = generateVerificationEmail(req.body.name, verificationToken, baseUrl);
       emailContent.to = req.body.email;
@@ -282,9 +287,10 @@ export function setupAuth(app: Express) {
       });
 
       // Send verification email
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? `https://${req.get('host')}`
-        : `http://${req.get('host')}`;
+      const baseUrl = process.env.BASE_URL ||
+        (process.env.NODE_ENV === 'production'
+          ? `https://${req.get('host')}`
+          : `http://${req.get('host')}`);
       
       const emailContent = generateVerificationEmail(user.name, verificationToken, baseUrl);
       emailContent.to = email;
