@@ -1,4 +1,8 @@
 import connectPg from "connect-pg-simple";
+import { scrypt, randomBytes } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
 import { eq, desc, asc } from "drizzle-orm";
 import { 
   User, 
@@ -552,11 +556,15 @@ export class DatabaseStorage implements IStorage {
         return;
       }
 
-      // Create demo user
+      // Create demo user with hashed password
+      const salt = randomBytes(16).toString("hex");
+      const buf = (await scryptAsync("password", salt, 64)) as Buffer;
+      const hashedPassword = `${buf.toString("hex")}.${salt}`;
+
       const demoUser = await this.createUser({
         username: "demo",
         email: "demo@example.com",
-        password: "password",
+        password: hashedPassword,
         name: "Jordan Doe",
         role: "Fintech Sales Manager"
       });

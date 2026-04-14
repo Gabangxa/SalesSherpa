@@ -3,13 +3,11 @@ import { registerRoutes, stopAlertService } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage, DatabaseStorage } from "./storage";
 import { pool } from "./db";
-import { 
-  apiRateLimiter, 
-  loginRateLimiter, 
-  sanitizeRequestBody, 
-  securityHeaders, 
-  csrfProtection,
-  csrfTokenMiddleware
+import {
+  apiRateLimiter,
+  loginRateLimiter,
+  sanitizeRequestBody,
+  securityHeaders
 } from "./security";
 import session from 'express-session';
 import { setupAuth } from "./auth";
