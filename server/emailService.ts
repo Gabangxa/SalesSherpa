@@ -1,6 +1,15 @@
 import { MailService } from '@sendgrid/mail';
 import crypto from 'crypto';
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
 if (!process.env.SENDGRID_API_KEY) {
   console.warn("SENDGRID_API_KEY environment variable not set - email functionality will be disabled");
 }
@@ -48,12 +57,13 @@ export function generateVerificationToken(): string {
 }
 
 export function generateVerificationEmail(
-  name: string, 
-  verificationToken: string, 
+  name: string,
+  verificationToken: string,
   baseUrl: string
 ): EmailParams {
   const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
-  
+  const safeName = escapeHtml(name);
+
   return {
     to: '', // Will be filled by caller
     subject: 'Verify Your Sales Sherpa Account',
@@ -80,7 +90,7 @@ export function generateVerificationEmail(
             <h1>Welcome to Sales Sherpa!</h1>
           </div>
           <div class="content">
-            <h2>Hi ${name},</h2>
+            <h2>Hi ${safeName},</h2>
             <p>Thanks for signing up for Sales Sherpa! We're excited to help you achieve your sales goals with personalized accountability and guidance.</p>
             
             <p>To get started, please verify your email address by clicking the button below:</p>

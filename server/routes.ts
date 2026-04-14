@@ -126,8 +126,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (goal.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
-      const updatedGoal = await storage.updateGoal(goalId, req.body);
+
+      // Only allow mutable fields — prevents id/userId mass-assignment
+      const { title, targetAmount, currentAmount, startingAmount, deadline, category, valueType } = req.body;
+      const updatedGoal = await storage.updateGoal(goalId, { title, targetAmount, currentAmount, startingAmount, deadline, category, valueType });
       
       if (updatedGoal) {
         // Send WebSocket notification to user about goal update
@@ -427,8 +429,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (task.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
-      const updatedTask = await storage.updateTask(taskId, req.body);
+
+      // Only allow mutable fields — prevents id/userId mass-assignment
+      const { title, description, priority, completed, dueDate } = req.body;
+      const updatedTask = await storage.updateTask(taskId, { title, description, priority, completed, dueDate });
       return res.status(200).json(updatedTask);
     } catch (error) {
       return res.status(500).json({ message: "Server error" });
@@ -754,8 +758,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (alert.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
-      const updatedAlert = await storage.updateCheckInAlert(alertId, req.body);
+
+      // Only allow mutable fields — prevents id/userId mass-assignment
+      const { time, days, timezone, enabled, title, message: alertMessage } = req.body;
+      const updatedAlert = await storage.updateCheckInAlert(alertId, { time, days, timezone, enabled, title, message: alertMessage });
       return res.status(200).json(updatedAlert);
     } catch (error) {
       console.error("Error updating check-in alert:", error);
@@ -849,26 +855,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
             break;
             
           case WebSocketMessageType.ALERT:
-            // Broadcast alert to all connected clients
+            // Only authenticated clients may broadcast alerts
+            if (!clientInfo?.userId) {
+              ws.send(JSON.stringify({
+                type: WebSocketMessageType.ERROR,
+                payload: { error: 'Authentication required to send alerts' },
+                timestamp: Date.now()
+              }));
+              break;
+            }
             broadcastMessage({
               type: WebSocketMessageType.ALERT,
               payload: {
                 ...message.payload,
-                sourceSessionId: clientInfo?.sessionId,
+                sourceSessionId: clientInfo.sessionId,
                 timestamp: new Date().toISOString()
               },
               timestamp: Date.now()
             });
             break;
-            
+
           case WebSocketMessageType.NOTIFICATION:
-            // Handle notifications, potentially storing them
-            // Could add code here to save notifications to the database
+            // Only authenticated clients may broadcast notifications
+            if (!clientInfo?.userId) {
+              ws.send(JSON.stringify({
+                type: WebSocketMessageType.ERROR,
+                payload: { error: 'Authentication required to send notifications' },
+                timestamp: Date.now()
+              }));
+              break;
+            }
             broadcastMessage({
               type: WebSocketMessageType.NOTIFICATION,
               payload: {
                 ...message.payload,
-                sourceSessionId: clientInfo?.sessionId,
+                sourceSessionId: clientInfo.sessionId,
                 timestamp: new Date().toISOString()
               },
               timestamp: Date.now()
