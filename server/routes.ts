@@ -46,6 +46,13 @@ interface WebSocketMessage {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Parse a route/query param as a positive integer; returns null on failure.
+  function parseId(value: string | undefined): number | null {
+    if (!value) return null;
+    const n = parseInt(value, 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
   // Authentication middleware using Passport
   const authenticateUser = (req: Request, res: Response, next: Function) => {
     if (!req.isAuthenticated()) {
@@ -116,9 +123,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.patch("/api/goals/:id", authenticateUser, async (req, res) => {
     try {
-      const goalId = parseInt(req.params.id);
+      const goalId = parseId(req.params.id);
+      if (!goalId) return res.status(400).json({ message: "Invalid goal ID" });
       const goal = await storage.getGoal(goalId);
-      
+
       if (!goal) {
         return res.status(404).json({ message: "Goal not found" });
       }
@@ -155,13 +163,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.delete("/api/goals/:id", authenticateUser, async (req, res) => {
     try {
-      const goalId = parseInt(req.params.id);
+      const goalId = parseId(req.params.id);
+      if (!goalId) return res.status(400).json({ message: "Invalid goal ID" });
       const goal = await storage.getGoal(goalId);
-      
+
       if (!goal) {
         return res.status(404).json({ message: "Goal not found" });
       }
-      
+
       if (goal.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -192,8 +201,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Team routes
   app.get("/api/teams/user/:userId", authenticateUser, async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      
+      const userId = parseId(req.params.userId);
+      if (!userId) return res.status(400).json({ message: "Invalid user ID" });
+
       // Security: Users can only access their own teams
       if (userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized to view teams for this user" });
@@ -374,8 +384,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Team activity feed
   app.get("/api/teams/:teamId/activities", authenticateUser, async (req, res) => {
     try {
-      const teamId = parseInt(req.params.teamId);
-      const limit = parseInt(req.query.limit as string) || 20;
+      const teamId = parseId(req.params.teamId);
+      if (!teamId) return res.status(400).json({ message: "Invalid team ID" });
+      const limit = Math.min(parseId(req.query.limit as string) ?? 20, 100);
       
       // Verify user is member of the team
       const membership = await storage.getUserTeamMembership(req.body.userId, teamId);
@@ -419,13 +430,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.patch("/api/tasks/:id", authenticateUser, async (req, res) => {
     try {
-      const taskId = parseInt(req.params.id);
+      const taskId = parseId(req.params.id);
+      if (!taskId) return res.status(400).json({ message: "Invalid task ID" });
       const task = await storage.getTask(taskId);
-      
+
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
       }
-      
+
       if (task.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -441,7 +453,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.delete("/api/tasks/:id", authenticateUser, async (req, res) => {
     try {
-      const taskId = parseInt(req.params.id);
+      const taskId = parseId(req.params.id);
+      if (!taskId) return res.status(400).json({ message: "Invalid task ID" });
       const task = await storage.getTask(taskId);
       
       if (!task) {
@@ -513,7 +526,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/check-ins/:id", authenticateUser, async (req, res) => {
     try {
-      const checkInId = parseInt(req.params.id);
+      const checkInId = parseId(req.params.id);
+      if (!checkInId) return res.status(400).json({ message: "Invalid check-in ID" });
       const checkIn = await storage.getCheckIn(checkInId);
       
       if (!checkIn) {
@@ -728,27 +742,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/check-in-alerts/:id", authenticateUser, async (req, res) => {
     try {
-      const alertId = parseInt(req.params.id);
+      const alertId = parseId(req.params.id);
+      if (!alertId) return res.status(400).json({ message: "Invalid alert ID" });
       const alert = await storage.getCheckInAlert(alertId);
-      
+
       if (!alert) {
         return res.status(404).json({ message: "Alert not found" });
       }
-      
+
       if (alert.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       return res.status(200).json(alert);
     } catch (error) {
       console.error("Error getting check-in alert by ID:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
-  
+
   app.patch("/api/check-in-alerts/:id", authenticateUser, async (req, res) => {
     try {
-      const alertId = parseInt(req.params.id);
+      const alertId = parseId(req.params.id);
+      if (!alertId) return res.status(400).json({ message: "Invalid alert ID" });
       const alert = await storage.getCheckInAlert(alertId);
       
       if (!alert) {
@@ -771,7 +787,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.delete("/api/check-in-alerts/:id", authenticateUser, async (req, res) => {
     try {
-      const alertId = parseInt(req.params.id);
+      const alertId = parseId(req.params.id);
+      if (!alertId) return res.status(400).json({ message: "Invalid alert ID" });
       const alert = await storage.getCheckInAlert(alertId);
       
       if (!alert) {

@@ -69,13 +69,17 @@ export function sanitizeHtml(input: string): string {
   });
 }
 
+// Never sanitize password fields — DOMPurify strips characters like < > & which
+// would silently alter passwords and cause login failures.
+const SANITIZE_SKIP_KEYS = new Set(['password', 'confirmPassword', 'currentPassword', 'newPassword']);
+
 /**
  * Middleware to sanitize request bodies
  */
 export function sanitizeRequestBody(req: Request, res: Response, next: NextFunction) {
   if (req.body && typeof req.body === 'object') {
     Object.keys(req.body).forEach(key => {
-      if (typeof req.body[key] === 'string') {
+      if (typeof req.body[key] === 'string' && !SANITIZE_SKIP_KEYS.has(key)) {
         req.body[key] = sanitizeInput(req.body[key]);
       }
     });
