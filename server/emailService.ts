@@ -19,7 +19,10 @@ if (process.env.SENDGRID_API_KEY) {
   mailService.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'noreply@salesherpa.com'; // You can change this to your verified sender email
+if (process.env.SENDGRID_API_KEY && !process.env.SENDGRID_FROM_EMAIL) {
+  console.warn("SENDGRID_FROM_EMAIL is not set — emails will use noreply@salesherpa.com which must be a verified sender in SendGrid");
+}
+const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'noreply@salesherpa.com';
 
 export interface EmailParams {
   to: string;
