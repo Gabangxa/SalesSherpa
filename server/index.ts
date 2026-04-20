@@ -1,5 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes, stopAlertService } from "./routes";
+import { connectNats, drainNats } from "./nats";
+import { startAiWorker } from "./aiWorker";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage, DatabaseStorage } from "./storage";
 import { pool } from "./db";
@@ -87,7 +89,11 @@ app.use((req, res, next) => {
     }
   });
 
+  await connectNats();
+
   const server = await registerRoutes(app);
+
+  startAiWorker();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -119,6 +125,7 @@ app.use((req, res, next) => {
     log(`${signal} received, shutting down`);
     stopAlertService();
     server.close(async () => {
+      await drainNats();
       await pool.end();
       log('shutdown complete');
       process.exit(0);
