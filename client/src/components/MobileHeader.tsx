@@ -1,11 +1,11 @@
 import { Link } from "wouter";
-import { 
-  Home, 
-  Target, 
-  CalendarCheck, 
-  Swords, 
-  BookOpen,
-  Menu, 
+import {
+  Home,
+  Target,
+  CalendarCheck,
+  Swords,
+  Mountain,
+  Menu,
   X,
   LogOut,
   Settings,
@@ -33,7 +33,6 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
     { name: "Goals & Targets", path: "/goals", icon: <Target className="w-5 h-5 mr-3" /> },
     { name: "Check-ins", path: "/check-ins", icon: <CalendarCheck className="w-5 h-5 mr-3" /> },
     { name: "Strategic Planning", path: "/strategy", icon: <Swords className="w-5 h-5 mr-3" /> },
-    { name: "Resources", path: "/resources", icon: <BookOpen className="w-5 h-5 mr-3" /> },
     { name: "Settings", path: "/settings", icon: <Settings className="w-5 h-5 mr-3" /> },
   ];
   
@@ -43,21 +42,19 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
   ];
 
   return (
-    <div className="lg:hidden fixed top-0 left-0 right-0 bg-card border-b border-border z-20">
+    <div className="lg:hidden fixed top-0 left-0 right-0 bg-moss dark:bg-dark-sidebar text-white border-b border-white/10 z-20">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center shadow-md">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
+          <div className="w-9 h-9 rounded-lg bg-clay flex items-center justify-center shadow-md">
+            <Mountain className="h-5 w-5 text-white" />
           </div>
-          <h1 className="ml-2 text-lg font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Sales Sherpa</h1>
+          <h1 className="ml-2 text-lg font-bold text-forest dark:text-parchment">SalesSherpa</h1>
         </div>
         <div className="flex items-center space-x-2">
           <ThemeToggle />
-          <button 
+          <button
             onClick={toggleMenu}
-            className="text-muted-foreground p-1.5 rounded-lg hover:bg-muted transition-colors focus:outline-none"
+            className="text-white/70 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors focus:outline-none"
             aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           >
             {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -68,24 +65,24 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
       {/* Mobile Menu */}
       <div 
         className={`
-          absolute top-[57px] left-0 right-0 bg-card border-b border-border shadow-lg transform transition-all duration-200 
+          absolute top-[57px] left-0 right-0 bg-moss dark:bg-dark-sidebar border-b border-white/10 shadow-lg transform transition-all duration-200
           ${isMenuOpen ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0 pointer-events-none'}
         `}
       >
         <div className="px-4 py-3 max-h-[80vh] overflow-y-auto">
-          <div className="mb-4 p-3 bg-muted/50 rounded-lg flex items-center">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shadow-sm">
-              <span className="text-sm font-medium text-primary">
-                {userData?.name ? userData.name.split(" ").map(n => n[0]).join("") : "JD"}
+          <div className="mb-4 p-3 bg-white/10 rounded-xl flex items-center">
+            <div className="w-10 h-10 rounded-full bg-clay/40 flex items-center justify-center shadow-sm">
+              <span className="text-sm font-medium text-white">
+                {userData?.name ? userData.name.split(" ").map(n => n[0]).join("") : "U"}
               </span>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium">{userData?.name || "Jordan Doe"}</p>
-              <p className="text-xs text-muted-foreground">{userData?.role || "Fintech Sales Manager"}</p>
+              <p className="text-sm font-medium text-white">{userData?.name || "User"}</p>
+              <p className="text-xs text-white/60">{userData?.role || "Sales Rep"}</p>
             </div>
           </div>
 
-          <div className="text-xs uppercase text-muted-foreground font-semibold mb-2 px-2">
+          <div className="text-xs uppercase text-white/50 font-semibold mb-2 px-2">
             Main Navigation
           </div>
           
@@ -96,10 +93,10 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
                   <Link 
                     href={link.path}
                     onClick={toggleMenu}
-                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
-                      currentPath === link.path 
-                        ? "bg-primary/10 text-primary" 
-                        : "text-foreground hover:bg-muted"
+                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-colors ${
+                      currentPath === link.path
+                        ? "bg-sage/40 text-white"
+                        : "text-white/80 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     {link.icon}
@@ -108,21 +105,21 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
                 </li>
               ))}
             </ul>
-            
+
             {/* Development section */}
-            <div className="text-xs uppercase text-muted-foreground font-semibold mt-6 mb-2 px-2">
+            <div className="text-xs uppercase text-white/40 font-semibold mt-6 mb-2 px-2">
               Development
             </div>
             <ul className="space-y-1 mb-6">
               {devLinks.map((link) => (
                 <li key={link.path}>
-                  <Link 
+                  <Link
                     href={link.path}
                     onClick={toggleMenu}
-                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
-                      currentPath === link.path 
-                        ? "bg-primary/10 text-primary" 
-                        : "text-foreground hover:bg-muted"
+                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-colors ${
+                      currentPath === link.path
+                        ? "bg-sage/40 text-white"
+                        : "text-white/80 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     {link.icon}
@@ -136,7 +133,7 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
             
             <button
               onClick={() => logoutMutation.mutate()}
-              className="w-full flex items-center px-3 py-3 text-sm font-medium rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+              className="w-full flex items-center px-3 py-3 text-sm font-medium rounded-xl text-red-300 hover:bg-white/10 transition-colors"
             >
               <LogOut className="w-5 h-5 mr-3" />
               Logout
