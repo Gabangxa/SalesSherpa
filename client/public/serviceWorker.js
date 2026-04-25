@@ -188,3 +188,39 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
+// Web push: show a native notification when a push arrives
+self.addEventListener('push', (event) => {
+  let data = { title: 'SalesSherpa', body: 'Time for your check-in.', url: '/', tag: 'check-in' };
+  try {
+    if (event.data) Object.assign(data, event.data.json());
+  } catch (_) {}
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: data.tag,
+      renotify: true,
+      data: { url: data.url },
+    })
+  );
+});
+
+// Open the app (or focus an existing tab) when the notification is tapped
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = event.notification.data?.url ?? '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(target);
+          return client.focus();
+        }
+      }
+      return clients.openWindow(target);
+    })
+  );
+});

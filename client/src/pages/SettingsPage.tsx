@@ -1,9 +1,13 @@
 import { useAuth } from "@/hooks/use-auth";
-import { Mountain, User, Bell, Mail, Shield } from "lucide-react";
+import { Mountain, User, Bell, Mail, Shield, Smartphone } from "lucide-react";
 import CheckInAlerts from "@/components/settings/CheckInAlerts";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
+import { Switch } from "@/components/ui/switch";
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const { isSupported, permission, isSubscribed, isLoading, subscribe, unsubscribe } =
+    usePushNotifications();
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
@@ -72,6 +76,42 @@ export default function SettingsPage() {
         </div>
         <div className="px-6 py-6">
           <CheckInAlerts />
+        </div>
+      </section>
+
+      {/* Push notifications section */}
+      <section className="bg-white dark:bg-dark-card rounded-3xl border border-earth/20 dark:border-earth/10 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-earth/10 dark:border-earth/10 bg-sage/5 dark:bg-sage/10 flex items-center gap-3">
+          <Smartphone className="w-4 h-4 text-forest/60 dark:text-parchment/60" />
+          <h2 className="text-sm font-semibold text-forest dark:text-parchment">Push Notifications</h2>
+        </div>
+        <div className="px-6 py-6">
+          {!isSupported ? (
+            <div className="rounded-2xl border border-dashed border-earth/30 dark:border-earth/15 bg-earth/5 px-4 py-4 text-center">
+              <p className="text-sm text-forest/60 dark:text-parchment/50">
+                Push notifications aren't supported by your browser.
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <p className="text-sm font-semibold text-forest dark:text-parchment mb-1">
+                  Receive alerts even when the app is closed
+                </p>
+                <p className="text-xs text-forest/50 dark:text-parchment/50 leading-relaxed max-w-xs">
+                  {permission === "denied"
+                    ? "Notifications are blocked in your browser settings. Enable them in the browser's site permissions to use this feature."
+                    : "Your check-in reminders will fire as browser notifications so you never miss one, even with the tab closed."}
+                </p>
+              </div>
+              <Switch
+                checked={isSubscribed}
+                disabled={isLoading || permission === "denied"}
+                onCheckedChange={(checked) => (checked ? subscribe() : unsubscribe())}
+                className="flex-shrink-0"
+              />
+            </div>
+          )}
         </div>
       </section>
 

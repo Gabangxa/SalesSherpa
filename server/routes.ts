@@ -19,6 +19,7 @@ import type { FlowType } from "./ai/checkInFlow";
 import { WebSocketServer, WebSocket } from 'ws';
 import { log } from "./vite";
 import { isNatsAvailable, natsPublish, natsSubscribe } from "./nats";
+import * as pushService from "./pushService";
 import { 
   insertCheckInSchema, 
   insertTaskSchema, 
@@ -676,6 +677,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Web push routes
+  app.get("/api/push/vapid-public-key", (_req, res) => {
+    const { vapidPublicKey, isWebPushConfigured } = pushService;
+    if (!isWebPushConfigured) {
+      return res.status(503).json({ message: "Push notifications not configured" });
+    }
+    return res.json({ publicKey: vapidPublicKey });
+  });
+
+  app.post("/api/push/subscribe", authenticateUser, async (req, res) => {
+    try {
+      const { endpoint, p256dh, auth } = req.body;
+      if (!endpoint || !p256dh || !auth) {
+        return res.status(400).json({ message: "endpoint, p256dh and auth are required" });
+      }
+      const sub = await storage.createPushSubscription({
+        userId: req.body.userId,
+        endpoint,
+        p256dh,
+        auth,
+      });
+      return res.status(201).json(sub);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/push/subscribe", authenticateUser, async (req, res) => {
+    try {
+      const { endpoint } = req.body;
+      if (!endpoint) return res.status(400).json({ message: "endpoint is required" });
+      await storage.deletePushSubscriptionByEndpoint(endpoint);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // Check-in alerts routes
   app.get("/api/check-in-alerts", authenticateUser, async (req, res) => {
     try {
@@ -1050,6 +1089,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 };
                 
                 sendMessageToUser(user.id, alertMessage);
+
+                // Also send web push to all subscribed browsers/devices
+                if (pushService.isWebPushConfigured) {
+                  const subs = await storage.getPushSubscriptions(user.id);
+                  for (const sub of subs) {
+                    const result = await pushService.sendPushToSubscription(sub, {
+                      title: alert.title,
+                      body: alert.message,
+                      url: "/check-in",
+                      tag: `alert-${alert.id}`,
+                    }).catch(() => "expired" as const);
+                    if (result === "expired") {
+                      await storage.deletePushSubscriptionByEndpoint(sub.endpoint);
+                    }
+                  }
+                }
+
                 log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
               }
             }
