@@ -23,7 +23,7 @@ interface SalesAssistantChatProps {
 
 export default function SalesAssistantChat({ userName }: SalesAssistantChatProps) {
   const [message, setMessage] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
 
   const { data: messages = [], isLoading } = useQuery<ChatMessage[]>({
@@ -62,8 +62,13 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    // ScrollArea (Radix) renders a custom viewport — scrollIntoView walks up to the
+    // page and scrolls the wrong container. Target the viewport directly instead.
+    const viewport = scrollAreaRef.current?.querySelector<HTMLElement>(
+      "[data-radix-scroll-area-viewport]"
+    );
+    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+  }, [messages, waitingForResponse]);
 
   const userInitials = getUserInitials(userName || "User");
 
@@ -84,7 +89,7 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
       </div>
 
       {/* Messages */}
-      <ScrollArea className="p-5 h-80">
+      <ScrollArea className="p-5 h-80" ref={scrollAreaRef}>
         {isLoading ? (
           <div className="flex flex-col justify-center items-center h-full gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-clay border-t-transparent" />
@@ -188,7 +193,6 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
             )}
           </>
         )}
-        <div ref={messagesEndRef} />
       </ScrollArea>
 
       {/* Input */}
