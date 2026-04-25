@@ -218,6 +218,26 @@ export const insertTimeOffSchema = createInsertSchema(timeOff).pick({
 export type InsertTimeOff = z.infer<typeof insertTimeOffSchema>;
 export type TimeOff = typeof timeOff.$inferSelect;
 
+// User insights — facts extracted from Sherpa conversations that aren't
+// captured in check-ins (deal names, relationship signals, strategic context).
+// Expires after 60 days to stay fresh without manual cleanup.
+export const userInsights = pgTable("user_insights", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  insight: text("insight").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export const insertUserInsightSchema = createInsertSchema(userInsights).pick({
+  userId: true,
+  insight: true,
+  expiresAt: true,
+});
+
+export type InsertUserInsight = z.infer<typeof insertUserInsightSchema>;
+export type UserInsight = typeof userInsights.$inferSelect;
+
 // Chat messages schema
 export const chatMessages = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
@@ -294,6 +314,13 @@ export type InsertCheckInAlert = z.infer<typeof insertCheckInAlertSchema>;
 export type CheckInAlert = typeof checkInAlerts.$inferSelect;
 
 // Relations
+export const userInsightsRelations = relations(userInsights, ({ one }) => ({
+  user: one(users, {
+    fields: [userInsights.userId],
+    references: [users.id],
+  }),
+}));
+
 export const usersRelations = relations(users, ({ many }) => ({
   goals: many(goals),
   tasks: many(tasks),
@@ -302,6 +329,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   chatMessages: many(chatMessages),
   salesMetrics: many(salesMetrics),
   checkInAlerts: many(checkInAlerts),
+  userInsights: many(userInsights),
   // Team collaboration relations
   ownedTeams: many(teams, { relationName: 'TeamOwner' }),
   teamMemberships: many(teamMemberships),
