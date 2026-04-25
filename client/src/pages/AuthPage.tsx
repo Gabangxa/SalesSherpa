@@ -1,17 +1,9 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation, Link } from 'wouter';
+import { useLocation } from 'wouter';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -22,19 +14,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
-import { ResendVerificationDialog } from "@/components/ResendVerificationDialog";
+import { Mountain, CheckCircle2 } from "lucide-react";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
-import { Separator } from "@/components/ui/separator";
 
-// Login form schema
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
 });
 
-// Registration form schema
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Please enter a valid email address"),
@@ -46,213 +33,205 @@ const registerSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
+const FEATURES = [
+  "Daily check-ins to stay on top of your pipeline",
+  "Goal tracking with real progress, not vanity metrics",
+  "Sherpa — a straight-talking AI sales colleague",
+  "Time-off management that actually respects your boundaries",
+];
+
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState<string>("login");
-  const { user, loginMutation, registerMutation, isLoading } = useAuth();
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const { user, loginMutation, registerMutation } = useAuth();
   const [, navigate] = useLocation();
-  
-  // If user is already logged in, redirect to home
+
   if (user) {
     navigate("/");
     return null;
   }
-  
-  // Login form
+
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
+    defaultValues: { username: "", password: "" },
   });
-  
-  // Registration form
+
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      username: "",
-      email: "",
-      password: "",
-      name: "",
-      role: "",
-    },
+    defaultValues: { username: "", email: "", password: "", name: "", role: "" },
   });
-  
-  // Handle login form submission
+
   function onLoginSubmit(values: LoginFormValues) {
     loginMutation.mutate(values);
   }
-  
-  // Handle registration form submission
+
   function onRegisterSubmit(values: RegisterFormValues) {
     registerMutation.mutate(values);
   }
-  
-  return (
-    <div className="min-h-screen flex">
-      {/* Left section - Forms */}
-      <div className="w-full md:w-1/2 p-6 flex items-center justify-center bg-gradient-to-br from-slate-700 to-slate-800 relative overflow-hidden">
-        {/* Subtle decorative elements for the left panel */}
-        <div className="absolute inset-0 overflow-hidden z-0">
-          <div className="absolute -left-24 -top-24 w-64 h-64 bg-white/5 rounded-full blur-xl"></div>
-          <div className="absolute -right-16 bottom-1/4 w-48 h-48 bg-white/3 rounded-full blur-xl"></div>
-        </div>
-        
-        <div className="w-full max-w-md relative z-10">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white drop-shadow-sm">
-              Welcome to Sales Sherpa
-            </h2>
-            <p className="text-white/80 mt-2">Access your sales accountability and guidance platform</p>
-          </div>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8 bg-white/10 backdrop-blur-sm border border-white/20 shadow-lg">
-              <TabsTrigger value="login" className="text-base py-3 data-[state=active]:bg-white/20 data-[state=active]:text-white transition-all duration-300">Login</TabsTrigger>
-              <TabsTrigger value="register" className="text-base py-3 data-[state=active]:bg-white/20 data-[state=active]:text-white transition-all duration-300">Register</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <Card className="border-white/10 shadow-xl bg-white/10 backdrop-blur-sm text-white">
-                <CardHeader>
-                  <CardTitle className="text-2xl text-white">Login</CardTitle>
-                  <CardDescription className="text-base text-white/80">
-                    Sign in to access your Sales Sherpa accountability platform
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <GoogleSignInButton />
-                    
-                    {/* Traditional login form temporarily disabled */}
-                    <div className="text-center text-sm text-white/70 bg-white/5 p-4 rounded-lg border border-dashed border-white/20">
-                      <p>Email/password login temporarily unavailable</p>
-                      <p className="text-xs mt-1">Please use Google Sign-In above</p>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex flex-col gap-4 pb-6">
-                  <p className="text-sm text-white/80">
-                    Don't have an account?{" "}
-                    <Button 
-                      variant="link" 
-                      className="p-0 font-semibold text-white hover:text-white/80" 
-                      onClick={() => setActiveTab("register")}
-                    >
-                      Sign up
-                    </Button>
-                  </p>
 
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="register">
-              <Card className="border-white/10 shadow-xl bg-white/10 backdrop-blur-sm text-white">
-                <CardHeader>
-                  <CardTitle className="text-2xl text-white">Create an Account</CardTitle>
-                  <CardDescription className="text-base text-white/80">
-                    Join Sales Sherpa to stay accountable and achieve your sales goals
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <GoogleSignInButton text="Sign up with Google" />
-                    
-                    {/* Traditional registration form temporarily disabled */}
-                    <div className="text-center text-sm text-white/70 bg-white/5 p-4 rounded-lg border border-dashed border-white/20">
-                      <p>Email/password registration temporarily unavailable</p>
-                      <p className="text-xs mt-1">Please use Google Sign-Up above</p>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex flex-col items-center pb-6 space-y-4">
-                  <p className="text-xs text-white/70 text-center">
-                    By creating an account, you agree to our{" "}
-                    <span className="text-white underline cursor-pointer">
-                      Terms of Service
-                    </span>{" "}
-                    and{" "}
-                    <button 
-                      onClick={() => window.location.href = '/privacy-policy'}
-                      className="text-white underline hover:text-white/80 bg-transparent border-none p-0 font-inherit cursor-pointer"
-                    >
-                      Privacy Policy
-                    </button>
-                    .
+  return (
+    <div className="min-h-screen flex bg-cream dark:bg-dark-bg">
+
+      {/* ── Left: form panel ── */}
+      <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-8 py-12">
+
+        {/* Logo */}
+        <div className="flex items-center gap-3 mb-10 self-start md:self-auto">
+          <div className="w-10 h-10 bg-clay rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+            <Mountain className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-bold text-xl tracking-tight text-forest dark:text-parchment">
+            SalesSherpa
+          </span>
+        </div>
+
+        <div className="w-full max-w-md">
+
+          {/* Heading */}
+          <h1 className="font-serif text-3xl font-light italic text-forest dark:text-parchment mb-1">
+            {activeTab === "login" ? "Welcome back." : "Join SalesSherpa."}
+          </h1>
+          <p className="text-sm text-forest/55 dark:text-parchment/55 mb-8">
+            {activeTab === "login"
+              ? "Sign in to your accountability platform."
+              : "Create your account and start tracking what matters."}
+          </p>
+
+          {/* Tab switcher */}
+          <div className="flex rounded-2xl border border-earth/25 dark:border-earth/15 bg-white dark:bg-dark-card p-1 mb-6 shadow-sm">
+            {(["login", "register"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all capitalize ${
+                  activeTab === tab
+                    ? "bg-clay text-white shadow-sm"
+                    : "text-forest/60 dark:text-parchment/60 hover:text-forest dark:hover:text-parchment"
+                }`}
+              >
+                {tab === "login" ? "Sign In" : "Register"}
+              </button>
+            ))}
+          </div>
+
+          {/* Card */}
+          <div className="bg-white dark:bg-dark-card rounded-3xl border border-earth/20 dark:border-earth/10 shadow-sm p-7">
+
+            {activeTab === "login" ? (
+              <div className="space-y-5">
+                <GoogleSignInButton />
+
+                <div className="flex items-center gap-3 my-2">
+                  <div className="flex-1 h-px bg-earth/20 dark:bg-earth/10" />
+                  <span className="text-xs text-forest/40 dark:text-parchment/40 uppercase tracking-widest">or</span>
+                  <div className="flex-1 h-px bg-earth/20 dark:bg-earth/10" />
+                </div>
+
+                <div className="rounded-2xl border border-dashed border-earth/30 dark:border-earth/15 bg-earth/5 dark:bg-earth/5 px-4 py-3 text-center">
+                  <p className="text-sm text-forest/60 dark:text-parchment/50">
+                    Email / password login is temporarily unavailable.
                   </p>
-                  <p className="text-sm text-white/80">
-                    Already have an account?{" "}
-                    <Button 
-                      variant="link" 
-                      className="p-0 font-semibold text-white hover:text-white/80" 
-                      onClick={() => setActiveTab("login")}
-                    >
-                      Login
-                    </Button>
+                  <p className="text-xs text-forest/40 dark:text-parchment/35 mt-1">
+                    Please use Google Sign-In above.
                   </p>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                </div>
+
+                <p className="text-center text-sm text-forest/55 dark:text-parchment/55">
+                  No account yet?{" "}
+                  <button
+                    onClick={() => setActiveTab("register")}
+                    className="font-semibold text-clay hover:text-clay/80 transition-colors"
+                  >
+                    Register
+                  </button>
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <GoogleSignInButton text="Sign up with Google" />
+
+                <div className="flex items-center gap-3 my-2">
+                  <div className="flex-1 h-px bg-earth/20 dark:bg-earth/10" />
+                  <span className="text-xs text-forest/40 dark:text-parchment/40 uppercase tracking-widest">or</span>
+                  <div className="flex-1 h-px bg-earth/20 dark:bg-earth/10" />
+                </div>
+
+                <div className="rounded-2xl border border-dashed border-earth/30 dark:border-earth/15 bg-earth/5 dark:bg-earth/5 px-4 py-3 text-center">
+                  <p className="text-sm text-forest/60 dark:text-parchment/50">
+                    Email / password registration is temporarily unavailable.
+                  </p>
+                  <p className="text-xs text-forest/40 dark:text-parchment/35 mt-1">
+                    Please use Google Sign-Up above.
+                  </p>
+                </div>
+
+                <p className="text-center text-xs text-forest/45 dark:text-parchment/40 leading-relaxed">
+                  By creating an account you agree to our{" "}
+                  <button
+                    onClick={() => window.location.href = "/privacy-policy"}
+                    className="underline hover:text-clay transition-colors"
+                  >
+                    Privacy Policy
+                  </button>
+                  .
+                </p>
+
+                <p className="text-center text-sm text-forest/55 dark:text-parchment/55">
+                  Already have an account?{" "}
+                  <button
+                    onClick={() => setActiveTab("login")}
+                    className="font-semibold text-clay hover:text-clay/80 transition-colors"
+                  >
+                    Sign In
+                  </button>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      
-      {/* Right section - Hero image and info */}
-      <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-slate-800 to-slate-900 flex-col justify-center items-center p-12 text-white relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute inset-0 overflow-hidden z-0">
-          <div className="absolute -right-24 -top-24 w-96 h-96 bg-white/10 rounded-full blur-xl"></div>
-          <div className="absolute -left-32 top-1/3 w-72 h-72 bg-white/5 rounded-full blur-xl"></div>
-          <div className="absolute right-1/4 bottom-0 w-64 h-64 bg-white/5 rounded-full blur-xl"></div>
-        </div>
-        
-        <div className="max-w-md relative z-10">
-          <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent drop-shadow-sm">
-            Sales Sherpa
-          </h1>
-          <h2 className="text-2xl font-semibold mb-6 text-white/90">Accountability & Guidance for Sales Excellence</h2>
+
+      {/* ── Right: hero panel — mirrors sidebar aesthetic ── */}
+      <div className="hidden md:flex md:w-1/2 bg-moss flex-col justify-center px-14 py-12 relative overflow-hidden">
+
+        {/* Organic decorative blobs — same vibe as the dashboard's earth tones */}
+        <div className="absolute -top-24 -right-24 w-80 h-80 bg-sage/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 -left-16 w-64 h-64 bg-clay/15 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 max-w-sm">
+
+          {/* Brand mark */}
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-12 h-12 bg-clay rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <Mountain className="w-6 h-6 text-white" />
+            </div>
+            <span className="font-bold text-2xl tracking-tight text-parchment">SalesSherpa</span>
+          </div>
+
+          <h2 className="font-serif text-4xl font-light italic text-parchment mb-3 leading-snug">
+            Your silent corner<br />of the sales floor.
+          </h2>
+          <p className="text-parchment/65 text-base mb-10 leading-relaxed">
+            No manager watching. No dashboards for others. Just you, your numbers, and a colleague who listens.
+          </p>
+
           <ul className="space-y-4">
-            <li className="flex items-start">
-              <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div className="text-lg">Daily check-ins and accountability</div>
-            </li>
-            <li className="flex items-start">
-              <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div className="text-lg">Performance metrics tracking</div>
-            </li>
-            <li className="flex items-start">
-              <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div className="text-lg">Personalized guidance from Sales Sherpa Assistant</div>
-            </li>
-            <li className="flex items-start">
-              <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div className="text-lg">Time-off management that respects your boundaries</div>
-            </li>
+            {FEATURES.map((feature) => (
+              <li key={feature} className="flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-earth flex-shrink-0 mt-0.5" />
+                <span className="text-parchment/80 text-sm leading-relaxed">{feature}</span>
+              </li>
+            ))}
           </ul>
-          <div className="mt-10 p-5 rounded-lg bg-white/10 backdrop-blur-sm shadow-xl border border-white/20">
-            <p className="text-base">
-              Sales Sherpa helps sales professionals stay accountable to their goals, track meaningful progress, and receive personalized guidance that requires your active engagement to maximize results.
+
+          {/* Pull quote */}
+          <div className="mt-12 border-l-2 border-clay pl-5">
+            <p className="text-parchment/70 text-sm italic leading-relaxed">
+              "Built for the rep who's on their own all day with no one to debrief with."
             </p>
           </div>
         </div>
       </div>
+
     </div>
   );
 }
