@@ -17,6 +17,7 @@ import { generateResponse, handleCheckInFlow } from "./ai/index";
 import type { FlowType } from "./ai/checkInFlow";
 import { WebSocketServer, WebSocket } from 'ws';
 import { log } from "./vite";
+import { isNatsAvailable, natsPublish, natsSubscribe } from "./nats";
 import { 
   insertCheckInSchema, 
   insertTaskSchema, 
@@ -596,72 +597,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate AI response if the message is from user
       if (validatedData.sender === 'user') {
-        // Get recent conversation history for context
-        const recentMessages = await storage.getChatMessages(req.body.userId);
-        
-        log(`Processing user message for AI response - userId: ${req.body.userId}`, "chat");
-        
-        // Initialize cache and generate response synchronously to ensure proper data flow
-        try {
-          const aiResponse = await generateResponse(
-            req.body.userId,
-            validatedData.message,
-            recentMessages.slice(-10),
-            storage
-          );
-          
-          // Step 3: Save AI response
-          const savedAIMessage = await storage.createChatMessage({
+        if (isNatsAvailable()) {
+          // Async path: offload to AI worker via NATS — HTTP returns immediately
+          natsPublish(`chat.process.${req.body.userId}`, {
             userId: req.body.userId,
-            message: aiResponse,
-            sender: 'assistant',
-            timestamp: new Date()
+            message: validatedData.message,
           });
-          
-          log(`AI response saved successfully with ID: ${savedAIMessage.id}`, "chat");
-          
-          // Step 4: Send WebSocket notification to user about new AI response
-          const aiResponseMessage: WebSocketMessage = {
-            type: WebSocketMessageType.MESSAGE,
-            payload: {
-              type: 'ai_chat_response',
-              messageId: savedAIMessage.id,
+          log(`Chat job queued via NATS for user ${req.body.userId}`, "chat");
+        } else {
+          // Fallback: synchronous processing when NATS is unavailable
+          const recentMessages = await storage.getChatMessages(req.body.userId);
+          log(`Processing user message synchronously - userId: ${req.body.userId}`, "chat");
+
+          try {
+            const aiResponse = await generateResponse(
+              req.body.userId,
+              validatedData.message,
+              recentMessages.slice(-10),
+              storage
+            );
+
+            const savedAIMessage = await storage.createChatMessage({
+              userId: req.body.userId,
               message: aiResponse,
               sender: 'assistant',
-              timestamp: savedAIMessage.timestamp
-            },
-            timestamp: Date.now()
-          };
-          
-          sendMessageToUser(req.body.userId, aiResponseMessage);
-          log(`Sent WebSocket notification to user ${req.body.userId} about AI response`);
-          
-        } catch (error) {
-          log(`AI processing error: ${error instanceof Error ? error.message : 'Unknown error'}`, "chat");
-          
-          // Save fallback response
-          const fallbackMessage = await storage.createChatMessage({
-            userId: req.body.userId,
-            message: "I'm experiencing technical difficulties accessing your goals data. Please try again.",
-            sender: 'assistant',
-            timestamp: new Date()
-          });
-          
-          // Send WebSocket notification for fallback response too
-          const fallbackResponseMessage: WebSocketMessage = {
-            type: WebSocketMessageType.MESSAGE,
-            payload: {
-              type: 'ai_chat_response',
-              messageId: fallbackMessage.id,
-              message: fallbackMessage.message,
+              timestamp: new Date()
+            });
+
+            log(`AI response saved with ID: ${savedAIMessage.id}`, "chat");
+
+            sendMessageToUser(req.body.userId, {
+              type: WebSocketMessageType.MESSAGE,
+              payload: {
+                type: 'ai_chat_response',
+                messageId: savedAIMessage.id,
+                message: aiResponse,
+                sender: 'assistant',
+                timestamp: savedAIMessage.timestamp
+              },
+              timestamp: Date.now()
+            });
+          } catch (error) {
+            log(`AI processing error: ${error instanceof Error ? error.message : 'Unknown error'}`, "chat");
+
+            const fallbackMessage = await storage.createChatMessage({
+              userId: req.body.userId,
+              message: "I'm experiencing technical difficulties accessing your goals data. Please try again.",
               sender: 'assistant',
-              timestamp: fallbackMessage.timestamp
-            },
-            timestamp: Date.now()
-          };
-          
-          sendMessageToUser(req.body.userId, fallbackResponseMessage);
-          log(`Sent WebSocket notification to user ${req.body.userId} about fallback AI response`);
+              timestamp: new Date()
+            });
+
+            sendMessageToUser(req.body.userId, {
+              type: WebSocketMessageType.MESSAGE,
+              payload: {
+                type: 'ai_chat_response',
+                messageId: fallbackMessage.id,
+                message: fallbackMessage.message,
+                sender: 'assistant',
+                timestamp: fallbackMessage.timestamp
+              },
+              timestamp: Date.now()
+            });
+          }
         }
       }
       
@@ -983,14 +980,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     broadcastMessage(updateMessage);
   }
   
-  // Helper function to send message to specific user's connections
-  function sendMessageToUser(userId: number, message: WebSocketMessage): void {
+  // Writes a message directly to all local WebSocket connections for a user.
+  // Called by the NATS subscription handler so cross-instance messages also land here.
+  function deliverToUser(userId: number, message: WebSocketMessage): void {
     clients.forEach((clientInfo, ws) => {
       if (clientInfo.userId === userId && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(message));
       }
     });
   }
+
+  // Routes a message to a user — via NATS when available (multi-instance safe),
+  // falling back to direct local delivery in single-instance mode.
+  function sendMessageToUser(userId: number, message: WebSocketMessage): void {
+    if (isNatsAvailable()) {
+      natsPublish(`notifications.user.${userId}`, message);
+    } else {
+      deliverToUser(userId, message);
+    }
+  }
+
+  // NATS → WS bridge: any instance that published a notification delivers it
+  // to the WebSocket clients connected to this instance.
+  natsSubscribe('notifications.user.*', (_subject, data) => {
+    const parts = _subject.split('.');
+    const userId = parseInt(parts[2]);
+    if (!isNaN(userId)) {
+      deliverToUser(userId, data as WebSocketMessage);
+    }
+  });
   
   // Background alert checking service
   startAlertCheckingService();
