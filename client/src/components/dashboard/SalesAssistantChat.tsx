@@ -39,7 +39,27 @@ export default function SalesAssistantChat({ userName }: SalesAssistantChatProps
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/chat"] });
     },
+    onError: () => {
+      setWaitingForResponse(false);
+    },
   });
+
+  // Clear the indicator whenever messages update with an assistant reply.
+  // This catches cases where the WebSocket notification was missed (e.g. during
+  // a reconnect) so the dots never stay stuck.
+  useEffect(() => {
+    if (messages.length > 0 && messages[messages.length - 1].sender === "assistant") {
+      setWaitingForResponse(false);
+    }
+  }, [messages]);
+
+  // Hard timeout — if somehow neither the WebSocket nor the messages update
+  // clears the state within 30 seconds, reset it anyway.
+  useEffect(() => {
+    if (!waitingForResponse) return;
+    const id = setTimeout(() => setWaitingForResponse(false), 30_000);
+    return () => clearTimeout(id);
+  }, [waitingForResponse]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
