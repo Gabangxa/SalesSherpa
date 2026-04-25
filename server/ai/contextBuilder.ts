@@ -19,6 +19,7 @@ export interface UserContext {
   recentCheckIns: CheckIn[];
   todaysMorningFocus: string | null;
   patterns: string[];
+  insights: string[];
 }
 
 /**
@@ -29,10 +30,11 @@ export async function buildUserContext(
   userId: number,
   storage: IStorage
 ): Promise<UserContext> {
-  const [user, goals, recentCheckIns] = await Promise.all([
+  const [user, goals, recentCheckIns, rawInsights] = await Promise.all([
     storage.getUser(userId),
     storage.getGoals(userId),
     storage.getCheckIns(userId, 14),
+    storage.getInsights(userId),
   ]);
 
   if (!user) throw new Error(`User ${userId} not found`);
@@ -47,6 +49,7 @@ export async function buildUserContext(
     recentCheckIns: recentCheckIns.slice(0, 10),
     todaysMorningFocus,
     patterns,
+    insights: rawInsights.map((i) => i.insight),
   };
 }
 
@@ -73,6 +76,13 @@ export function formatContextBlock(ctx: UserContext): string {
     }
   } else {
     lines.push("\nNo active goals set.");
+  }
+
+  if (ctx.insights.length > 0) {
+    lines.push("\nRemembered from past conversations:");
+    for (const insight of ctx.insights) {
+      lines.push(`  - ${insight}`);
+    }
   }
 
   if (ctx.todaysMorningFocus) {

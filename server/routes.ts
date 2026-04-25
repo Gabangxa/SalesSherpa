@@ -14,6 +14,7 @@ import { sendEmail, generateVerificationToken, generateVerificationEmail } from 
 import { z } from "zod";
 import { setupAuth } from "./auth";
 import { generateResponse, handleCheckInFlow } from "./ai/index";
+import { maybeExtractInsights } from "./ai/insightExtractor";
 import type { FlowType } from "./ai/checkInFlow";
 import { WebSocketServer, WebSocket } from 'ws';
 import { log } from "./vite";
@@ -625,6 +626,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
 
             log(`AI response saved with ID: ${savedAIMessage.id}`, "chat");
+
+            // recentMessages was fetched before the AI response was saved,
+            // so total = recentMessages.length + 1.
+            maybeExtractInsights(req.body.userId, recentMessages.length + 1, storage);
 
             sendMessageToUser(req.body.userId, {
               type: WebSocketMessageType.MESSAGE,

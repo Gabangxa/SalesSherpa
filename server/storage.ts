@@ -3,7 +3,7 @@ import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
 const scryptAsync = promisify(scrypt);
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, gt } from "drizzle-orm";
 import { 
   User, 
   Goal, 
@@ -29,6 +29,8 @@ import {
   InsertTeamMembership,
   InsertSharedGoal,
   InsertTeamActivity,
+  UserInsight,
+  InsertUserInsight,
   users,
   goals,
   tasks,
@@ -37,6 +39,7 @@ import {
   chatMessages,
   salesMetrics,
   checkInAlerts,
+  userInsights,
   teams,
   teamMemberships,
   sharedGoals,
@@ -88,6 +91,10 @@ export interface IStorage {
   // Chat messages operations
   getChatMessages(userId: number): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+
+  // User insights operations
+  getInsights(userId: number): Promise<UserInsight[]>;
+  createInsight(insight: InsertUserInsight): Promise<UserInsight>;
   
   // Sales metrics operations
   getSalesMetrics(userId: number): Promise<SalesMetrics | undefined>;
@@ -303,6 +310,21 @@ export class DatabaseStorage implements IStorage {
       .values(insertChatMessage)
       .returning();
     return chatMessage;
+  }
+
+  // User insights operations
+  async getInsights(userId: number): Promise<UserInsight[]> {
+    return db
+      .select()
+      .from(userInsights)
+      .where(eq(userInsights.userId, userId))
+      .where(gt(userInsights.expiresAt, new Date()))
+      .orderBy(desc(userInsights.createdAt));
+  }
+
+  async createInsight(insight: InsertUserInsight): Promise<UserInsight> {
+    const [row] = await db.insert(userInsights).values(insight).returning();
+    return row;
   }
 
   // Sales metrics operations
