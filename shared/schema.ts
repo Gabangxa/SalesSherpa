@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, time, primaryKey, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, time, primaryKey, foreignKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -257,37 +257,6 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).pick({
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 
-// Sales Metrics schema
-export const salesMetrics = pgTable("sales_metrics", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  date: timestamp("date").notNull(),
-  newAccountsTarget: integer("new_accounts_target").notNull(),
-  newAccountsCurrent: integer("new_accounts_current").notNull(),
-  meetingsTarget: integer("meetings_target").notNull(),
-  meetingsCurrent: integer("meetings_current").notNull(),
-  tripsTarget: integer("trips_target").notNull().default(10),
-  tripsCurrent: integer("trips_current").notNull().default(6),
-  crmUpdatePercentage: integer("crm_update_percentage").notNull().default(75),
-  weeklyActivity: json("weekly_activity").notNull(),
-});
-
-export const insertSalesMetricsSchema = createInsertSchema(salesMetrics).pick({
-  userId: true,
-  date: true,
-  newAccountsTarget: true,
-  newAccountsCurrent: true,
-  meetingsTarget: true,
-  meetingsCurrent: true,
-  tripsTarget: true,
-  tripsCurrent: true,
-  crmUpdatePercentage: true,
-  weeklyActivity: true,
-});
-
-export type InsertSalesMetrics = z.infer<typeof insertSalesMetricsSchema>;
-export type SalesMetrics = typeof salesMetrics.$inferSelect;
-
 // Check-in Alerts schema
 export const checkInAlerts = pgTable("check_in_alerts", {
   id: serial("id").primaryKey(),
@@ -327,7 +296,6 @@ export const usersRelations = relations(users, ({ many }) => ({
   checkIns: many(checkIns),
   timeOffs: many(timeOff),
   chatMessages: many(chatMessages),
-  salesMetrics: many(salesMetrics),
   checkInAlerts: many(checkInAlerts),
   userInsights: many(userInsights),
   // Team collaboration relations
@@ -420,13 +388,6 @@ export const timeOffRelations = relations(timeOff, ({ one }) => ({
 export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   user: one(users, {
     fields: [chatMessages.userId],
-    references: [users.id],
-  }),
-}));
-
-export const salesMetricsRelations = relations(salesMetrics, ({ one }) => ({
-  user: one(users, {
-    fields: [salesMetrics.userId],
     references: [users.id],
   }),
 }));

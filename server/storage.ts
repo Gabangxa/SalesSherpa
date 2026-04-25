@@ -11,7 +11,6 @@ import {
   CheckIn, 
   TimeOff, 
   ChatMessage, 
-  SalesMetrics, 
   CheckInAlert,
   Team,
   TeamMembership,
@@ -23,7 +22,6 @@ import {
   InsertCheckIn, 
   InsertTimeOff, 
   InsertChatMessage, 
-  InsertSalesMetrics,
   InsertCheckInAlert,
   InsertTeam,
   InsertTeamMembership,
@@ -37,7 +35,6 @@ import {
   checkIns,
   timeOff,
   chatMessages,
-  salesMetrics,
   checkInAlerts,
   userInsights,
   teams,
@@ -95,11 +92,6 @@ export interface IStorage {
   // User insights operations
   getInsights(userId: number): Promise<UserInsight[]>;
   createInsight(insight: InsertUserInsight): Promise<UserInsight>;
-  
-  // Sales metrics operations
-  getSalesMetrics(userId: number): Promise<SalesMetrics | undefined>;
-  createSalesMetrics(metrics: InsertSalesMetrics): Promise<SalesMetrics>;
-  updateSalesMetrics(userId: number, updates: Partial<SalesMetrics>): Promise<SalesMetrics | undefined>;
   
   // Check-in alerts operations
   getCheckInAlerts(userId: number): Promise<CheckInAlert[]>;
@@ -325,29 +317,6 @@ export class DatabaseStorage implements IStorage {
   async createInsight(insight: InsertUserInsight): Promise<UserInsight> {
     const [row] = await db.insert(userInsights).values(insight).returning();
     return row;
-  }
-
-  // Sales metrics operations
-  async getSalesMetrics(userId: number): Promise<SalesMetrics | undefined> {
-    const [metrics] = await db.select().from(salesMetrics).where(eq(salesMetrics.userId, userId)).orderBy(desc(salesMetrics.date));
-    return metrics || undefined;
-  }
-
-  async createSalesMetrics(insertSalesMetrics: InsertSalesMetrics): Promise<SalesMetrics> {
-    const [metrics] = await db
-      .insert(salesMetrics)
-      .values(insertSalesMetrics)
-      .returning();
-    return metrics;
-  }
-
-  async updateSalesMetrics(userId: number, updates: Partial<SalesMetrics>): Promise<SalesMetrics | undefined> {
-    const [updatedMetrics] = await db
-      .update(salesMetrics)
-      .set(updates)
-      .where(eq(salesMetrics.userId, userId))
-      .returning();
-    return updatedMetrics || undefined;
   }
 
   // Check-in alerts operations

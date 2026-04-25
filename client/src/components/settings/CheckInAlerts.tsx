@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useCheckInAlerts } from '@/hooks/use-check-in-alerts';
 import { CheckInAlert } from '@shared/schema';
@@ -101,21 +100,18 @@ export default function CheckInAlerts() {
                      deleteAlertMutation.isPending;
 
   return (
-    <Card className="shadow-md">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-xl font-bold">Check-in Alerts</CardTitle>
-          <CardDescription>
-            Set up reminders to keep you accountable for your daily check-ins
-          </CardDescription>
-        </div>
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <p className="text-sm text-forest/55 dark:text-parchment/55">
+          Set reminders to keep your daily check-ins consistent.
+        </p>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
-            <Button 
+            <Button
               onClick={() => setSelectedAlert(null)}
-              className="bg-gradient-to-r from-primary to-primary/80"
+              className="bg-clay hover:bg-clay/90 text-white rounded-2xl px-4 text-sm"
             >
-              Add Alert
+              Add reminder
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[550px]">
@@ -128,111 +124,115 @@ export default function CheckInAlerts() {
             />
           </DialogContent>
         </Dialog>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <p>Loading alerts...</p>
-          </div>
-        ) : alerts.length === 0 ? (
-          <div className="text-center py-8 border rounded-md bg-muted/50">
-            <Bell className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-            <h3 className="text-lg font-medium">No alerts configured</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Create an alert to receive daily check-in reminders
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {alerts.map((alert) => (
-              <div 
-                key={alert.id} 
-                className={`p-4 border rounded-md flex items-center justify-between transition-all ${
-                  alert.enabled ? 'bg-card' : 'bg-muted/30 opacity-80'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${alert.enabled ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                    <Bell className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">{alert.title}</h3>
-                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" /> 
-                        {formatTime(new Date(`2000-01-01T${alert.time}:00`))}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <CalendarDays className="h-3.5 w-3.5" /> 
-                        {formatDays(alert.days)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Globe className="h-3.5 w-3.5" /> 
-                        {alert.timezone || 'UTC'}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {alert.timezone && formatTimeWithTimezone(alert.time, alert.timezone)}
-                    </div>
-                  </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-clay border-t-transparent" />
+        </div>
+      ) : alerts.length === 0 ? (
+        <div className="text-center py-10 rounded-2xl border border-dashed border-earth/30 dark:border-earth/15 bg-earth/5 dark:bg-earth/5">
+          <Bell className="mx-auto h-7 w-7 text-forest/30 dark:text-parchment/30 mb-3" />
+          <p className="text-sm font-medium text-forest/60 dark:text-parchment/60">No reminders yet</p>
+          <p className="text-xs text-forest/40 dark:text-parchment/35 mt-1">
+            Add one above to start getting nudged.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {alerts.map((alert) => (
+            <div
+              key={alert.id}
+              className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${
+                alert.enabled
+                  ? 'border-earth/20 dark:border-earth/10 bg-cream/50 dark:bg-dark-bg/30'
+                  : 'border-earth/10 dark:border-earth/10 bg-earth/5 dark:bg-earth/5 opacity-70'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${alert.enabled ? 'bg-clay/15 text-clay' : 'bg-earth/10 text-forest/40 dark:text-parchment/30'}`}>
+                  <Bell className="h-4 w-4" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={alert.enabled} 
-                    onCheckedChange={() => handleToggleAlert(alert)} 
-                  />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => openEditForm(alert)}
-                    title="Edit alert"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => openDeleteDialog(alert)}
-                    title="Delete alert"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    title="Test alert notification"
-                    onClick={() => {
-                      if (alert && triggerAlert) triggerAlert(alert.id);
-                    }}
-                  >
-                    <Play className="h-4 w-4 text-green-600" />
-                  </Button>
+                <div>
+                  <p className="text-sm font-semibold text-forest dark:text-parchment">{alert.title}</p>
+                  <div className="flex flex-wrap items-center gap-3 mt-0.5 text-xs text-forest/50 dark:text-parchment/50">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatTime(new Date(`2000-01-01T${alert.time}:00`))}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" />
+                      {formatDays(alert.days)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Globe className="h-3 w-3" />
+                      {alert.timezone || 'UTC'}
+                    </span>
+                  </div>
+                  {alert.timezone && (
+                    <p className="text-[10px] text-forest/35 dark:text-parchment/30 mt-0.5">
+                      {formatTimeWithTimezone(alert.time, alert.timezone)}
+                    </p>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
+              <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+                <Switch
+                  checked={alert.enabled}
+                  onCheckedChange={() => handleToggleAlert(alert)}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openEditForm(alert)}
+                  title="Edit"
+                  className="text-forest/50 dark:text-parchment/50 hover:text-forest dark:hover:text-parchment"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openDeleteDialog(alert)}
+                  title="Delete"
+                  className="text-forest/50 dark:text-parchment/50 hover:text-red-500"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Test notification"
+                  onClick={() => { if (alert && triggerAlert) triggerAlert(alert.id); }}
+                  className="text-forest/50 dark:text-parchment/50 hover:text-sage"
+                >
+                  <Play className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Check-in Alert</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this alert? This action cannot be undone.
+            <AlertDialogTitle className="text-forest dark:text-parchment">Delete reminder</AlertDialogTitle>
+            <AlertDialogDescription className="text-forest/55 dark:text-parchment/55">
+              This can't be undone. The reminder will stop firing immediately.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-2xl">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteAlert}
-              className="bg-destructive text-destructive-foreground"
+              className="bg-red-500 hover:bg-red-600 text-white rounded-2xl"
             >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   );
 }
