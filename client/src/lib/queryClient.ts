@@ -94,16 +94,12 @@ export const getQueryFn: <T>(options: {
       if (res.status === 404 && url.includes('/api/')) {
         // These endpoints should return empty data rather than error on 404
         if (
-          url.includes('/api/goals') || 
+          url.includes('/api/goals') ||
           url.includes('/api/tasks') ||
           url.includes('/api/check-ins') ||
           url.includes('/api/check-in-alerts')
         ) {
           return [] as any;
-        }
-        
-        if (url.includes('/api/sales-metrics')) {
-          return {} as any;
         }
       }
 
@@ -114,16 +110,12 @@ export const getQueryFn: <T>(options: {
       // For data endpoints, if user is not authenticated, return empty data instead of error
       if (res.status === 401 && url.includes('/api/')) {
         if (
-          url.includes('/api/goals') || 
+          url.includes('/api/goals') ||
           url.includes('/api/tasks') ||
           url.includes('/api/check-ins') ||
           url.includes('/api/check-in-alerts')
         ) {
           return [] as any;
-        }
-        
-        if (url.includes('/api/sales-metrics')) {
-          return {} as any;
         }
       }
 
