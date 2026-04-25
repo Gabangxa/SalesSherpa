@@ -35,7 +35,7 @@ export async function generateResponse(
   history: ChatMessage[],
   storage: IStorage
 ): Promise<string> {
-  const ctx = await buildUserContext(userId, storage);
+  const ctx = await buildUserContext(userId, storage, userMessage);
   const systemPrompt = buildSystemPrompt(SHERPA_PERSONA, ctx);
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
