@@ -700,6 +700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       return res.status(201).json(sub);
     } catch (error) {
+      console.error("Error creating push subscription:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
