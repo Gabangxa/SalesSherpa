@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useCheckInAlerts } from '@/hooks/use-check-in-alerts';
 import { CheckInAlert } from '@shared/schema';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import CheckInAlertForm from '@/components/forms/CheckInAlertForm';
 import { formatTime } from '@/lib/dateUtils';
 import { Switch } from '@/components/ui/switch';
@@ -115,6 +116,7 @@ export default function CheckInAlerts() {
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[550px]">
+            <VisuallyHidden><DialogTitle>Check-in Alert</DialogTitle></VisuallyHidden>
             <CheckInAlertForm
               alert={selectedAlert || undefined}
               onSubmit={selectedAlert ? handleUpdateAlert : handleCreateAlert}
