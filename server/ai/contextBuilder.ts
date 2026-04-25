@@ -20,6 +20,7 @@ export interface UserContext {
   todaysMorningFocus: string | null;
   patterns: string[];
   insights: string[];
+  checkInsRankedByRelevance: boolean;
 }
 
 /**
@@ -41,10 +42,10 @@ export async function buildUserContext(
 
   if (!user) throw new Error(`User ${userId} not found`);
 
-  const patterns = detectPatterns(allCheckIns);
-  const todaysMorningFocus = getTodaysMorningFocus(allCheckIns);
+  const patterns = detectPatterns(recentCheckIns);
+  const todaysMorningFocus = getTodaysMorningFocus(recentCheckIns);
 
-  const { ranked, byRelevance } = rankCheckIns(allCheckIns, userMessage);
+  const { ranked, byRelevance } = rankCheckIns(recentCheckIns, userMessage);
 
   return {
     name: user.name,
@@ -54,6 +55,7 @@ export async function buildUserContext(
     todaysMorningFocus,
     patterns,
     insights: rawInsights.map((i) => i.insight),
+    checkInsRankedByRelevance: byRelevance,
   };
 }
 
