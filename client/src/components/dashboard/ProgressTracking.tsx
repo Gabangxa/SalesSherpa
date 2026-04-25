@@ -148,7 +148,7 @@ export default function ProgressTracking() {
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {format(new Date(goal.deadline), "MMM d")}
+                      {goal.deadline ? format(new Date(goal.deadline), "MMM d") : "—"}
                     </span>
                   </div>
                 </div>

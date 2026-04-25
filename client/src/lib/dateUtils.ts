@@ -1,34 +1,30 @@
-import { format, isToday, isYesterday, addDays, parseISO, isBefore, isAfter, isWithinInterval } from 'date-fns';
+import { format, isToday, isYesterday, addDays, parseISO, isBefore, isAfter, isWithinInterval, isValid } from 'date-fns';
+
+function toDate(date: Date | string | null | undefined): Date | null {
+  if (!date) return null;
+  const d = typeof date === 'string' ? parseISO(date) : date;
+  return isValid(d) ? d : null;
+}
 
 /**
  * Format a date for display
  */
-export function formatDate(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  
-  if (isToday(dateObj)) {
-    return 'Today';
-  } else if (isYesterday(dateObj)) {
-    return 'Yesterday';
-  } else {
-    return format(dateObj, 'MMM d, yyyy');
-  }
+export function formatDate(date: Date | string | null | undefined): string {
+  const d = toDate(date);
+  if (!d) return '—';
+  if (isToday(d)) return 'Today';
+  if (isYesterday(d)) return 'Yesterday';
+  return format(d, 'MMM d, yyyy');
 }
 
-/**
- * Format a date with day of week
- */
-export function formatDateWithDay(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  return format(dateObj, 'EEEE, MMMM d, yyyy');
+export function formatDateWithDay(date: Date | string | null | undefined): string {
+  const d = toDate(date);
+  return d ? format(d, 'EEEE, MMMM d, yyyy') : '—';
 }
 
-/**
- * Format time for display
- */
-export function formatTime(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  return format(dateObj, 'h:mm a');
+export function formatTime(date: Date | string | null | undefined): string {
+  const d = toDate(date);
+  return d ? format(d, 'h:mm a') : '—';
 }
 
 /**

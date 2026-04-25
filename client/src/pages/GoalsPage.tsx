@@ -223,7 +223,7 @@ export default function GoalsPage() {
                     </div>
                   </div>
                   <CardDescription>
-                    Due by {format(new Date(goal.deadline), "MMM d, yyyy")}
+                    Due by {goal.deadline ? format(new Date(goal.deadline), "MMM d, yyyy") : "—"}
                   </CardDescription>
                 </CardHeader>
                 
