@@ -257,6 +257,26 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).pick({
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 
+// Web push subscriptions — one row per browser/device per user
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).pick({
+  userId: true,
+  endpoint: true,
+  p256dh: true,
+  auth: true,
+});
+
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+
 // Check-in Alerts schema
 export const checkInAlerts = pgTable("check_in_alerts", {
   id: serial("id").primaryKey(),
@@ -297,6 +317,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   timeOffs: many(timeOff),
   chatMessages: many(chatMessages),
   checkInAlerts: many(checkInAlerts),
+  pushSubscriptions: many(pushSubscriptions),
   userInsights: many(userInsights),
   // Team collaboration relations
   ownedTeams: many(teams, { relationName: 'TeamOwner' }),
@@ -388,6 +409,13 @@ export const timeOffRelations = relations(timeOff, ({ one }) => ({
 export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   user: one(users, {
     fields: [chatMessages.userId],
+    references: [users.id],
+  }),
+}));
+
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [pushSubscriptions.userId],
     references: [users.id],
   }),
 }));
