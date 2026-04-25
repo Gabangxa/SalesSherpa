@@ -19,17 +19,20 @@ export interface UserContext {
   recentCheckIns: CheckIn[];
   todaysMorningFocus: string | null;
   patterns: string[];
+  checkInsRankedByRelevance: boolean;
 }
 
 /**
  * Build the full context block for a user.
- * Call this before every AI request and inject the result into the persona.
+ * Pass userMessage to rank check-ins by relevance to the current message
+ * instead of defaulting to pure recency order.
  */
 export async function buildUserContext(
   userId: number,
-  storage: IStorage
+  storage: IStorage,
+  userMessage?: string
 ): Promise<UserContext> {
-  const [user, goals, recentCheckIns] = await Promise.all([
+  const [user, goals, allCheckIns] = await Promise.all([
     storage.getUser(userId),
     storage.getGoals(userId),
     storage.getCheckIns(userId, 14),
@@ -37,16 +40,19 @@ export async function buildUserContext(
 
   if (!user) throw new Error(`User ${userId} not found`);
 
-  const patterns = detectPatterns(recentCheckIns);
-  const todaysMorningFocus = getTodaysMorningFocus(recentCheckIns);
+  const patterns = detectPatterns(allCheckIns);
+  const todaysMorningFocus = getTodaysMorningFocus(allCheckIns);
+
+  const { ranked, byRelevance } = rankCheckIns(allCheckIns, userMessage);
 
   return {
     name: user.name,
     role: user.role,
     goals,
-    recentCheckIns: recentCheckIns.slice(0, 10),
+    recentCheckIns: ranked.slice(0, 10),
     todaysMorningFocus,
     patterns,
+    checkInsRankedByRelevance: byRelevance,
   };
 }
 
@@ -80,7 +86,10 @@ export function formatContextBlock(ctx: UserContext): string {
   }
 
   if (ctx.recentCheckIns.length > 0) {
-    lines.push("\nRecent check-ins (newest first):");
+    const header = ctx.checkInsRankedByRelevance
+      ? "\nMost relevant check-ins:"
+      : "\nRecent check-ins (newest first):";
+    lines.push(header);
     for (const ci of ctx.recentCheckIns.slice(0, 5)) {
       const date = new Date(ci.date).toLocaleDateString("en-ZA", {
         weekday: "short",
@@ -113,6 +122,62 @@ export function buildSystemPrompt(persona: string, ctx: UserContext): string {
 }
 
 // --- Helpers ---
+
+const STOP_WORDS = new Set([
+  "a", "an", "the", "is", "was", "are", "were", "i", "my", "me", "we",
+  "you", "he", "she", "it", "they", "and", "or", "but", "in", "on", "at",
+  "to", "for", "of", "with", "this", "that", "have", "had", "has", "do",
+  "did", "does", "be", "been", "being", "can", "could", "will", "would",
+  "should", "may", "might", "so", "if", "not", "no", "just", "what", "how",
+  "its", "their", "our", "your", "his", "her", "about", "up", "out", "been",
+]);
+
+/**
+ * Rank check-ins by a blend of keyword relevance (60%) and recency (40%).
+ * Falls back to pure recency when userMessage is absent or has no signal tokens.
+ */
+function rankCheckIns(
+  checkIns: CheckIn[],
+  userMessage?: string
+): { ranked: CheckIn[]; byRelevance: boolean } {
+  if (!userMessage) {
+    return { ranked: [...checkIns], byRelevance: false };
+  }
+
+  const queryTokens = userMessage
+    .toLowerCase()
+    .split(/\W+/)
+    .filter((t) => t.length > 2 && !STOP_WORDS.has(t));
+
+  if (queryTokens.length === 0) {
+    return { ranked: [...checkIns], byRelevance: false };
+  }
+
+  const querySet = new Set(queryTokens);
+  const now = Date.now();
+
+  const scored = checkIns.map((ci) => {
+    const daysAgo = Math.max(0, (now - new Date(ci.date).getTime()) / 86_400_000);
+    const recencyScore = Math.pow(0.9, daysAgo);
+
+    const ciText = [ci.achievements, ci.challenges, ci.reflection, ci.goals]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .split(/\W+/)
+      .filter((t) => t.length > 2);
+
+    const matchCount = ciText.filter((t) => querySet.has(t)).length;
+    const relevanceScore = matchCount / queryTokens.length;
+
+    return { ci, score: 0.6 * relevanceScore + 0.4 * recencyScore };
+  });
+
+  return {
+    ranked: scored.sort((a, b) => b.score - a.score).map(({ ci }) => ci),
+    byRelevance: true,
+  };
+}
 
 function getProgressPercent(goal: Goal): number {
   const range = goal.targetAmount - goal.startingAmount;
