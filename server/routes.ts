@@ -698,8 +698,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         p256dh,
         auth,
       });
+      log(`[push] subscription saved for user ${req.body.userId} → ...${endpoint.slice(-40)}`, "push");
       return res.status(201).json(sub);
     } catch (error) {
+      log(`[push] failed to save subscription for user ${req.body.userId}: ${error}`, "push");
       return res.status(500).json({ message: "Server error" });
     }
   });
@@ -709,9 +711,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { endpoint } = req.body;
       if (!endpoint) return res.status(400).json({ message: "endpoint is required" });
       await storage.deletePushSubscriptionByEndpoint(endpoint);
+      log(`[push] subscription removed for user ${req.body.userId}`, "push");
       return res.status(204).send();
     } catch (error) {
       return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Diagnostic: send a test push to all of the current user's subscriptions
+  app.post("/api/push/test", authenticateUser, async (req, res) => {
+    const userId = req.body.userId;
+    const configured = pushService.isWebPushConfigured;
+
+    if (!configured) {
+      log(`[push] test requested by user ${userId} — VAPID not configured`, "push");
+      return res.status(503).json({
+        configured: false,
+        message: "VAPID keys not set on server. Add VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_EMAIL env vars.",
+      });
+    }
+
+    try {
+      const subs = await storage.getPushSubscriptions(userId);
+      log(`[push] test for user ${userId} — ${subs.length} subscription(s) found`, "push");
+
+      if (subs.length === 0) {
+        return res.json({
+          configured: true,
+          subscriptionCount: 0,
+          results: [],
+          message: "No subscriptions found. Enable push notifications in Settings first.",
+        });
+      }
+
+      const results = await Promise.all(
+        subs.map(async (sub) => {
+          const detail = await pushService.sendPushToSubscription(sub, {
+            title: "SalesSherpa test",
+            body: "Push notifications are working.",
+            url: "/settings",
+            tag: "push-test",
+          });
+          if (detail.result === "expired") {
+            await storage.deletePushSubscriptionByEndpoint(sub.endpoint);
+          }
+          return detail;
+        })
+      );
+
+      return res.json({ configured: true, subscriptionCount: subs.length, results });
+    } catch (error: any) {
+      log(`[push] test endpoint error for user ${userId}: ${error}`, "push");
+      return res.status(500).json({ message: "Server error", error: error.message });
     }
   });
 
@@ -1091,17 +1142,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 sendMessageToUser(user.id, alertMessage);
 
                 // Also send web push to all subscribed browsers/devices
-                if (pushService.isWebPushConfigured) {
+                if (!pushService.isWebPushConfigured) {
+                  log(`[push] skipping push for user ${user.id} — VAPID not configured`, "push");
+                } else {
                   const subs = await storage.getPushSubscriptions(user.id);
+                  log(`[push] user ${user.id} has ${subs.length} push subscription(s)`, "push");
                   for (const sub of subs) {
-                    const result = await pushService.sendPushToSubscription(sub, {
+                    const detail = await pushService.sendPushToSubscription(sub, {
                       title: alert.title,
                       body: alert.message,
                       url: "/check-in",
                       tag: `alert-${alert.id}`,
-                    }).catch(() => "expired" as const);
-                    if (result === "expired") {
+                    });
+                    if (detail.result === "expired") {
+                      log(`[push] removing stale subscription for user ${user.id}: ${detail.endpoint}`, "push");
                       await storage.deletePushSubscriptionByEndpoint(sub.endpoint);
+                    } else if (detail.result === "error") {
+                      log(`[push] keeping subscription despite error (will retry next cycle): ${detail.endpoint}`, "push");
                     }
                   }
                 }
