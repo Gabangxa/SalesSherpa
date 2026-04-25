@@ -29,6 +29,8 @@ import {
   InsertTeamActivity,
   UserInsight,
   InsertUserInsight,
+  PushSubscription,
+  InsertPushSubscription,
   users,
   goals,
   tasks,
@@ -37,6 +39,7 @@ import {
   chatMessages,
   checkInAlerts,
   userInsights,
+  pushSubscriptions,
   teams,
   teamMemberships,
   sharedGoals,
@@ -93,6 +96,11 @@ export interface IStorage {
   getInsights(userId: number): Promise<UserInsight[]>;
   createInsight(insight: InsertUserInsight): Promise<UserInsight>;
   
+  // Push subscription operations
+  getPushSubscriptions(userId: number): Promise<PushSubscription[]>;
+  createPushSubscription(sub: InsertPushSubscription): Promise<PushSubscription>;
+  deletePushSubscriptionByEndpoint(endpoint: string): Promise<boolean>;
+
   // Check-in alerts operations
   getCheckInAlerts(userId: number): Promise<CheckInAlert[]>;
   getCheckInAlert(id: number): Promise<CheckInAlert | undefined>;
@@ -317,6 +325,30 @@ export class DatabaseStorage implements IStorage {
   async createInsight(insight: InsertUserInsight): Promise<UserInsight> {
     const [row] = await db.insert(userInsights).values(insight).returning();
     return row;
+  }
+
+  // Push subscription operations
+  async getPushSubscriptions(userId: number): Promise<PushSubscription[]> {
+    return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  }
+
+  async createPushSubscription(sub: InsertPushSubscription): Promise<PushSubscription> {
+    const [row] = await db
+      .insert(pushSubscriptions)
+      .values(sub)
+      .onConflictDoUpdate({
+        target: pushSubscriptions.endpoint,
+        set: { p256dh: sub.p256dh, auth: sub.auth, userId: sub.userId },
+      })
+      .returning();
+    return row;
+  }
+
+  async deletePushSubscriptionByEndpoint(endpoint: string): Promise<boolean> {
+    const result = await db
+      .delete(pushSubscriptions)
+      .where(eq(pushSubscriptions.endpoint, endpoint));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Check-in alerts operations
