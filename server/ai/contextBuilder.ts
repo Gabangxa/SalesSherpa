@@ -37,7 +37,7 @@ export async function buildUserContext(
     storage.getUser(userId),
     storage.getGoals(userId),
     storage.getCheckIns(userId, 14),
-    storage.getInsights(userId),
+    storage.getInsights(userId).catch(() => []),
   ]);
 
   if (!user) throw new Error(`User ${userId} not found`);
