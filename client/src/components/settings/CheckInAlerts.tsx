@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useCheckInAlerts } from '@/hooks/use-check-in-alerts';
-import { CheckInAlert } from '@shared/schema';
+import type { CheckInAlert } from '@shared/schema';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import CheckInAlertForm from '@/components/forms/CheckInAlertForm';
@@ -38,12 +38,12 @@ export default function CheckInAlerts() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const handleCreateAlert = (data: Omit<CheckInAlert, 'id' | 'userId'>) => {
+  const handleCreateAlert = (data: Pick<CheckInAlert, 'title' | 'message' | 'time' | 'days' | 'timezone' | 'enabled'>) => {
     createAlertMutation.mutate(data as any);
     setIsFormOpen(false);
   };
 
-  const handleUpdateAlert = (data: Omit<CheckInAlert, 'id' | 'userId'>) => {
+  const handleUpdateAlert = (data: Pick<CheckInAlert, 'title' | 'message' | 'time' | 'days' | 'timezone' | 'enabled'>) => {
     if (selectedAlert) {
       updateAlertMutation.mutate({
         id: selectedAlert.id,
