@@ -1,0 +1,53 @@
+import { Pool } from 'pg';
+
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL must be set');
+}
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
+const migrations: { description: string; sql: string }[] = [
+  {
+    description: 'create push_subscriptions table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        endpoint TEXT NOT NULL UNIQUE,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `,
+  },
+  {
+    description: 'add last_triggered_at to check_in_alerts',
+    sql: `
+      ALTER TABLE check_in_alerts
+      ADD COLUMN IF NOT EXISTS last_triggered_at TIMESTAMP
+    `,
+  },
+];
+
+async function run() {
+  const client = await pool.connect();
+  try {
+    for (const migration of migrations) {
+      console.log(`Running migration: ${migration.description}`);
+      await client.query(migration.sql);
+      console.log(`Done: ${migration.description}`);
+    }
+    console.log('All migrations complete');
+  } finally {
+    client.release();
+    await pool.end();
+  }
+}
+
+run().catch((err) => {
+  console.error('Migration failed:', err.message);
+  process.exit(1);
+});
