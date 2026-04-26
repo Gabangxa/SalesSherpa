@@ -813,6 +813,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/alert-history", authenticateUser, async (req, res) => {
+    try {
+      const history = await storage.getAlertHistory(req.body.userId);
+      return res.status(200).json(history);
+    } catch (error) {
+      console.error("Error fetching alert history:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Set up WebSocket server on a distinct path so it doesn't conflict with Vite's HMR
@@ -1114,6 +1124,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
 
               log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
+              await storage.createAlertHistory({ alertId: alert.id, userId: user.id, title: alert.title, message: alert.message });
+              storage.deleteOldAlertHistory().catch(() => {});
             }
           } catch (error) {
             log(`Error checking alerts for user ${user.id}: ${error}`);

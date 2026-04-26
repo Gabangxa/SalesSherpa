@@ -3,25 +3,25 @@ import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
 const scryptAsync = promisify(scrypt);
-import { eq, desc, asc, gt } from "drizzle-orm";
-import { 
-  User, 
-  Goal, 
-  Task, 
-  CheckIn, 
-  TimeOff, 
-  ChatMessage, 
+import { eq, desc, asc, gt, lt } from "drizzle-orm";
+import {
+  User,
+  Goal,
+  Task,
+  CheckIn,
+  TimeOff,
+  ChatMessage,
   CheckInAlert,
   Team,
   TeamMembership,
   SharedGoal,
   TeamActivity,
-  InsertUser, 
-  InsertGoal, 
-  InsertTask, 
-  InsertCheckIn, 
-  InsertTimeOff, 
-  InsertChatMessage, 
+  InsertUser,
+  InsertGoal,
+  InsertTask,
+  InsertCheckIn,
+  InsertTimeOff,
+  InsertChatMessage,
   InsertCheckInAlert,
   InsertTeam,
   InsertTeamMembership,
@@ -31,6 +31,7 @@ import {
   InsertUserInsight,
   PushSubscription,
   InsertPushSubscription,
+  AlertHistory,
   users,
   goals,
   tasks,
@@ -43,7 +44,8 @@ import {
   teams,
   teamMemberships,
   sharedGoals,
-  teamActivities
+  teamActivities,
+  alertHistory,
 } from "@shared/schema";
 import { db } from "./db";
 import session from "express-session";
@@ -134,6 +136,11 @@ export interface IStorage {
   // Team activity operations
   getTeamActivities(teamId: number, limit?: number): Promise<TeamActivity[]>;
   createTeamActivity(activity: InsertTeamActivity): Promise<TeamActivity>;
+
+  // Alert history operations
+  createAlertHistory(entry: { alertId?: number | null; userId: number; title: string; message: string }): Promise<AlertHistory>;
+  getAlertHistory(userId: number): Promise<AlertHistory[]>;
+  deleteOldAlertHistory(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -566,6 +573,26 @@ export class DatabaseStorage implements IStorage {
       .values(activity)
       .returning();
     return newActivity;
+  }
+
+  // Alert history operations
+  async createAlertHistory(entry: { alertId?: number | null; userId: number; title: string; message: string }): Promise<AlertHistory> {
+    const [row] = await db.insert(alertHistory).values(entry).returning();
+    return row;
+  }
+
+  async getAlertHistory(userId: number): Promise<AlertHistory[]> {
+    return db
+      .select()
+      .from(alertHistory)
+      .where(eq(alertHistory.userId, userId))
+      .orderBy(desc(alertHistory.triggeredAt))
+      .limit(100);
+  }
+
+  async deleteOldAlertHistory(): Promise<void> {
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    await db.delete(alertHistory).where(lt(alertHistory.triggeredAt, twoDaysAgo));
   }
 
   // Setup initial demo data

@@ -31,6 +31,19 @@ const migrations: { description: string; sql: string }[] = [
       ADD COLUMN IF NOT EXISTS last_triggered_at TIMESTAMP
     `,
   },
+  {
+    description: 'create alert_history table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS alert_history (
+        id SERIAL PRIMARY KEY,
+        alert_id INTEGER,
+        user_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        triggered_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `,
+  },
 ];
 
 async function run() {

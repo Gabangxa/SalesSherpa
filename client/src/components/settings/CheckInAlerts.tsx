@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useCheckInAlerts } from '@/hooks/use-check-in-alerts';
+import { useAlertHistory } from '@/hooks/use-alert-history';
 import type { CheckInAlert } from '@shared/schema';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
@@ -17,26 +18,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Bell, Clock, CalendarDays, Edit, Trash2, Globe, Play } from 'lucide-react';
+import { Bell, Clock, CalendarDays, Edit, Trash2, Globe, Play, ChevronDown, ChevronUp, History } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatTimeWithTimezone } from '@/lib/timezoneUtils';
 import { useAlertChecker } from '@/components/providers/AlertCheckerProvider';
 
 export default function CheckInAlerts() {
-  const { 
-    alerts, 
-    isLoading, 
-    selectedAlert, 
-    setSelectedAlert, 
-    createAlertMutation, 
+  const {
+    alerts,
+    isLoading,
+    selectedAlert,
+    setSelectedAlert,
+    createAlertMutation,
     updateAlertMutation,
     deleteAlertMutation,
   } = useCheckInAlerts();
-  
+
   const { triggerAlert } = useAlertChecker();
-  
+  const { history, isLoading: historyLoading } = useAlertHistory();
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const handleCreateAlert = (data: Pick<CheckInAlert, 'title' | 'message' | 'time' | 'days' | 'timezone' | 'enabled'>) => {
     createAlertMutation.mutate(data as any);
@@ -215,6 +218,63 @@ export default function CheckInAlerts() {
           ))}
         </div>
       )}
+
+      {/* Alert history */}
+      <div className="mt-6">
+        <button
+          onClick={() => setIsHistoryOpen((v) => !v)}
+          className="flex items-center gap-2 text-sm font-medium text-forest/60 dark:text-parchment/55 hover:text-forest dark:hover:text-parchment transition-colors w-full"
+        >
+          <History className="h-4 w-4" />
+          <span>Recent history</span>
+          {history.length > 0 && (
+            <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1.5 bg-earth/15 text-forest/60 dark:text-parchment/50 border-0">
+              {history.length}
+            </Badge>
+          )}
+          <span className="ml-auto">
+            {isHistoryOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </span>
+        </button>
+
+        {isHistoryOpen && (
+          <div className="mt-3 space-y-2">
+            {historyLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-clay border-t-transparent" />
+              </div>
+            ) : history.length === 0 ? (
+              <p className="text-xs text-forest/40 dark:text-parchment/35 text-center py-4">
+                No alerts have fired yet.
+              </p>
+            ) : (
+              history.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-xl bg-earth/5 dark:bg-earth/5 border border-earth/10 dark:border-earth/10"
+                >
+                  <Bell className="h-3.5 w-3.5 text-clay mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-forest dark:text-parchment truncate">{entry.title}</p>
+                    <p className="text-[10px] text-forest/45 dark:text-parchment/40 mt-0.5 leading-relaxed line-clamp-1">{entry.message}</p>
+                  </div>
+                  <time className="text-[10px] text-forest/35 dark:text-parchment/30 flex-shrink-0 mt-0.5">
+                    {new Date(entry.triggeredAt).toLocaleString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </time>
+                </div>
+              ))
+            )}
+            <p className="text-[10px] text-forest/30 dark:text-parchment/25 text-center pt-1">
+              History is kept for 2 days.
+            </p>
+          </div>
+        )}
+      </div>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="rounded-3xl">

@@ -427,3 +427,22 @@ export const checkInAlertsRelations = relations(checkInAlerts, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// Alert history — stores a record each time an alert fires; auto-cleared after 2 days
+export const alertHistory = pgTable("alert_history", {
+  id: serial("id").primaryKey(),
+  alertId: integer("alert_id"), // nullable: kept even if the source alert is deleted
+  userId: integer("user_id").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  triggeredAt: timestamp("triggered_at").notNull().defaultNow(),
+});
+
+export type AlertHistory = typeof alertHistory.$inferSelect;
+
+export const alertHistoryRelations = relations(alertHistory, ({ one }) => ({
+  user: one(users, {
+    fields: [alertHistory.userId],
+    references: [users.id],
+  }),
+}));
