@@ -287,6 +287,7 @@ export const checkInAlerts = pgTable("check_in_alerts", {
   enabled: boolean("enabled").notNull().default(true),
   title: text("title").notNull().default('Daily Check-in'),
   message: text("message").notNull().default('Time to complete your daily check-in'),
+  lastTriggeredAt: timestamp("last_triggered_at"),
 });
 
 export const insertCheckInAlertSchema = createInsertSchema(checkInAlerts).pick({

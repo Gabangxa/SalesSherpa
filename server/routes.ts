@@ -1049,66 +1049,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const enabledAlerts = alerts.filter(alert => alert.enabled);
             
             if (enabledAlerts.length === 0) continue;
-            
-            // Get current time and day
-            const now = new Date();
-            const currentDay = dayMapping[now.getDay()];
-            
+
             for (const alert of enabledAlerts) {
-              // Check if current day is in alert's days
-              if (!alert.days.includes(currentDay)) continue;
-              
-              // Get current time in alert's timezone
+              // Derive current time in the alert's own timezone (fixes UTC day-of-week bug)
               const alertTimezone = alert.timezone || 'America/New_York';
               const currentTimeInAlertTz = DateTime.now().setZone(alertTimezone);
-              const currentTimeStr = currentTimeInAlertTz.toFormat('HH:mm');
-              
+              const currentDay = currentTimeInAlertTz.weekdayLong?.toLowerCase();
+
+              // Check if current day is in alert's days
+              if (!currentDay || !alert.days.includes(currentDay)) continue;
+
               // Parse alert time
               const [alertHour, alertMinute] = alert.time.split(':').map(Number);
-              const alertTime = DateTime.now().setZone(alertTimezone).set({ 
-                hour: alertHour, 
+              const alertTime = currentTimeInAlertTz.set({
+                hour: alertHour,
                 minute: alertMinute,
                 second: 0,
                 millisecond: 0
               });
-              
-              // Check if current time is within 2 minutes of alert time
-              const timeDiff = Math.abs(currentTimeInAlertTz.diff(alertTime, 'minutes').minutes);
-              
-              if (timeDiff <= 2) {
-                // Send WebSocket notification to user
-                const alertMessage: WebSocketMessage = {
-                  type: WebSocketMessageType.ALERT,
-                  payload: {
-                    type: 'check_in_alert',
-                    alertId: alert.id,
-                    title: alert.title,
-                    message: alert.message,
-                    timestamp: new Date().toISOString()
-                  },
-                  timestamp: Date.now()
-                };
-                
-                sendMessageToUser(user.id, alertMessage);
 
-                // Also send web push to all subscribed browsers/devices
-                if (pushService.isWebPushConfigured) {
-                  const subs = await storage.getPushSubscriptions(user.id);
-                  for (const sub of subs) {
-                    const result = await pushService.sendPushToSubscription(sub, {
-                      title: alert.title,
-                      body: alert.message,
-                      url: "/check-in",
-                      tag: `alert-${alert.id}`,
-                    }).catch(() => "expired" as const);
-                    if (result === "expired") {
-                      await storage.deletePushSubscriptionByEndpoint(sub.endpoint);
-                    }
+              // Check if current time is within the 30-second check interval of alert time
+              const timeDiff = Math.abs(currentTimeInAlertTz.diff(alertTime, 'seconds').seconds);
+
+              if (timeDiff > 30) continue;
+
+              // Deduplicate: skip if this alert already fired within the last 5 minutes
+              if (alert.lastTriggeredAt) {
+                const minutesSinceLast = DateTime.now().diff(DateTime.fromJSDate(alert.lastTriggeredAt), 'minutes').minutes;
+                if (minutesSinceLast < 5) continue;
+              }
+
+              // Stamp lastTriggeredAt before sending so concurrent ticks can't double-fire
+              await storage.updateCheckInAlert(alert.id, { lastTriggeredAt: new Date() });
+
+              // Send WebSocket notification to user
+              const alertMessage: WebSocketMessage = {
+                type: WebSocketMessageType.ALERT,
+                payload: {
+                  type: 'check_in_alert',
+                  alertId: alert.id,
+                  title: alert.title,
+                  message: alert.message,
+                  timestamp: new Date().toISOString()
+                },
+                timestamp: Date.now()
+              };
+
+              sendMessageToUser(user.id, alertMessage);
+
+              // Also send web push to all subscribed browsers/devices
+              if (pushService.isWebPushConfigured) {
+                const subs = await storage.getPushSubscriptions(user.id);
+                for (const sub of subs) {
+                  const result = await pushService.sendPushToSubscription(sub, {
+                    title: alert.title,
+                    body: alert.message,
+                    url: "/check-in",
+                    tag: `alert-${alert.id}`,
+                  }).catch(() => "expired" as const);
+                  if (result === "expired") {
+                    await storage.deletePushSubscriptionByEndpoint(sub.endpoint);
                   }
                 }
-
-                log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
               }
+
+              log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
             }
           } catch (error) {
             log(`Error checking alerts for user ${user.id}: ${error}`);

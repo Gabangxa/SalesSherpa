@@ -202,7 +202,7 @@ self.addEventListener('push', (event) => {
       icon: '/favicon.ico',
       badge: '/favicon.ico',
       tag: data.tag,
-      renotify: true,
+      renotify: false,
       data: { url: data.url },
     })
   );
