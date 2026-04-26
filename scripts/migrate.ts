@@ -44,6 +44,39 @@ const migrations: { description: string; sql: string }[] = [
       )
     `,
   },
+  {
+    description: 'create meeting_notes table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS meeting_notes (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        template_id INTEGER,
+        title TEXT NOT NULL,
+        date TIMESTAMP NOT NULL,
+        company TEXT,
+        contact_name TEXT,
+        purpose TEXT,
+        location TEXT,
+        attendees TEXT,
+        sections TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `,
+  },
+  {
+    description: 'create note_templates table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS note_templates (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        sections TEXT NOT NULL,
+        is_default BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `,
+  },
 ];
 
 async function run() {

@@ -8,7 +8,8 @@ import {
   X,
   LogOut,
   Settings,
-  Radio
+  Radio,
+  NotebookPen,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Separator } from "@/components/ui/separator";
@@ -31,6 +32,7 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
     { name: "Dashboard", path: "/", icon: <Home className="w-5 h-5 mr-3" /> },
     { name: "Goals & Targets", path: "/goals", icon: <Target className="w-5 h-5 mr-3" /> },
     { name: "Check-ins", path: "/check-ins", icon: <CalendarCheck className="w-5 h-5 mr-3" /> },
+    { name: "Meeting Notes", path: "/meeting-notes", icon: <NotebookPen className="w-5 h-5 mr-3" /> },
     { name: "Settings", path: "/settings", icon: <Settings className="w-5 h-5 mr-3" /> },
   ];
   

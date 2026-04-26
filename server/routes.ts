@@ -20,13 +20,15 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { log } from "./vite";
 import { isNatsAvailable, natsPublish, natsSubscribe } from "./nats";
 import * as pushService from "./pushService";
-import { 
-  insertCheckInSchema, 
-  insertTaskSchema, 
-  insertGoalSchema, 
-  insertTimeOffSchema, 
-  insertChatMessageSchema, 
+import {
+  insertCheckInSchema,
+  insertTaskSchema,
+  insertGoalSchema,
+  insertTimeOffSchema,
+  insertChatMessageSchema,
   insertCheckInAlertSchema,
+  insertMeetingNoteSchema,
+  insertNoteTemplateSchema,
   CheckInAlert
 } from "@shared/schema";
 import { DateTime } from "luxon";
@@ -809,6 +811,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(204).send();
     } catch (error) {
       console.error("Error deleting check-in alert:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Meeting notes routes
+  app.get("/api/meeting-notes", authenticateUser, async (req, res) => {
+    try {
+      const notes = await storage.getMeetingNotes(req.body.userId);
+      return res.status(200).json(notes);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/meeting-notes", authenticateUser, async (req, res) => {
+    try {
+      const validatedData = insertMeetingNoteSchema.parse({ ...req.body, userId: req.body.userId });
+      const note = await storage.createMeetingNote(validatedData);
+      return res.status(201).json(note);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid note data", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/meeting-notes/:id", authenticateUser, async (req, res) => {
+    try {
+      const noteId = parseId(req.params.id);
+      if (!noteId) return res.status(400).json({ message: "Invalid note ID" });
+      const note = await storage.getMeetingNote(noteId);
+      if (!note) return res.status(404).json({ message: "Not found" });
+      if (note.userId !== req.body.userId) return res.status(403).json({ message: "Not authorized" });
+      return res.status(200).json(note);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.patch("/api/meeting-notes/:id", authenticateUser, async (req, res) => {
+    try {
+      const noteId = parseId(req.params.id);
+      if (!noteId) return res.status(400).json({ message: "Invalid note ID" });
+      const note = await storage.getMeetingNote(noteId);
+      if (!note) return res.status(404).json({ message: "Not found" });
+      if (note.userId !== req.body.userId) return res.status(403).json({ message: "Not authorized" });
+      const { title, date, company, contactName, purpose, location, attendees, sections, templateId } = req.body;
+      const updated = await storage.updateMeetingNote(noteId, { title, date, company, contactName, purpose, location, attendees, sections, templateId });
+      return res.status(200).json(updated);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/meeting-notes/:id", authenticateUser, async (req, res) => {
+    try {
+      const noteId = parseId(req.params.id);
+      if (!noteId) return res.status(400).json({ message: "Invalid note ID" });
+      const note = await storage.getMeetingNote(noteId);
+      if (!note) return res.status(404).json({ message: "Not found" });
+      if (note.userId !== req.body.userId) return res.status(403).json({ message: "Not authorized" });
+      await storage.deleteMeetingNote(noteId);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Note template routes
+  app.get("/api/note-templates", authenticateUser, async (req, res) => {
+    try {
+      const templates = await storage.getNoteTemplates(req.body.userId);
+      return res.status(200).json(templates);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/note-templates", authenticateUser, async (req, res) => {
+    try {
+      const validatedData = insertNoteTemplateSchema.parse({ ...req.body, userId: req.body.userId });
+      const template = await storage.createNoteTemplate(validatedData);
+      return res.status(201).json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid template data", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.patch("/api/note-templates/:id", authenticateUser, async (req, res) => {
+    try {
+      const templateId = parseId(req.params.id);
+      if (!templateId) return res.status(400).json({ message: "Invalid template ID" });
+      const template = await storage.getNoteTemplate(templateId);
+      if (!template) return res.status(404).json({ message: "Not found" });
+      if (template.userId !== req.body.userId) return res.status(403).json({ message: "Not authorized" });
+      const { name, sections, isDefault } = req.body;
+      const updated = await storage.updateNoteTemplate(templateId, { name, sections, isDefault });
+      return res.status(200).json(updated);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/note-templates/:id", authenticateUser, async (req, res) => {
+    try {
+      const templateId = parseId(req.params.id);
+      if (!templateId) return res.status(400).json({ message: "Invalid template ID" });
+      const template = await storage.getNoteTemplate(templateId);
+      if (!template) return res.status(404).json({ message: "Not found" });
+      if (template.userId !== req.body.userId) return res.status(403).json({ message: "Not authorized" });
+      await storage.deleteNoteTemplate(templateId);
+      return res.status(204).send();
+    } catch (error) {
       return res.status(500).json({ message: "Server error" });
     }
   });

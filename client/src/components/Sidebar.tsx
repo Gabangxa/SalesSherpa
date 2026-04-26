@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { BarChart3, Target, CheckSquare, Mountain, Settings, LogOut, Search, Sun, Moon } from "lucide-react";
+import { BarChart3, Target, CheckSquare, Mountain, Settings, LogOut, Search, Sun, Moon, NotebookPen } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "next-themes";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { icon: BarChart3, label: "Overview", path: "/" },
   { icon: Target, label: "Goals & Targets", path: "/goals" },
   { icon: CheckSquare, label: "Check-ins", path: "/check-ins" },
+  { icon: NotebookPen, label: "Meeting Notes", path: "/meeting-notes" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 

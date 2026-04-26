@@ -10,13 +10,14 @@
 
 import { IStorage } from "../storage";
 import { detectPatterns } from "./patternDetector";
-import type { Goal, CheckIn } from "@shared/schema";
+import type { Goal, CheckIn, MeetingNote } from "@shared/schema";
 
 export interface UserContext {
   name: string;
   role: string;
   goals: Goal[];
   recentCheckIns: CheckIn[];
+  recentMeetingNotes: MeetingNote[];
   todaysMorningFocus: string | null;
   patterns: string[];
   insights: string[];
@@ -33,11 +34,12 @@ export async function buildUserContext(
   storage: IStorage,
   userMessage?: string
 ): Promise<UserContext> {
-  const [user, goals, recentCheckIns, rawInsights] = await Promise.all([
+  const [user, goals, recentCheckIns, rawInsights, allMeetingNotes] = await Promise.all([
     storage.getUser(userId),
     storage.getGoals(userId),
     storage.getCheckIns(userId, 14),
     storage.getInsights(userId).catch(() => []),
+    storage.getMeetingNotes(userId).catch(() => []),
   ]);
 
   if (!user) throw new Error(`User ${userId} not found`);
@@ -47,11 +49,17 @@ export async function buildUserContext(
 
   const { ranked, byRelevance } = rankCheckIns(recentCheckIns, userMessage);
 
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const recentMeetingNotes = allMeetingNotes
+    .filter((n) => new Date(n.date).getTime() >= thirtyDaysAgo)
+    .slice(0, 10);
+
   return {
     name: user.name,
     role: user.role,
     goals,
     recentCheckIns: ranked.slice(0, 10),
+    recentMeetingNotes,
     todaysMorningFocus,
     patterns,
     insights: rawInsights.map((i) => i.insight),
@@ -111,6 +119,31 @@ export function formatContextBlock(ctx: UserContext): string {
         .join(" / ")
         .slice(0, 120);
       if (summary) lines.push(`  [${date}] ${summary}`);
+    }
+  }
+
+  if (ctx.recentMeetingNotes.length > 0) {
+    lines.push("\nRecent meeting notes (last 30 days):");
+    for (const note of ctx.recentMeetingNotes) {
+      const date = new Date(note.date).toLocaleDateString("en-ZA", {
+        day: "numeric",
+        month: "short",
+      });
+      const company = note.company ? ` — ${note.company}` : "";
+      const contact = note.contactName ? ` (${note.contactName})` : "";
+      const purpose = note.purpose ? ` [${note.purpose}]` : "";
+      let sectionSummary = "";
+      try {
+        const sections: { label: string; content: string }[] = JSON.parse(note.sections);
+        sectionSummary = sections
+          .filter((s) => s.content?.trim())
+          .map((s) => `${s.label}: ${s.content.slice(0, 100)}`)
+          .join(" | ")
+          .slice(0, 250);
+      } catch {
+        sectionSummary = note.sections.slice(0, 150);
+      }
+      lines.push(`  [${date}]${company}${contact}${purpose} — ${note.title}${sectionSummary ? `: ${sectionSummary}` : ""}`);
     }
   }
 

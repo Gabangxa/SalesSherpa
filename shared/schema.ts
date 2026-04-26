@@ -320,6 +320,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   checkInAlerts: many(checkInAlerts),
   pushSubscriptions: many(pushSubscriptions),
   userInsights: many(userInsights),
+  meetingNotes: many(meetingNotes),
+  noteTemplates: many(noteTemplates),
   // Team collaboration relations
   ownedTeams: many(teams, { relationName: 'TeamOwner' }),
   teamMemberships: many(teamMemberships),
@@ -428,6 +430,59 @@ export const checkInAlertsRelations = relations(checkInAlerts, ({ one }) => ({
   }),
 }));
 
+// Meeting notes schema
+export const meetingNotes = pgTable("meeting_notes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  templateId: integer("template_id"),
+  title: text("title").notNull(),
+  date: timestamp("date").notNull(),
+  company: text("company"),
+  contactName: text("contact_name"),
+  purpose: text("purpose"),
+  location: text("location"),
+  attendees: text("attendees"),
+  sections: text("sections").notNull(), // JSON: [{ label, content }]
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertMeetingNoteSchema = createInsertSchema(meetingNotes).pick({
+  userId: true,
+  templateId: true,
+  title: true,
+  date: true,
+  company: true,
+  contactName: true,
+  purpose: true,
+  location: true,
+  attendees: true,
+  sections: true,
+});
+
+export type InsertMeetingNote = z.infer<typeof insertMeetingNoteSchema>;
+export type MeetingNote = typeof meetingNotes.$inferSelect;
+
+// Note templates schema
+export const noteTemplates = pgTable("note_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  sections: text("sections").notNull(), // JSON: [{ label, placeholder }]
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertNoteTemplateSchema = createInsertSchema(noteTemplates).pick({
+  userId: true,
+  name: true,
+  sections: true,
+  isDefault: true,
+});
+
+export type InsertNoteTemplate = z.infer<typeof insertNoteTemplateSchema>;
+export type NoteTemplate = typeof noteTemplates.$inferSelect;
+
 // Alert history — stores a record each time an alert fires; auto-cleared after 2 days
 export const alertHistory = pgTable("alert_history", {
   id: serial("id").primaryKey(),
@@ -443,6 +498,20 @@ export type AlertHistory = typeof alertHistory.$inferSelect;
 export const alertHistoryRelations = relations(alertHistory, ({ one }) => ({
   user: one(users, {
     fields: [alertHistory.userId],
+    references: [users.id],
+  }),
+}));
+
+export const meetingNotesRelations = relations(meetingNotes, ({ one }) => ({
+  user: one(users, {
+    fields: [meetingNotes.userId],
+    references: [users.id],
+  }),
+}));
+
+export const noteTemplatesRelations = relations(noteTemplates, ({ one }) => ({
+  user: one(users, {
+    fields: [noteTemplates.userId],
     references: [users.id],
   }),
 }));

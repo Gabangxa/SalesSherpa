@@ -32,6 +32,10 @@ import {
   PushSubscription,
   InsertPushSubscription,
   AlertHistory,
+  MeetingNote,
+  InsertMeetingNote,
+  NoteTemplate,
+  InsertNoteTemplate,
   users,
   goals,
   tasks,
@@ -46,6 +50,8 @@ import {
   sharedGoals,
   teamActivities,
   alertHistory,
+  meetingNotes,
+  noteTemplates,
 } from "@shared/schema";
 import { db } from "./db";
 import session from "express-session";
@@ -141,6 +147,20 @@ export interface IStorage {
   createAlertHistory(entry: { alertId?: number | null; userId: number; title: string; message: string }): Promise<AlertHistory>;
   getAlertHistory(userId: number): Promise<AlertHistory[]>;
   deleteOldAlertHistory(): Promise<void>;
+
+  // Meeting notes operations
+  getMeetingNotes(userId: number): Promise<MeetingNote[]>;
+  getMeetingNote(id: number): Promise<MeetingNote | undefined>;
+  createMeetingNote(note: InsertMeetingNote): Promise<MeetingNote>;
+  updateMeetingNote(id: number, updates: Partial<MeetingNote>): Promise<MeetingNote | undefined>;
+  deleteMeetingNote(id: number): Promise<boolean>;
+
+  // Note template operations
+  getNoteTemplates(userId: number): Promise<NoteTemplate[]>;
+  getNoteTemplate(id: number): Promise<NoteTemplate | undefined>;
+  createNoteTemplate(template: InsertNoteTemplate): Promise<NoteTemplate>;
+  updateNoteTemplate(id: number, updates: Partial<NoteTemplate>): Promise<NoteTemplate | undefined>;
+  deleteNoteTemplate(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -593,6 +613,56 @@ export class DatabaseStorage implements IStorage {
   async deleteOldAlertHistory(): Promise<void> {
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
     await db.delete(alertHistory).where(lt(alertHistory.triggeredAt, twoDaysAgo));
+  }
+
+  // Meeting notes operations
+  async getMeetingNotes(userId: number): Promise<MeetingNote[]> {
+    return db.select().from(meetingNotes).where(eq(meetingNotes.userId, userId)).orderBy(desc(meetingNotes.date));
+  }
+
+  async getMeetingNote(id: number): Promise<MeetingNote | undefined> {
+    const [note] = await db.select().from(meetingNotes).where(eq(meetingNotes.id, id));
+    return note || undefined;
+  }
+
+  async createMeetingNote(note: InsertMeetingNote): Promise<MeetingNote> {
+    const [row] = await db.insert(meetingNotes).values(note).returning();
+    return row;
+  }
+
+  async updateMeetingNote(id: number, updates: Partial<MeetingNote>): Promise<MeetingNote | undefined> {
+    const [row] = await db.update(meetingNotes).set({ ...updates, updatedAt: new Date() }).where(eq(meetingNotes.id, id)).returning();
+    return row || undefined;
+  }
+
+  async deleteMeetingNote(id: number): Promise<boolean> {
+    const result = await db.delete(meetingNotes).where(eq(meetingNotes.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Note template operations
+  async getNoteTemplates(userId: number): Promise<NoteTemplate[]> {
+    return db.select().from(noteTemplates).where(eq(noteTemplates.userId, userId)).orderBy(asc(noteTemplates.createdAt));
+  }
+
+  async getNoteTemplate(id: number): Promise<NoteTemplate | undefined> {
+    const [template] = await db.select().from(noteTemplates).where(eq(noteTemplates.id, id));
+    return template || undefined;
+  }
+
+  async createNoteTemplate(template: InsertNoteTemplate): Promise<NoteTemplate> {
+    const [row] = await db.insert(noteTemplates).values(template).returning();
+    return row;
+  }
+
+  async updateNoteTemplate(id: number, updates: Partial<NoteTemplate>): Promise<NoteTemplate | undefined> {
+    const [row] = await db.update(noteTemplates).set(updates).where(eq(noteTemplates.id, id)).returning();
+    return row || undefined;
+  }
+
+  async deleteNoteTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(noteTemplates).where(eq(noteTemplates.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Setup initial demo data
