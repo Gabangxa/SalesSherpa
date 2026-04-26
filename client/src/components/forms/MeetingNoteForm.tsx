@@ -33,9 +33,11 @@ interface Section {
   content: string;
 }
 
+export type MeetingNotePayload = Omit<MeetingNote, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
+
 interface MeetingNoteFormProps {
   note?: MeetingNote;
-  onSubmit: (data: Omit<MeetingNote, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSubmit: (data: MeetingNotePayload) => void;
   isSubmitting: boolean;
   onCancel: () => void;
 }
@@ -113,7 +115,6 @@ export function MeetingNoteForm({ note, onSubmit, isSubmitting, onCancel }: Meet
         ? null
         : parseInt(selectedTemplateId, 10) || null;
     onSubmit({
-      userId: 0, // server overwrites with authenticated userId
       templateId,
       title: title.trim(),
       date: new Date(date),

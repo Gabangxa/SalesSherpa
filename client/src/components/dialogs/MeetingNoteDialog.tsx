@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
-import { MeetingNoteForm } from '@/components/forms/MeetingNoteForm';
+import { MeetingNoteForm, type MeetingNotePayload } from '@/components/forms/MeetingNoteForm';
 import { useMeetingNotes } from '@/hooks/use-meeting-notes';
 import type { MeetingNote } from '@shared/schema';
 
@@ -13,7 +13,7 @@ interface MeetingNoteDialogProps {
 export function MeetingNoteDialog({ open, onOpenChange, note }: MeetingNoteDialogProps) {
   const { createMutation, updateMutation } = useMeetingNotes();
 
-  const handleSubmit = (data: Omit<MeetingNote, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSubmit = (data: MeetingNotePayload) => {
     if (note) {
       updateMutation.mutate({ id: note.id, ...data }, { onSuccess: () => onOpenChange(false) });
     } else {

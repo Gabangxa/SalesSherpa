@@ -4,6 +4,19 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { MeetingNote } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
+import type { MeetingNotePayload } from '@/components/forms/MeetingNoteForm';
+
+function extractErrorMessage(error: Error): string {
+  const data = (error as any).data;
+  if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+    return data.errors
+      .map((e: { path?: string[]; message: string }) =>
+        e.path?.length ? `${e.path.join('.')}: ${e.message}` : e.message
+      )
+      .join(', ');
+  }
+  return error.message;
+}
 
 export function useMeetingNotes() {
   const { toast } = useToast();
@@ -16,7 +29,7 @@ export function useMeetingNotes() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: Omit<MeetingNote, 'id' | 'createdAt' | 'updatedAt'>) => {
+    mutationFn: async (data: MeetingNotePayload) => {
       const res = await apiRequest('POST', '/api/meeting-notes', data);
       return res.json();
     },
@@ -25,22 +38,22 @@ export function useMeetingNotes() {
       queryClient.invalidateQueries({ queryKey: ['/api/meeting-notes'] });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error saving note', description: error.message, variant: 'destructive' });
+      toast({ title: 'Could not save note', description: extractErrorMessage(error), variant: 'destructive' });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: Partial<MeetingNote> & { id: number }) => {
+    mutationFn: async ({ id, ...data }: MeetingNotePayload & { id: number }) => {
       const res = await apiRequest('PATCH', `/api/meeting-notes/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: 'Note updated', description: 'Meeting note has been updated.' });
+      toast({ title: 'Note updated' });
       queryClient.invalidateQueries({ queryKey: ['/api/meeting-notes'] });
       setSelectedNote(null);
     },
     onError: (error: Error) => {
-      toast({ title: 'Error updating note', description: error.message, variant: 'destructive' });
+      toast({ title: 'Could not update note', description: extractErrorMessage(error), variant: 'destructive' });
     },
   });
 
@@ -54,7 +67,7 @@ export function useMeetingNotes() {
       setSelectedNote(null);
     },
     onError: (error: Error) => {
-      toast({ title: 'Error deleting note', description: error.message, variant: 'destructive' });
+      toast({ title: 'Could not delete note', description: extractErrorMessage(error), variant: 'destructive' });
     },
   });
 

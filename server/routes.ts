@@ -827,7 +827,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meeting-notes", authenticateUser, async (req, res) => {
     try {
-      const validatedData = insertMeetingNoteSchema.parse({ ...req.body, userId: req.body.userId });
+      const { userId: _ignored, ...clientBody } = req.body;
+      const validatedData = insertMeetingNoteSchema.parse({ ...clientBody, userId: req.body.userId });
       const note = await storage.createMeetingNote(validatedData);
       return res.status(201).json(note);
     } catch (error) {

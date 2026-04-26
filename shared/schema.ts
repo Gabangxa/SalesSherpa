@@ -447,7 +447,7 @@ export const meetingNotes = pgTable("meeting_notes", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertMeetingNoteSchema = createInsertSchema(meetingNotes).pick({
+const baseMeetingNoteSchema = createInsertSchema(meetingNotes).pick({
   userId: true,
   templateId: true,
   title: true,
@@ -458,6 +458,16 @@ export const insertMeetingNoteSchema = createInsertSchema(meetingNotes).pick({
   location: true,
   attendees: true,
   sections: true,
+});
+
+export const insertMeetingNoteSchema = baseMeetingNoteSchema.extend({
+  date: z.preprocess(
+    (arg) => {
+      if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+      return arg;
+    },
+    z.date()
+  ),
 });
 
 export type InsertMeetingNote = z.infer<typeof insertMeetingNoteSchema>;
