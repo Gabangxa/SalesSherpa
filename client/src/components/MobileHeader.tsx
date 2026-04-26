@@ -3,7 +3,6 @@ import {
   Home,
   Target,
   CalendarCheck,
-  Swords,
   Mountain,
   Menu,
   X,
@@ -32,7 +31,6 @@ export default function MobileHeader({ isMenuOpen, toggleMenu, userData, current
     { name: "Dashboard", path: "/", icon: <Home className="w-5 h-5 mr-3" /> },
     { name: "Goals & Targets", path: "/goals", icon: <Target className="w-5 h-5 mr-3" /> },
     { name: "Check-ins", path: "/check-ins", icon: <CalendarCheck className="w-5 h-5 mr-3" /> },
-    { name: "Strategic Planning", path: "/strategy", icon: <Swords className="w-5 h-5 mr-3" /> },
     { name: "Settings", path: "/settings", icon: <Settings className="w-5 h-5 mr-3" /> },
   ];
   
