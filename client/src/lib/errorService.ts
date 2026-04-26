@@ -110,9 +110,9 @@ export function processError(error: unknown, additionalInfo?: Record<string, unk
         status: 401,
       };
     }
-    // Handle validation errors
-    else if (errorMessage.toLowerCase().includes('validation') || 
-             errorMessage.toLowerCase().includes('invalid') || 
+    // Handle validation errors — only match explicit "validation" keyword or HTTP 400.
+    // Do NOT match on "invalid" — too broad; catches JS RangeError: Invalid time value etc.
+    else if (errorMessage.toLowerCase().includes('validation') ||
              (error as any).status === 400) {
       processedError = {
         ...error,

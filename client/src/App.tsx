@@ -17,7 +17,7 @@ import { OfflineAlert, OfflineBanner } from "@/components/ui/offline-alert";
 import Dashboard from "@/pages/Dashboard";
 import GoalsPage from "@/pages/GoalsPage";
 import CheckInsPage from "@/pages/CheckInsPage";
-import StrategyPage from "@/pages/StrategyPage";
+import MeetingNotesPage from "@/pages/MeetingNotesPage";
 import SettingsPage from "@/pages/SettingsPage";
 import WebSocketTest from "@/pages/WebSocketTest";
 import AuthPage from "@/pages/AuthPage";
@@ -104,7 +104,7 @@ function AppContent() {
             <ProtectedRoute path="/" component={Dashboard} />
             <ProtectedRoute path="/goals" component={GoalsPage} />
             <ProtectedRoute path="/check-ins" component={CheckInsPage} />
-            <ProtectedRoute path="/strategy" component={StrategyPage} />
+            <ProtectedRoute path="/meeting-notes" component={MeetingNotesPage} />
             <ProtectedRoute path="/settings" component={SettingsPage} />
             <ProtectedRoute path="/websocket-test" component={WebSocketTest} />
             <Route path="/auth" component={AuthPage} />

@@ -1,42 +1,57 @@
 import connectPg from "connect-pg-simple";
-import { eq, desc, asc } from "drizzle-orm";
-import { 
-  User, 
-  Goal, 
-  Task, 
-  CheckIn, 
-  TimeOff, 
-  ChatMessage, 
-  SalesMetrics, 
+import { scrypt, randomBytes } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
+import { eq, desc, asc, gt, lt } from "drizzle-orm";
+import {
+  User,
+  Goal,
+  Task,
+  CheckIn,
+  TimeOff,
+  ChatMessage,
   CheckInAlert,
   Team,
   TeamMembership,
   SharedGoal,
   TeamActivity,
-  InsertUser, 
-  InsertGoal, 
-  InsertTask, 
-  InsertCheckIn, 
-  InsertTimeOff, 
-  InsertChatMessage, 
-  InsertSalesMetrics,
+  InsertUser,
+  InsertGoal,
+  InsertTask,
+  InsertCheckIn,
+  InsertTimeOff,
+  InsertChatMessage,
   InsertCheckInAlert,
   InsertTeam,
   InsertTeamMembership,
   InsertSharedGoal,
   InsertTeamActivity,
+  UserInsight,
+  InsertUserInsight,
+  PushSubscription,
+  InsertPushSubscription,
+  AlertHistory,
+  MeetingNote,
+  InsertMeetingNote,
+  NoteTemplate,
+  InsertNoteTemplate,
   users,
   goals,
   tasks,
   checkIns,
   timeOff,
   chatMessages,
-  salesMetrics,
   checkInAlerts,
+  userInsights,
+  pushSubscriptions,
   teams,
   teamMemberships,
   sharedGoals,
-  teamActivities
+  teamActivities,
+  alertHistory,
+  meetingNotes,
+  noteTemplates,
 } from "@shared/schema";
 import { db } from "./db";
 import session from "express-session";
@@ -84,12 +99,16 @@ export interface IStorage {
   // Chat messages operations
   getChatMessages(userId: number): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+
+  // User insights operations
+  getInsights(userId: number): Promise<UserInsight[]>;
+  createInsight(insight: InsertUserInsight): Promise<UserInsight>;
   
-  // Sales metrics operations
-  getSalesMetrics(userId: number): Promise<SalesMetrics | undefined>;
-  createSalesMetrics(metrics: InsertSalesMetrics): Promise<SalesMetrics>;
-  updateSalesMetrics(userId: number, updates: Partial<SalesMetrics>): Promise<SalesMetrics | undefined>;
-  
+  // Push subscription operations
+  getPushSubscriptions(userId: number): Promise<PushSubscription[]>;
+  createPushSubscription(sub: InsertPushSubscription): Promise<PushSubscription>;
+  deletePushSubscriptionByEndpoint(endpoint: string): Promise<boolean>;
+
   // Check-in alerts operations
   getCheckInAlerts(userId: number): Promise<CheckInAlert[]>;
   getCheckInAlert(id: number): Promise<CheckInAlert | undefined>;
@@ -123,6 +142,25 @@ export interface IStorage {
   // Team activity operations
   getTeamActivities(teamId: number, limit?: number): Promise<TeamActivity[]>;
   createTeamActivity(activity: InsertTeamActivity): Promise<TeamActivity>;
+
+  // Alert history operations
+  createAlertHistory(entry: { alertId?: number | null; userId: number; title: string; message: string }): Promise<AlertHistory>;
+  getAlertHistory(userId: number): Promise<AlertHistory[]>;
+  deleteOldAlertHistory(): Promise<void>;
+
+  // Meeting notes operations
+  getMeetingNotes(userId: number): Promise<MeetingNote[]>;
+  getMeetingNote(id: number): Promise<MeetingNote | undefined>;
+  createMeetingNote(note: InsertMeetingNote): Promise<MeetingNote>;
+  updateMeetingNote(id: number, updates: Partial<MeetingNote>): Promise<MeetingNote | undefined>;
+  deleteMeetingNote(id: number): Promise<boolean>;
+
+  // Note template operations
+  getNoteTemplates(userId: number): Promise<NoteTemplate[]>;
+  getNoteTemplate(id: number): Promise<NoteTemplate | undefined>;
+  createNoteTemplate(template: InsertNoteTemplate): Promise<NoteTemplate>;
+  updateNoteTemplate(id: number, updates: Partial<NoteTemplate>): Promise<NoteTemplate | undefined>;
+  deleteNoteTemplate(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -301,27 +339,43 @@ export class DatabaseStorage implements IStorage {
     return chatMessage;
   }
 
-  // Sales metrics operations
-  async getSalesMetrics(userId: number): Promise<SalesMetrics | undefined> {
-    const [metrics] = await db.select().from(salesMetrics).where(eq(salesMetrics.userId, userId)).orderBy(desc(salesMetrics.date));
-    return metrics || undefined;
+  // User insights operations
+  async getInsights(userId: number): Promise<UserInsight[]> {
+    return db
+      .select()
+      .from(userInsights)
+      .where(eq(userInsights.userId, userId))
+      .where(gt(userInsights.expiresAt, new Date()))
+      .orderBy(desc(userInsights.createdAt));
   }
 
-  async createSalesMetrics(insertSalesMetrics: InsertSalesMetrics): Promise<SalesMetrics> {
-    const [metrics] = await db
-      .insert(salesMetrics)
-      .values(insertSalesMetrics)
-      .returning();
-    return metrics;
+  async createInsight(insight: InsertUserInsight): Promise<UserInsight> {
+    const [row] = await db.insert(userInsights).values(insight).returning();
+    return row;
   }
 
-  async updateSalesMetrics(userId: number, updates: Partial<SalesMetrics>): Promise<SalesMetrics | undefined> {
-    const [updatedMetrics] = await db
-      .update(salesMetrics)
-      .set(updates)
-      .where(eq(salesMetrics.userId, userId))
+  // Push subscription operations
+  async getPushSubscriptions(userId: number): Promise<PushSubscription[]> {
+    return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  }
+
+  async createPushSubscription(sub: InsertPushSubscription): Promise<PushSubscription> {
+    const [row] = await db
+      .insert(pushSubscriptions)
+      .values(sub)
+      .onConflictDoUpdate({
+        target: pushSubscriptions.endpoint,
+        set: { p256dh: sub.p256dh, auth: sub.auth, userId: sub.userId },
+      })
       .returning();
-    return updatedMetrics || undefined;
+    return row;
+  }
+
+  async deletePushSubscriptionByEndpoint(endpoint: string): Promise<boolean> {
+    const result = await db
+      .delete(pushSubscriptions)
+      .where(eq(pushSubscriptions.endpoint, endpoint));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Check-in alerts operations
@@ -541,6 +595,76 @@ export class DatabaseStorage implements IStorage {
     return newActivity;
   }
 
+  // Alert history operations
+  async createAlertHistory(entry: { alertId?: number | null; userId: number; title: string; message: string }): Promise<AlertHistory> {
+    const [row] = await db.insert(alertHistory).values(entry).returning();
+    return row;
+  }
+
+  async getAlertHistory(userId: number): Promise<AlertHistory[]> {
+    return db
+      .select()
+      .from(alertHistory)
+      .where(eq(alertHistory.userId, userId))
+      .orderBy(desc(alertHistory.triggeredAt))
+      .limit(100);
+  }
+
+  async deleteOldAlertHistory(): Promise<void> {
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    await db.delete(alertHistory).where(lt(alertHistory.triggeredAt, twoDaysAgo));
+  }
+
+  // Meeting notes operations
+  async getMeetingNotes(userId: number): Promise<MeetingNote[]> {
+    return db.select().from(meetingNotes).where(eq(meetingNotes.userId, userId)).orderBy(desc(meetingNotes.date));
+  }
+
+  async getMeetingNote(id: number): Promise<MeetingNote | undefined> {
+    const [note] = await db.select().from(meetingNotes).where(eq(meetingNotes.id, id));
+    return note || undefined;
+  }
+
+  async createMeetingNote(note: InsertMeetingNote): Promise<MeetingNote> {
+    const [row] = await db.insert(meetingNotes).values(note).returning();
+    return row;
+  }
+
+  async updateMeetingNote(id: number, updates: Partial<MeetingNote>): Promise<MeetingNote | undefined> {
+    const [row] = await db.update(meetingNotes).set({ ...updates, updatedAt: new Date() }).where(eq(meetingNotes.id, id)).returning();
+    return row || undefined;
+  }
+
+  async deleteMeetingNote(id: number): Promise<boolean> {
+    const result = await db.delete(meetingNotes).where(eq(meetingNotes.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Note template operations
+  async getNoteTemplates(userId: number): Promise<NoteTemplate[]> {
+    return db.select().from(noteTemplates).where(eq(noteTemplates.userId, userId)).orderBy(asc(noteTemplates.createdAt));
+  }
+
+  async getNoteTemplate(id: number): Promise<NoteTemplate | undefined> {
+    const [template] = await db.select().from(noteTemplates).where(eq(noteTemplates.id, id));
+    return template || undefined;
+  }
+
+  async createNoteTemplate(template: InsertNoteTemplate): Promise<NoteTemplate> {
+    const [row] = await db.insert(noteTemplates).values(template).returning();
+    return row;
+  }
+
+  async updateNoteTemplate(id: number, updates: Partial<NoteTemplate>): Promise<NoteTemplate | undefined> {
+    const [row] = await db.update(noteTemplates).set(updates).where(eq(noteTemplates.id, id)).returning();
+    return row || undefined;
+  }
+
+  async deleteNoteTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(noteTemplates).where(eq(noteTemplates.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
   // Setup initial demo data
   async setupInitialData() {
     console.log("Setting up initial demo data...");
@@ -552,11 +676,15 @@ export class DatabaseStorage implements IStorage {
         return;
       }
 
-      // Create demo user
+      // Create demo user with hashed password
+      const salt = randomBytes(16).toString("hex");
+      const buf = (await scryptAsync("password", salt, 64)) as Buffer;
+      const hashedPassword = `${buf.toString("hex")}.${salt}`;
+
       const demoUser = await this.createUser({
         username: "demo",
         email: "demo@example.com",
-        password: "password",
+        password: hashedPassword,
         name: "Jordan Doe",
         role: "Fintech Sales Manager"
       });
