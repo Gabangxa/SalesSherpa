@@ -6,7 +6,7 @@
  *   handleCheckInFlow   — guided morning/evening ritual, one question at a time
  */
 
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { SHERPA_PERSONA } from "./persona";
 import { buildUserContext, buildSystemPrompt } from "./contextBuilder";
 import {
@@ -22,12 +22,12 @@ import {
 import { IStorage } from "../storage";
 import type { ChatMessage } from "@shared/schema";
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY environment variable is required");
+if (!process.env.GOOGLE_AI_KEY) {
+  throw new Error("GOOGLE_AI_KEY environment variable is required");
 }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const MODEL = "gpt-4.1-mini";
+const genai = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
+const MODEL = "gemini-1.5-flash";
 
 export async function generateResponse(
   userId: number,
@@ -38,16 +38,12 @@ export async function generateResponse(
   const ctx = await buildUserContext(userId, storage);
   const systemPrompt = buildSystemPrompt(SHERPA_PERSONA, ctx);
 
-  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-    { role: "system", content: systemPrompt },
-    ...history.slice(-20).map((m) => ({
-      role: m.sender === "user" ? ("user" as const) : ("assistant" as const),
-      content: m.message,
-    })),
-    { role: "user", content: userMessage },
-  ];
+  const chatHistory = history.slice(-20).map((m) => ({
+    role: m.sender === "user" ? ("user" as const) : ("model" as const),
+    parts: [{ text: m.message }],
+  }));
 
-  return callOpenAI(messages);
+  return callGemini(systemPrompt, chatHistory, userMessage);
 }
 
 export async function handleCheckInFlow(
@@ -56,7 +52,7 @@ export async function handleCheckInFlow(
   userMessage: string,
   storage: IStorage
 ): Promise<{ reply: string; isComplete: boolean }> {
-  const existing = getActiveFlow(userId);
+  const existing = await getActiveFlow(userId);
 
   if (!existing) {
     // For evening flows, look up today's morning focus from the DB so the
@@ -76,17 +72,17 @@ export async function handleCheckInFlow(
       }
     }
 
-    const firstQuestion = startFlow(userId, flowType, morningFocus);
+    const firstQuestion = await startFlow(userId, flowType, morningFocus);
     return { reply: firstQuestion, isComplete: false };
   }
 
-  const { nextQuestion, isComplete, collectedData } = advanceFlow(userId, userMessage);
+  const { nextQuestion, isComplete, collectedData } = await advanceFlow(userId, userMessage);
 
   if (!isComplete && nextQuestion) {
     return { reply: nextQuestion, isComplete: false };
   }
 
-  clearFlow(userId);
+  await clearFlow(userId);
 
   const checkInData: CheckInFields =
     flowType === "morning"
@@ -112,36 +108,40 @@ export async function handleCheckInFlow(
       ? `Focus today: "${collectedData.focus}". Obstacle: "${collectedData.obstacle}".`
       : `How it went: "${collectedData.followUp}". Would do differently: "${collectedData.debrief}". Tomorrow: "${collectedData.tomorrow}".`;
 
-  const reply = await callOpenAI([
-    { role: "system", content: systemPrompt },
-    { role: "user", content: summaryMessage },
-  ]);
+  const reply = await callGemini(systemPrompt, [], summaryMessage);
 
   return { reply, isComplete: true };
 }
 
-async function callOpenAI(
-  messages: OpenAI.Chat.ChatCompletionMessageParam[]
+async function callGemini(
+  systemPrompt: string,
+  history: { role: "user" | "model"; parts: { text: string }[] }[],
+  userMessage: string,
+  temperature = 0.7
 ): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
+    const model = genai.getGenerativeModel({
       model: MODEL,
-      messages,
-      temperature: 0.7,
-      max_tokens: 300,
+      systemInstruction: systemPrompt,
+      generationConfig: { temperature, maxOutputTokens: 300 },
     });
 
-    return (
-      response.choices[0]?.message?.content ??
-      "I didn't get a response — want to try again?"
-    );
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(userMessage);
+    return result.response.text() || "I didn't get a response — want to try again?";
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message.includes("rate limit")) {
+      if (
+        error.message.includes("quota") ||
+        error.message.includes("RESOURCE_EXHAUSTED")
+      ) {
         return "Hit a rate limit — give it a moment and try again.";
       }
-      if (error.message.includes("API key") || error.message.includes("Unauthorized")) {
-        throw new Error("OpenAI API key is invalid or missing");
+      if (
+        error.message.includes("API_KEY_INVALID") ||
+        error.message.includes("PERMISSION_DENIED")
+      ) {
+        throw new Error("Google AI API key is invalid or missing");
       }
     }
     throw error;
