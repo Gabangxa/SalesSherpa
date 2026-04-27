@@ -67,7 +67,7 @@ async function extractInsights(
   const window = allMessages.slice(-CONVERSATION_WINDOW);
 
   const model = genai.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-3-flash-preview",
     systemInstruction: SYSTEM_PROMPT,
     generationConfig: { temperature: 0, maxOutputTokens: 200 },
   });
