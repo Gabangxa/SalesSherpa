@@ -2,7 +2,8 @@
 cmds = ["npm ci --include=dev"]
 
 [phases.build]
-cmds = ["npm run build", "npm prune --omit=dev"]
+dependsOn = ["install"]
+cmds = ["npm run build"]
 
 [start]
 cmd = "npm run start"

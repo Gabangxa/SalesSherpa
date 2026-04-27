@@ -9,12 +9,12 @@
  * never surface to the user.
  */
 
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { IStorage } from "../storage";
 import { log } from "../vite";
 import type { ChatMessage } from "@shared/schema";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const genai = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY ?? "");
 
 const INSIGHT_TTL_MS = 60 * 24 * 60 * 60 * 1000; // 60 days
 const EXTRACTION_INTERVAL = 10; // every N total messages
@@ -66,17 +66,14 @@ async function extractInsights(
 
   const window = allMessages.slice(-CONVERSATION_WINDOW);
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4.1-mini",
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: buildUserPrompt(window, existingTexts) },
-    ],
-    temperature: 0,
-    max_tokens: 200,
+  const model = genai.getGenerativeModel({
+    model: "gemini-1.5-flash",
+    systemInstruction: SYSTEM_PROMPT,
+    generationConfig: { temperature: 0, maxOutputTokens: 200 },
   });
 
-  const raw = response.choices[0]?.message?.content ?? "[]";
+  const result = await model.generateContent(buildUserPrompt(window, existingTexts));
+  const raw = result.response.text() ?? "[]";
   const newInsights = parseInsights(raw);
 
   if (newInsights.length === 0) return;
