@@ -27,7 +27,7 @@ if (!process.env.GOOGLE_AI_KEY) {
 }
 
 const genai = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
-const MODEL = "gemini-3-flash-preview";
+const MODEL = "gemini-2.5-pro";
 
 export async function generateResponse(
   userId: number,
