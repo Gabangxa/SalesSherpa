@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, time, primaryKey, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, time, primaryKey, foreignKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -246,6 +246,26 @@ export const insertTimeOffSchema = createInsertSchema(timeOff).pick({
 export type InsertTimeOff = z.infer<typeof insertTimeOffSchema>;
 export type TimeOff = typeof timeOff.$inferSelect;
 
+// User insights — facts extracted from Sherpa conversations that aren't
+// captured in check-ins (deal names, relationship signals, strategic context).
+// Expires after 60 days to stay fresh without manual cleanup.
+export const userInsights = pgTable("user_insights", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  insight: text("insight").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export const insertUserInsightSchema = createInsertSchema(userInsights).pick({
+  userId: true,
+  insight: true,
+  expiresAt: true,
+});
+
+export type InsertUserInsight = z.infer<typeof insertUserInsightSchema>;
+export type UserInsight = typeof userInsights.$inferSelect;
+
 // Chat messages schema
 export const chatMessages = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
@@ -265,36 +285,25 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).pick({
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 
-// Sales Metrics schema
-export const salesMetrics = pgTable("sales_metrics", {
+// Web push subscriptions — one row per browser/device per user
+export const pushSubscriptions = pgTable("push_subscriptions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  date: timestamp("date").notNull(),
-  newAccountsTarget: integer("new_accounts_target").notNull(),
-  newAccountsCurrent: integer("new_accounts_current").notNull(),
-  meetingsTarget: integer("meetings_target").notNull(),
-  meetingsCurrent: integer("meetings_current").notNull(),
-  tripsTarget: integer("trips_target").notNull().default(10),
-  tripsCurrent: integer("trips_current").notNull().default(6),
-  crmUpdatePercentage: integer("crm_update_percentage").notNull().default(75),
-  weeklyActivity: json("weekly_activity").notNull(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertSalesMetricsSchema = createInsertSchema(salesMetrics).pick({
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).pick({
   userId: true,
-  date: true,
-  newAccountsTarget: true,
-  newAccountsCurrent: true,
-  meetingsTarget: true,
-  meetingsCurrent: true,
-  tripsTarget: true,
-  tripsCurrent: true,
-  crmUpdatePercentage: true,
-  weeklyActivity: true,
+  endpoint: true,
+  p256dh: true,
+  auth: true,
 });
 
-export type InsertSalesMetrics = z.infer<typeof insertSalesMetricsSchema>;
-export type SalesMetrics = typeof salesMetrics.$inferSelect;
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 
 // Check-in Alerts schema
 export const checkInAlerts = pgTable("check_in_alerts", {
@@ -306,6 +315,7 @@ export const checkInAlerts = pgTable("check_in_alerts", {
   enabled: boolean("enabled").notNull().default(true),
   title: text("title").notNull().default('Daily Check-in'),
   message: text("message").notNull().default('Time to complete your daily check-in'),
+  lastTriggeredAt: timestamp("last_triggered_at"),
 });
 
 export const insertCheckInAlertSchema = createInsertSchema(checkInAlerts).pick({
@@ -322,18 +332,35 @@ export type InsertCheckInAlert = z.infer<typeof insertCheckInAlertSchema>;
 export type CheckInAlert = typeof checkInAlerts.$inferSelect;
 
 // Relations
+<<<<<<< railway_polar
 export const usersRelations = relations(users, ({ many, one }) => ({
+=======
+export const userInsightsRelations = relations(userInsights, ({ one }) => ({
+  user: one(users, {
+    fields: [userInsights.userId],
+    references: [users.id],
+  }),
+}));
+
+export const usersRelations = relations(users, ({ many }) => ({
+>>>>>>> master
   goals: many(goals),
   tasks: many(tasks),
   checkIns: many(checkIns),
   timeOffs: many(timeOff),
   chatMessages: many(chatMessages),
-  salesMetrics: many(salesMetrics),
   checkInAlerts: many(checkInAlerts),
+<<<<<<< railway_polar
   subscription: one(subscriptions, {
     fields: [users.id],
     references: [subscriptions.userId],
   }),
+=======
+  pushSubscriptions: many(pushSubscriptions),
+  userInsights: many(userInsights),
+  meetingNotes: many(meetingNotes),
+  noteTemplates: many(noteTemplates),
+>>>>>>> master
   // Team collaboration relations
   ownedTeams: many(teams, { relationName: 'TeamOwner' }),
   teamMemberships: many(teamMemberships),
@@ -428,9 +455,9 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   }),
 }));
 
-export const salesMetricsRelations = relations(salesMetrics, ({ one }) => ({
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
   user: one(users, {
-    fields: [salesMetrics.userId],
+    fields: [pushSubscriptions.userId],
     references: [users.id],
   }),
 }));
@@ -442,9 +469,104 @@ export const checkInAlertsRelations = relations(checkInAlerts, ({ one }) => ({
   }),
 }));
 
+<<<<<<< railway_polar
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
   user: one(users, {
     fields: [subscriptions.userId],
+=======
+// Meeting notes schema
+export const meetingNotes = pgTable("meeting_notes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  templateId: integer("template_id"),
+  title: text("title").notNull(),
+  date: timestamp("date").notNull(),
+  company: text("company"),
+  contactName: text("contact_name"),
+  purpose: text("purpose"),
+  location: text("location"),
+  attendees: text("attendees"),
+  sections: text("sections").notNull(), // JSON: [{ label, content }]
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+const baseMeetingNoteSchema = createInsertSchema(meetingNotes).pick({
+  userId: true,
+  templateId: true,
+  title: true,
+  date: true,
+  company: true,
+  contactName: true,
+  purpose: true,
+  location: true,
+  attendees: true,
+  sections: true,
+});
+
+export const insertMeetingNoteSchema = baseMeetingNoteSchema.extend({
+  date: z.preprocess(
+    (arg) => {
+      if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+      return arg;
+    },
+    z.date()
+  ),
+});
+
+export type InsertMeetingNote = z.infer<typeof insertMeetingNoteSchema>;
+export type MeetingNote = typeof meetingNotes.$inferSelect;
+
+// Note templates schema
+export const noteTemplates = pgTable("note_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  sections: text("sections").notNull(), // JSON: [{ label, placeholder }]
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertNoteTemplateSchema = createInsertSchema(noteTemplates).pick({
+  userId: true,
+  name: true,
+  sections: true,
+  isDefault: true,
+});
+
+export type InsertNoteTemplate = z.infer<typeof insertNoteTemplateSchema>;
+export type NoteTemplate = typeof noteTemplates.$inferSelect;
+
+// Alert history — stores a record each time an alert fires; auto-cleared after 2 days
+export const alertHistory = pgTable("alert_history", {
+  id: serial("id").primaryKey(),
+  alertId: integer("alert_id"), // nullable: kept even if the source alert is deleted
+  userId: integer("user_id").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  triggeredAt: timestamp("triggered_at").notNull().defaultNow(),
+});
+
+export type AlertHistory = typeof alertHistory.$inferSelect;
+
+export const alertHistoryRelations = relations(alertHistory, ({ one }) => ({
+  user: one(users, {
+    fields: [alertHistory.userId],
+    references: [users.id],
+  }),
+}));
+
+export const meetingNotesRelations = relations(meetingNotes, ({ one }) => ({
+  user: one(users, {
+    fields: [meetingNotes.userId],
+    references: [users.id],
+  }),
+}));
+
+export const noteTemplatesRelations = relations(noteTemplates, ({ one }) => ({
+  user: one(users, {
+    fields: [noteTemplates.userId],
+>>>>>>> master
     references: [users.id],
   }),
 }));

@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { formatTime } from "@/lib/dateUtils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Maximize2, Bot } from "lucide-react";
+import { Mountain } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { getUserInitials } from "@/lib/utils";
@@ -13,7 +13,7 @@ interface ChatMessage {
   id: number;
   userId: number;
   message: string;
-  sender: 'user' | 'assistant';
+  sender: "user" | "assistant";
   timestamp: string;
 }
 
@@ -23,240 +23,215 @@ interface SalesAssistantChatProps {
 
 export default function SalesAssistantChat({ userName }: SalesAssistantChatProps) {
   const [message, setMessage] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  // State to track if we're waiting for an AI response
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
-  
-  // Fetch chat messages (no more polling - WebSocket will notify us)
+
   const { data: messages = [], isLoading } = useQuery<ChatMessage[]>({
-    queryKey: ['/api/chat'],
-    staleTime: 300000, // 5 minutes - since we get real-time updates via WebSocket
+    queryKey: ["/api/chat"],
+    staleTime: 300000,
   });
-  
-  // Send message mutation
+
   const sendMessage = useMutation({
     mutationFn: (newMessage: string) => {
-      setWaitingForResponse(true); // Start waiting for AI response
-      return apiRequest('POST', '/api/chat', {
-        message: newMessage,
-        sender: 'user'
-      });
+      setWaitingForResponse(true);
+      return apiRequest("POST", "/api/chat", { message: newMessage, sender: "user" });
     },
     onSuccess: () => {
-      // Immediately fetch new messages to show the user's message
-      queryClient.invalidateQueries({ queryKey: ['/api/chat'] });
-      // Note: AI response will come via WebSocket, no need to poll
-    }
+      queryClient.invalidateQueries({ queryKey: ["/api/chat"] });
+    },
+    onError: () => {
+      setWaitingForResponse(false);
+    },
   });
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (message.trim() === '') return;
-    
-    sendMessage.mutate(message);
-    setMessage('');
-  };
-
-  // Listen for WebSocket AI response messages
+  // Clear the indicator whenever messages update with an assistant reply.
+  // This catches cases where the WebSocket notification was missed (e.g. during
+  // a reconnect) so the dots never stay stuck.
   useEffect(() => {
-    // Connect to WebSocket service if not already connected
-    if (webSocketService.getStatus() === 'CLOSED') {
-      webSocketService.connect();
+    if (messages.length > 0 && messages[messages.length - 1].sender === "assistant") {
+      setWaitingForResponse(false);
     }
-    
-    // Subscribe to MESSAGE type WebSocket messages for AI responses
-    const unsubscribe = webSocketService.on(WebSocketMessageType.MESSAGE, (payload) => {
-      if (payload.type === 'ai_chat_response') {
-        console.log('Received AI response via WebSocket:', payload);
-        
-        // Stop waiting for response
-        setWaitingForResponse(false);
-        
-        // Refresh chat messages to show the new AI response
-        queryClient.invalidateQueries({ queryKey: ['/api/chat'] });
-      }
-    });
-    
-    console.log('SalesAssistantChat: Subscribed to WebSocket AI responses');
-    
-    return () => {
-      unsubscribe();
-      console.log('SalesAssistantChat: Unsubscribed from WebSocket AI responses');
-    };
-  }, []);
-  
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // To display user initials in chat
-  const userInitials = getUserInitials(userName || "Jordan Doe");
-  
+  // Hard timeout — if somehow neither the WebSocket nor the messages update
+  // clears the state within 30 seconds, reset it anyway.
+  useEffect(() => {
+    if (!waitingForResponse) return;
+    const id = setTimeout(() => setWaitingForResponse(false), 30_000);
+    return () => clearTimeout(id);
+  }, [waitingForResponse]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+    sendMessage.mutate(message);
+    setMessage("");
+  };
+
+  useEffect(() => {
+    if (webSocketService.getStatus() === "CLOSED") {
+      webSocketService.connect();
+    }
+    const unsubscribe = webSocketService.on(WebSocketMessageType.MESSAGE, (payload) => {
+      if (payload.type === "ai_chat_response") {
+        setWaitingForResponse(false);
+        queryClient.invalidateQueries({ queryKey: ["/api/chat"] });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    // ScrollArea (Radix) renders a custom viewport — scrollIntoView walks up to the
+    // page and scrolls the wrong container. Target the viewport directly instead.
+    const viewport = scrollAreaRef.current?.querySelector<HTMLElement>(
+      "[data-radix-scroll-area-viewport]"
+    );
+    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+  }, [messages, waitingForResponse]);
+
+  const userInitials = getUserInitials(userName || "User");
+
   return (
-    <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-2xl shadow-2xl shadow-black/50 border border-white/10 overflow-hidden transition-all duration-300 hover:shadow-3xl hover:shadow-primary/20 hover:border-white/30 hover:scale-[1.02] transform-gpu">
-      <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm">
-        <div className="flex items-center">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-            <Bot className="h-7 w-7 text-white" />
+    <div className="bg-white dark:bg-dark-card rounded-3xl border border-earth/20 dark:border-earth/10 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="border-b border-earth/15 dark:border-earth/10 px-6 py-4 flex items-center justify-between bg-sage/5 dark:bg-sage/10">
+        <div className="flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-sage flex items-center justify-center shadow-md">
+            <Mountain className="h-6 w-6 text-white" />
           </div>
-          <div className="ml-4">
-            <h2 className="text-lg font-bold text-white">Sales Sherpa Assistant</h2>
-            <p className="text-sm text-gray-300 font-medium">AI-powered guidance</p>
+          <div>
+            <h2 className="text-base font-bold text-forest dark:text-parchment">Sherpa Assistant</h2>
+            <p className="text-xs text-forest/50 dark:text-parchment/50">AI-powered guidance</p>
           </div>
         </div>
-        <div>
-          <button 
-            className="text-white/80 hover:text-white transition-colors p-2 rounded-md hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20"
-            aria-label="Expand chat"
-          >
-            <Maximize2 className="h-5 w-5" />
-          </button>
-        </div>
+        <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" title="Online" />
       </div>
-      
-      <ScrollArea className="p-5 h-96">
+
+      {/* Messages */}
+      <ScrollArea className="p-5 h-80" ref={scrollAreaRef}>
         {isLoading ? (
           <div className="flex flex-col justify-center items-center h-full gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
-            <p className="text-sm text-muted-foreground">Loading conversation...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-clay border-t-transparent" />
+            <p className="text-sm text-forest/50 dark:text-parchment/50">Loading conversation…</p>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
+            <div className="w-14 h-14 rounded-2xl bg-sage/10 flex items-center justify-center mb-4">
+              <Mountain className="h-7 w-7 text-sage" />
+            </div>
+            <h3 className="text-base font-bold text-forest dark:text-parchment mb-2">
+              Welcome to Sherpa Assistant
+            </h3>
+            <p className="text-sm text-forest/50 dark:text-parchment/50 mb-5">
+              Ask about sales strategies, meeting prep, or get guidance on hitting your targets.
+            </p>
+            <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
+              {[
+                "How can I improve my close rate?",
+                "Tips for better client meetings",
+                "Help me with follow-up strategies",
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => {
+                    setMessage(suggestion);
+                    setTimeout(() => sendMessage.mutate(suggestion), 50);
+                  }}
+                  className="text-sm px-4 py-2.5 rounded-2xl border border-earth/30 hover:bg-earth/10 transition-colors text-left text-forest dark:text-parchment"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <>
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-60 text-center px-6">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Bot className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">Welcome to your Sales Sherpa Assistant</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Ask questions about sales strategies, meeting preparation, or get guidance on achieving your targets.
-                </p>
-                <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
-                  {["How can I improve my close rate?", "Tips for better client meetings", "Help me with follow-up strategies"].map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      onClick={() => {
-                        setMessage(suggestion);
-                        setTimeout(() => {
-                          handleSubmit(new Event('click') as any);
-                        }, 100);
-                      }}
-                      className="text-sm px-4 py-2 rounded-lg border border-border hover:bg-muted/80 transition-colors text-left"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <>
-                {messages.map((msg, index) => (
-                  <div 
-                    key={msg.id} 
-                    className={`flex mb-6 ${msg.sender === 'user' ? 'justify-end' : ''} group`}
-                  >
-                    {msg.sender === 'assistant' && (
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center shadow-lg border border-white/10">
-                        <Bot className="h-5 w-5 text-white" />
-                      </div>
-                    )}
-                    
-                    {msg.sender === 'user' && (
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-600 to-gray-700 flex-shrink-0 flex items-center justify-center shadow-lg border border-white/10 order-2">
-                        <span className="text-white font-semibold text-sm">{userInitials}</span>
-                      </div>
-                    )}
-                    
-                    <div 
-                      className={`${msg.sender === 'assistant' 
-                        ? 'ml-4 bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-2xl rounded-tl-md py-4 px-5 max-w-[85%] shadow-xl' 
-                        : 'mr-4 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl rounded-tr-md py-4 px-5 max-w-[85%] shadow-xl border border-blue-500/30'}`}
-                    >
-                      <p 
-                        className={msg.sender === 'assistant' 
-                          ? 'text-sm text-gray-100 leading-relaxed font-medium' 
-                          : 'text-sm text-white leading-relaxed font-medium'}
-                      >
-                        {msg.message}
-                      </p>
-                      <div className="flex justify-between items-center mt-1.5">
-                        <p 
-                          className={msg.sender === 'assistant' 
-                            ? 'text-[10px] text-muted-foreground' 
-                            : 'text-[10px] text-primary-foreground/80'}
-                        >
-                          {formatTime(msg.timestamp)}
-                        </p>
-                        
-                        {msg.sender === 'assistant' && (
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button 
-                              className="p-1 text-muted-foreground hover:text-foreground"
-                              aria-label="Copy message"
-                              onClick={() => {
-                                navigator.clipboard.writeText(msg.message);
-                                // Could add toast here
-                              }}
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                              </svg>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                  </div>
-                ))}
-                
-                {/* AI thinking indicator */}
-                {waitingForResponse && (
-                  <div className="flex mb-5">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center shadow-lg border border-white/10">
-                      <Bot className="h-5 w-5 text-white" />
-                    </div>
-                    
-                    <div className="ml-3 bg-muted rounded-2xl rounded-tl-none py-3 px-4 max-w-[85%] shadow-sm min-w-[80px]">
-                      <div className="flex items-center space-x-1.5">
-                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
-                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '600ms' }}></div>
-                      </div>
-                    </div>
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex mb-4 group ${msg.sender === "user" ? "justify-end" : ""}`}
+              >
+                {msg.sender === "assistant" && (
+                  <div className="w-9 h-9 rounded-xl bg-sage flex-shrink-0 flex items-center justify-center shadow-sm border border-sage/20 mr-3">
+                    <Mountain className="h-4 w-4 text-white" />
                   </div>
                 )}
-              </>
+
+                <div
+                  className={
+                    msg.sender === "assistant"
+                      ? "bg-cream dark:bg-dark-bg/60 border border-earth/15 dark:border-earth/10 rounded-2xl rounded-tl-md py-3 px-4 max-w-[82%]"
+                      : "mr-3 bg-clay rounded-2xl rounded-tr-md py-3 px-4 max-w-[82%]"
+                  }
+                >
+                  <p
+                    className={`text-sm leading-relaxed ${
+                      msg.sender === "assistant"
+                        ? "text-forest dark:text-parchment"
+                        : "text-white"
+                    }`}
+                  >
+                    {msg.message}
+                  </p>
+                  <p
+                    className={`text-[10px] mt-1 ${
+                      msg.sender === "assistant"
+                        ? "text-forest/40 dark:text-parchment/40"
+                        : "text-white/70"
+                    }`}
+                  >
+                    {formatTime(msg.timestamp)}
+                  </p>
+                </div>
+
+                {msg.sender === "user" && (
+                  <div className="w-9 h-9 rounded-xl bg-forest/20 flex-shrink-0 flex items-center justify-center shadow-sm ml-0">
+                    <span className="text-xs font-bold text-forest dark:text-parchment">{userInitials}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {waitingForResponse && (
+              <div className="flex mb-4">
+                <div className="w-9 h-9 rounded-xl bg-sage flex-shrink-0 flex items-center justify-center shadow-sm border border-sage/20 mr-3">
+                  <Mountain className="h-4 w-4 text-white" />
+                </div>
+                <div className="bg-cream dark:bg-dark-bg/60 border border-earth/15 rounded-2xl rounded-tl-md py-3 px-4">
+                  <div className="flex items-center gap-1.5">
+                    {[0, 300, 600].map((delay) => (
+                      <div
+                        key={delay}
+                        className="w-2 h-2 bg-clay/60 rounded-full animate-pulse"
+                        style={{ animationDelay: `${delay}ms` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
           </>
         )}
-        <div ref={messagesEndRef} />
       </ScrollArea>
-      
-      <div className="px-5 py-4 border-t border-border/40 bg-card">
-        <form className="flex items-center" onSubmit={handleSubmit}>
-          <Input 
-            type="text" 
-            placeholder="Ask your Sales Sherpa Assistant..."
-            className="flex-1 border border-border/60 focus-visible:ring-1 focus-visible:ring-primary text-sm rounded-lg py-2.5"
+
+      {/* Input */}
+      <div className="px-5 py-4 border-t border-earth/15 dark:border-earth/10 bg-cream/50 dark:bg-dark-bg/30">
+        <form className="flex items-center gap-2" onSubmit={handleSubmit}>
+          <Input
+            type="text"
+            placeholder="Ask your Sherpa…"
+            className="flex-1 rounded-2xl border-earth/30 dark:border-earth/15 focus-visible:ring-1 focus-visible:ring-clay bg-white dark:bg-dark-card text-sm"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             disabled={sendMessage.isPending}
           />
-          <Button 
-            type="submit" 
-            size="default" 
-            className="ml-2 h-10 px-4 bg-primary hover:bg-primary/90 text-white flex items-center gap-1.5" 
-            disabled={sendMessage.isPending || message.trim() === ''}
+          <Button
+            type="submit"
+            className="bg-clay hover:bg-clay/90 text-white rounded-2xl px-5"
+            disabled={sendMessage.isPending || !message.trim()}
           >
-            <span>Send</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
+            Send
           </Button>
         </form>
       </div>

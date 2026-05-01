@@ -71,30 +71,64 @@ const SIGNAL_REGEXES: Record<string, RegExp> = Object.fromEntries(
   ])
 );
 
-const THRESHOLD = 2;
+// Weight multiplier per day of age — a match 7 days ago is worth ~0.85^7 ≈ 0.32
+// relative to a match today. Keeps recent signal dominant without discarding history.
+const DECAY = 0.85;
+
+// Minimum weighted score to surface a pattern. Roughly equivalent to
+// two matches within the last few days.
+const WEIGHTED_THRESHOLD = 1.5;
+
+// Minimum consecutive recent check-ins to label a pattern as escalating.
+const STREAK_MIN = 3;
 
 export function detectPatterns(checkIns: CheckIn[]): string[] {
-  if (checkIns.length < THRESHOLD) return [];
+  if (checkIns.length < 2) return [];
 
-  const checkInTexts = checkIns.map((ci) =>
-    [ci.achievements, ci.challenges, ci.reflection, ci.goals]
-      .filter(Boolean)
-      .join(" ")
-  );
+  const now = Date.now();
 
-  const counts: Record<string, number> = {};
+  // Build weighted entries sorted newest-first so streak detection
+  // walks from most recent outward.
+  const entries = checkIns
+    .map((ci) => {
+      const daysAgo = Math.max(0, (now - new Date(ci.date).getTime()) / 86_400_000);
+      const text = [ci.achievements, ci.challenges, ci.reflection, ci.goals]
+        .filter(Boolean)
+        .join(" ");
+      return { weight: Math.pow(DECAY, daysAgo), text };
+    })
+    .sort((a, b) => b.weight - a.weight);
+
+  const results: Array<{
+    label: string;
+    weightedScore: number;
+    rawCount: number;
+    streak: number;
+  }> = [];
 
   for (const [label, regex] of Object.entries(SIGNAL_REGEXES)) {
-    const matchCount = checkInTexts.filter((text) => regex.test(text)).length;
-    if (matchCount >= THRESHOLD) {
-      counts[label] = matchCount;
+    const matching = entries.filter(({ text }) => regex.test(text));
+    const weightedScore = matching.reduce((sum, { weight }) => sum + weight, 0);
+
+    if (weightedScore < WEIGHTED_THRESHOLD) continue;
+
+    // Walk newest-first to find the unbroken streak length.
+    let streak = 0;
+    for (const { text } of entries) {
+      if (regex.test(text)) streak++;
+      else break;
     }
+
+    results.push({ label, weightedScore, rawCount: matching.length, streak });
   }
 
-  if (Object.keys(counts).length === 0) return [];
-
-  return Object.entries(counts)
-    .sort(([, a], [, b]) => b - a)
+  return results
+    .sort((a, b) => b.weightedScore - a.weightedScore)
     .slice(0, 3)
-    .map(([label, count]) => `"${label}" came up in ${count} of the last ${checkIns.length} check-ins`);
+    .map(({ label, rawCount, streak }) => {
+      if (streak >= STREAK_MIN) {
+        return `"${label}" — ${streak} check-ins in a row (escalating trend)`;
+      }
+      return `"${label}" — came up in ${rawCount} of the last ${entries.length} check-ins`;
+    });
 }

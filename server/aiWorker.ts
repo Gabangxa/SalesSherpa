@@ -1,5 +1,6 @@
 import { natsSubscribe, natsPublish } from './nats';
 import { generateResponse } from './ai/index';
+import { maybeExtractInsights } from './ai/insightExtractor';
 import { storage } from './storage';
 import { log } from './vite';
 
@@ -39,6 +40,10 @@ export function startAiWorker(): void {
         },
         timestamp: Date.now(),
       });
+
+      // recentMessages was fetched before the AI response was saved,
+      // so total = recentMessages.length + 1 (the AI message just saved).
+      maybeExtractInsights(userId, recentMessages.length + 1, storage);
 
       log(`AI worker processed chat for user ${userId}`);
     } catch (err) {

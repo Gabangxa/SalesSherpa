@@ -31,13 +31,7 @@ async function comparePasswords(supplied: string, stored: string) {
   if (!stored) {
     return false;
   }
-  
-  // Handle plain text passwords (development mode)
-  if (!stored.includes('.')) {
-    return supplied === stored;
-  }
-  
-  // Handle hashed passwords (production mode)
+
   const [hashed, salt] = stored.split(".");
   if (!hashed || !salt) {
     return false;

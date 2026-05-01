@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useCheckInAlerts } from '@/hooks/use-check-in-alerts';
-import { CheckInAlert } from '@shared/schema';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { useAlertHistory } from '@/hooks/use-alert-history';
+import type { CheckInAlert } from '@shared/schema';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import CheckInAlertForm from '@/components/forms/CheckInAlertForm';
 import { formatTime } from '@/lib/dateUtils';
 import { Switch } from '@/components/ui/switch';
@@ -17,33 +18,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Bell, Clock, CalendarDays, Edit, Trash2, Globe, Play } from 'lucide-react';
+import { Bell, Clock, CalendarDays, Edit, Trash2, Globe, Play, ChevronDown, ChevronUp, History } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatTimeWithTimezone } from '@/lib/timezoneUtils';
 import { useAlertChecker } from '@/components/providers/AlertCheckerProvider';
 
 export default function CheckInAlerts() {
-  const { 
-    alerts, 
-    isLoading, 
-    selectedAlert, 
-    setSelectedAlert, 
-    createAlertMutation, 
+  const {
+    alerts,
+    isLoading,
+    selectedAlert,
+    setSelectedAlert,
+    createAlertMutation,
     updateAlertMutation,
     deleteAlertMutation,
   } = useCheckInAlerts();
-  
+
   const { triggerAlert } = useAlertChecker();
-  
+  const { history, isLoading: historyLoading } = useAlertHistory();
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const handleCreateAlert = (data: Omit<CheckInAlert, 'id' | 'userId'>) => {
+  const handleCreateAlert = (data: Pick<CheckInAlert, 'title' | 'message' | 'time' | 'days' | 'timezone' | 'enabled'>) => {
     createAlertMutation.mutate(data as any);
     setIsFormOpen(false);
   };
 
-  const handleUpdateAlert = (data: Omit<CheckInAlert, 'id' | 'userId'>) => {
+  const handleUpdateAlert = (data: Pick<CheckInAlert, 'title' | 'message' | 'time' | 'days' | 'timezone' | 'enabled'>) => {
     if (selectedAlert) {
       updateAlertMutation.mutate({
         id: selectedAlert.id,
@@ -101,24 +104,22 @@ export default function CheckInAlerts() {
                      deleteAlertMutation.isPending;
 
   return (
-    <Card className="shadow-md">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-xl font-bold">Check-in Alerts</CardTitle>
-          <CardDescription>
-            Set up reminders to keep you accountable for your daily check-ins
-          </CardDescription>
-        </div>
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <p className="text-sm text-forest/55 dark:text-parchment/55">
+          Set reminders to keep your daily check-ins consistent.
+        </p>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
-            <Button 
+            <Button
               onClick={() => setSelectedAlert(null)}
-              className="bg-gradient-to-r from-primary to-primary/80"
+              className="bg-clay hover:bg-clay/90 text-white rounded-2xl px-4 text-sm"
             >
-              Add Alert
+              Add reminder
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[550px]">
+            <VisuallyHidden><DialogTitle>Check-in Alert</DialogTitle></VisuallyHidden>
             <CheckInAlertForm
               alert={selectedAlert || undefined}
               onSubmit={selectedAlert ? handleUpdateAlert : handleCreateAlert}
@@ -128,111 +129,172 @@ export default function CheckInAlerts() {
             />
           </DialogContent>
         </Dialog>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <p>Loading alerts...</p>
-          </div>
-        ) : alerts.length === 0 ? (
-          <div className="text-center py-8 border rounded-md bg-muted/50">
-            <Bell className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-            <h3 className="text-lg font-medium">No alerts configured</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Create an alert to receive daily check-in reminders
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {alerts.map((alert) => (
-              <div 
-                key={alert.id} 
-                className={`p-4 border rounded-md flex items-center justify-between transition-all ${
-                  alert.enabled ? 'bg-card' : 'bg-muted/30 opacity-80'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${alert.enabled ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                    <Bell className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">{alert.title}</h3>
-                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" /> 
-                        {formatTime(new Date(`2000-01-01T${alert.time}:00`))}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <CalendarDays className="h-3.5 w-3.5" /> 
-                        {formatDays(alert.days)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Globe className="h-3.5 w-3.5" /> 
-                        {alert.timezone || 'UTC'}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {alert.timezone && formatTimeWithTimezone(alert.time, alert.timezone)}
-                    </div>
-                  </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-clay border-t-transparent" />
+        </div>
+      ) : alerts.length === 0 ? (
+        <div className="text-center py-10 rounded-2xl border border-dashed border-earth/30 dark:border-earth/15 bg-earth/5 dark:bg-earth/5">
+          <Bell className="mx-auto h-7 w-7 text-forest/30 dark:text-parchment/30 mb-3" />
+          <p className="text-sm font-medium text-forest/60 dark:text-parchment/60">No reminders yet</p>
+          <p className="text-xs text-forest/40 dark:text-parchment/35 mt-1">
+            Add one above to start getting nudged.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {alerts.map((alert) => (
+            <div
+              key={alert.id}
+              className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${
+                alert.enabled
+                  ? 'border-earth/20 dark:border-earth/10 bg-cream/50 dark:bg-dark-bg/30'
+                  : 'border-earth/10 dark:border-earth/10 bg-earth/5 dark:bg-earth/5 opacity-70'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${alert.enabled ? 'bg-clay/15 text-clay' : 'bg-earth/10 text-forest/40 dark:text-parchment/30'}`}>
+                  <Bell className="h-4 w-4" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={alert.enabled} 
-                    onCheckedChange={() => handleToggleAlert(alert)} 
-                  />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => openEditForm(alert)}
-                    title="Edit alert"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => openDeleteDialog(alert)}
-                    title="Delete alert"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    title="Test alert notification"
-                    onClick={() => {
-                      if (alert && triggerAlert) triggerAlert(alert.id);
-                    }}
-                  >
-                    <Play className="h-4 w-4 text-green-600" />
-                  </Button>
+                <div>
+                  <p className="text-sm font-semibold text-forest dark:text-parchment">{alert.title}</p>
+                  <div className="flex flex-wrap items-center gap-3 mt-0.5 text-xs text-forest/50 dark:text-parchment/50">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatTime(new Date(`2000-01-01T${alert.time}:00`))}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" />
+                      {formatDays(alert.days)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Globe className="h-3 w-3" />
+                      {alert.timezone || 'UTC'}
+                    </span>
+                  </div>
+                  {alert.timezone && (
+                    <p className="text-[10px] text-forest/35 dark:text-parchment/30 mt-0.5">
+                      {formatTimeWithTimezone(alert.time, alert.timezone)}
+                    </p>
+                  )}
                 </div>
               </div>
-            ))}
+              <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+                <Switch
+                  checked={alert.enabled}
+                  onCheckedChange={() => handleToggleAlert(alert)}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openEditForm(alert)}
+                  title="Edit"
+                  className="text-forest/50 dark:text-parchment/50 hover:text-forest dark:hover:text-parchment"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openDeleteDialog(alert)}
+                  title="Delete"
+                  className="text-forest/50 dark:text-parchment/50 hover:text-red-500"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Test notification"
+                  onClick={() => { if (alert && triggerAlert) triggerAlert(alert.id); }}
+                  className="text-forest/50 dark:text-parchment/50 hover:text-sage"
+                >
+                  <Play className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Alert history */}
+      <div className="mt-6">
+        <button
+          onClick={() => setIsHistoryOpen((v) => !v)}
+          className="flex items-center gap-2 text-sm font-medium text-forest/60 dark:text-parchment/55 hover:text-forest dark:hover:text-parchment transition-colors w-full"
+        >
+          <History className="h-4 w-4" />
+          <span>Recent history</span>
+          {history.length > 0 && (
+            <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1.5 bg-earth/15 text-forest/60 dark:text-parchment/50 border-0">
+              {history.length}
+            </Badge>
+          )}
+          <span className="ml-auto">
+            {isHistoryOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </span>
+        </button>
+
+        {isHistoryOpen && (
+          <div className="mt-3 space-y-2">
+            {historyLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-clay border-t-transparent" />
+              </div>
+            ) : history.length === 0 ? (
+              <p className="text-xs text-forest/40 dark:text-parchment/35 text-center py-4">
+                No alerts have fired yet.
+              </p>
+            ) : (
+              history.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-xl bg-earth/5 dark:bg-earth/5 border border-earth/10 dark:border-earth/10"
+                >
+                  <Bell className="h-3.5 w-3.5 text-clay mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-forest dark:text-parchment truncate">{entry.title}</p>
+                    <p className="text-[10px] text-forest/45 dark:text-parchment/40 mt-0.5 leading-relaxed line-clamp-1">{entry.message}</p>
+                  </div>
+                  <time className="text-[10px] text-forest/35 dark:text-parchment/30 flex-shrink-0 mt-0.5">
+                    {new Date(entry.triggeredAt).toLocaleString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </time>
+                </div>
+              ))
+            )}
+            <p className="text-[10px] text-forest/30 dark:text-parchment/25 text-center pt-1">
+              History is kept for 2 days.
+            </p>
           </div>
         )}
-      </CardContent>
+      </div>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Check-in Alert</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this alert? This action cannot be undone.
+            <AlertDialogTitle className="text-forest dark:text-parchment">Delete reminder</AlertDialogTitle>
+            <AlertDialogDescription className="text-forest/55 dark:text-parchment/55">
+              This can't be undone. The reminder will stop firing immediately.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-2xl">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteAlert}
-              className="bg-destructive text-destructive-foreground"
+              className="bg-red-500 hover:bg-red-600 text-white rounded-2xl"
             >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   );
 }

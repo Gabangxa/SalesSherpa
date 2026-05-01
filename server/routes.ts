@@ -19,6 +19,7 @@ import { sendEmail, generateVerificationToken, generateVerificationEmail } from 
 import { z } from "zod";
 import { setupAuth } from "./auth";
 import { generateResponse, handleCheckInFlow } from "./ai/index";
+import { maybeExtractInsights } from "./ai/insightExtractor";
 import type { FlowType } from "./ai/checkInFlow";
 import { WebSocketServer, WebSocket } from 'ws';
 import { log } from "./vite";
@@ -30,6 +31,8 @@ import {
   insertTimeOffSchema, 
   insertChatMessageSchema, 
   insertCheckInAlertSchema,
+  insertMeetingNoteSchema,
+  insertNoteTemplateSchema,
   CheckInAlert
 } from "@shared/schema";
 import { DateTime } from "luxon";
@@ -52,6 +55,13 @@ interface WebSocketMessage {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Parse a route/query param as a positive integer; returns null on failure.
+  function parseId(value: string | undefined): number | null {
+    if (!value) return null;
+    const n = parseInt(value, 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
   // Authentication middleware using Passport
   const authenticateUser = (req: Request, res: Response, next: Function) => {
     if (!req.isAuthenticated()) {
@@ -130,9 +140,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.patch("/api/goals/:id", authenticateUser, async (req, res) => {
     try {
-      const goalId = parseInt(req.params.id);
+      const goalId = parseId(req.params.id);
+      if (!goalId) return res.status(400).json({ message: "Invalid goal ID" });
       const goal = await storage.getGoal(goalId);
-      
+
       if (!goal) {
         return res.status(404).json({ message: "Goal not found" });
       }
@@ -140,8 +151,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (goal.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
-      const updatedGoal = await storage.updateGoal(goalId, req.body);
+
+      // Only allow mutable fields — prevents id/userId mass-assignment
+      const { title, targetAmount, currentAmount, startingAmount, deadline, category, valueType } = req.body;
+      const updatedGoal = await storage.updateGoal(goalId, { title, targetAmount, currentAmount, startingAmount, deadline, category, valueType });
       
       if (updatedGoal) {
         // Send WebSocket notification to user about goal update
@@ -167,13 +180,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.delete("/api/goals/:id", authenticateUser, async (req, res) => {
     try {
-      const goalId = parseInt(req.params.id);
+      const goalId = parseId(req.params.id);
+      if (!goalId) return res.status(400).json({ message: "Invalid goal ID" });
       const goal = await storage.getGoal(goalId);
-      
+
       if (!goal) {
         return res.status(404).json({ message: "Goal not found" });
       }
-      
+
       if (goal.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -204,8 +218,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Team routes
   app.get("/api/teams/user/:userId", authenticateUser, requirePro, async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      
+      const userId = parseId(req.params.userId);
+      if (!userId) return res.status(400).json({ message: "Invalid user ID" });
+
       // Security: Users can only access their own teams
       if (userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized to view teams for this user" });
@@ -386,8 +401,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Team activity feed
   app.get("/api/teams/:teamId/activities", authenticateUser, requirePro, async (req, res) => {
     try {
-      const teamId = parseInt(req.params.teamId);
-      const limit = parseInt(req.query.limit as string) || 20;
+      const teamId = parseId(req.params.teamId);
+      if (!teamId) return res.status(400).json({ message: "Invalid team ID" });
+      const limit = Math.min(parseId(req.query.limit as string) ?? 20, 100);
       
       // Verify user is member of the team
       const membership = await storage.getUserTeamMembership(req.body.userId, teamId);
@@ -538,18 +554,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.patch("/api/tasks/:id", authenticateUser, async (req, res) => {
     try {
-      const taskId = parseInt(req.params.id);
+      const taskId = parseId(req.params.id);
+      if (!taskId) return res.status(400).json({ message: "Invalid task ID" });
       const task = await storage.getTask(taskId);
-      
+
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
       }
-      
+
       if (task.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
-      const updatedTask = await storage.updateTask(taskId, req.body);
+
+      // Only allow mutable fields — prevents id/userId mass-assignment
+      const { title, description, priority, completed, dueDate } = req.body;
+      const updatedTask = await storage.updateTask(taskId, { title, description, priority, completed, dueDate });
       return res.status(200).json(updatedTask);
     } catch (error) {
       return res.status(500).json({ message: "Server error" });
@@ -558,7 +577,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.delete("/api/tasks/:id", authenticateUser, async (req, res) => {
     try {
-      const taskId = parseInt(req.params.id);
+      const taskId = parseId(req.params.id);
+      if (!taskId) return res.status(400).json({ message: "Invalid task ID" });
       const task = await storage.getTask(taskId);
       
       if (!task) {
@@ -630,7 +650,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/check-ins/:id", authenticateUser, async (req, res) => {
     try {
-      const checkInId = parseInt(req.params.id);
+      const checkInId = parseId(req.params.id);
+      if (!checkInId) return res.status(400).json({ message: "Invalid check-in ID" });
       const checkIn = await storage.getCheckIn(checkInId);
       
       if (!checkIn) {
@@ -728,6 +749,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             log(`AI response saved with ID: ${savedAIMessage.id}`, "chat");
 
+            // recentMessages was fetched before the AI response was saved,
+            // so total = recentMessages.length + 1.
+            maybeExtractInsights(req.body.userId, recentMessages.length + 1, storage);
+
             sendMessageToUser(req.body.userId, {
               type: WebSocketMessageType.MESSAGE,
               payload: {
@@ -775,35 +800,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Sales metrics routes
   app.get("/api/sales-metrics", authenticateUser, requirePro, async (req, res) => {
+  // Web push routes
+  app.get("/api/push/vapid-public-key", (_req, res) => {
+    const { vapidPublicKey, isWebPushConfigured } = pushService;
+    if (!isWebPushConfigured) {
+      return res.status(503).json({ message: "Push notifications not configured" });
+    }
+    return res.json({ publicKey: vapidPublicKey });
+  });
+
+  app.post("/api/push/subscribe", authenticateUser, async (req, res) => {
     try {
-      const metrics = await storage.getSalesMetrics(req.body.userId);
-      
-      if (!metrics) {
-        return res.status(404).json({ message: "Sales metrics not found" });
+      const { endpoint, p256dh, auth } = req.body;
+      if (!endpoint || !p256dh || !auth) {
+        return res.status(400).json({ message: "endpoint, p256dh and auth are required" });
       }
-      
-      return res.status(200).json(metrics);
+      const sub = await storage.createPushSubscription({
+        userId: req.body.userId,
+        endpoint,
+        p256dh,
+        auth,
+      });
+      return res.status(201).json(sub);
     } catch (error) {
+      console.error("Error creating push subscription:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
   
   app.patch("/api/sales-metrics", authenticateUser, requirePro, async (req, res) => {
+
+  app.delete("/api/push/subscribe", authenticateUser, async (req, res) => {
     try {
-      const userId = req.body.userId;
-      const updates = {
-        newAccountsTarget: req.body.newAccountsTarget,
-        meetingsTarget: req.body.meetingsTarget,
-        tripsTarget: req.body.tripsTarget,
-      };
-      
-      const metrics = await storage.updateSalesMetrics(userId, updates);
-      
-      if (!metrics) {
-        return res.status(404).json({ message: "Sales metrics not found" });
-      }
-      
-      return res.status(200).json(metrics);
+      const { endpoint } = req.body;
+      if (!endpoint) return res.status(400).json({ message: "endpoint is required" });
+      await storage.deletePushSubscriptionByEndpoint(endpoint);
+      return res.status(204).send();
     } catch (error) {
       return res.status(500).json({ message: "Server error" });
     }
@@ -841,27 +873,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/check-in-alerts/:id", authenticateUser, async (req, res) => {
     try {
-      const alertId = parseInt(req.params.id);
+      const alertId = parseId(req.params.id);
+      if (!alertId) return res.status(400).json({ message: "Invalid alert ID" });
       const alert = await storage.getCheckInAlert(alertId);
-      
+
       if (!alert) {
         return res.status(404).json({ message: "Alert not found" });
       }
-      
+
       if (alert.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       return res.status(200).json(alert);
     } catch (error) {
       console.error("Error getting check-in alert by ID:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
-  
+
   app.patch("/api/check-in-alerts/:id", authenticateUser, async (req, res) => {
     try {
-      const alertId = parseInt(req.params.id);
+      const alertId = parseId(req.params.id);
+      if (!alertId) return res.status(400).json({ message: "Invalid alert ID" });
       const alert = await storage.getCheckInAlert(alertId);
       
       if (!alert) {
@@ -871,8 +905,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (alert.userId !== req.body.userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
-      const updatedAlert = await storage.updateCheckInAlert(alertId, req.body);
+
+      // Only allow mutable fields — prevents id/userId mass-assignment
+      const { time, days, timezone, enabled, title, message: alertMessage } = req.body;
+      const updatedAlert = await storage.updateCheckInAlert(alertId, { time, days, timezone, enabled, title, message: alertMessage });
       return res.status(200).json(updatedAlert);
     } catch (error) {
       console.error("Error updating check-in alert:", error);
@@ -882,7 +918,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.delete("/api/check-in-alerts/:id", authenticateUser, async (req, res) => {
     try {
-      const alertId = parseInt(req.params.id);
+      const alertId = parseId(req.params.id);
+      if (!alertId) return res.status(400).json({ message: "Invalid alert ID" });
       const alert = await storage.getCheckInAlert(alertId);
       
       if (!alert) {
@@ -907,6 +944,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const sub = await storage.getSubscription(req.body.userId);
       return res.status(200).json(sub ?? { plan: "free", status: "free" });
+  // Meeting notes routes
+  app.get("/api/meeting-notes", authenticateUser, async (req, res) => {
+    try {
+      const notes = await storage.getMeetingNotes(req.body.userId);
+      return res.status(200).json(notes);
     } catch (error) {
       return res.status(500).json({ message: "Server error" });
     }
@@ -947,6 +989,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       log(`Billing portal error: ${error instanceof Error ? error.message : String(error)}`, "billing");
       return res.status(500).json({ message: "Could not create portal session" });
+  app.post("/api/meeting-notes", authenticateUser, async (req, res) => {
+    try {
+      const { userId: _ignored, ...clientBody } = req.body;
+      const validatedData = insertMeetingNoteSchema.parse({ ...clientBody, userId: req.body.userId });
+      const note = await storage.createMeetingNote(validatedData);
+      return res.status(201).json(note);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid note data", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/meeting-notes/:id", authenticateUser, async (req, res) => {
+    try {
+      const noteId = parseId(req.params.id);
+      if (!noteId) return res.status(400).json({ message: "Invalid note ID" });
+      const note = await storage.getMeetingNote(noteId);
+      if (!note) return res.status(404).json({ message: "Not found" });
+      if (note.userId !== req.body.userId) return res.status(403).json({ message: "Not authorized" });
+      return res.status(200).json(note);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.patch("/api/meeting-notes/:id", authenticateUser, async (req, res) => {
+    try {
+      const noteId = parseId(req.params.id);
+      if (!noteId) return res.status(400).json({ message: "Invalid note ID" });
+      const note = await storage.getMeetingNote(noteId);
+      if (!note) return res.status(404).json({ message: "Not found" });
+      if (note.userId !== req.body.userId) return res.status(403).json({ message: "Not authorized" });
+      const { title, date, company, contactName, purpose, location, attendees, sections, templateId } = req.body;
+      const updated = await storage.updateMeetingNote(noteId, { title, date, company, contactName, purpose, location, attendees, sections, templateId });
+      return res.status(200).json(updated);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/meeting-notes/:id", authenticateUser, async (req, res) => {
+    try {
+      const noteId = parseId(req.params.id);
+      if (!noteId) return res.status(400).json({ message: "Invalid note ID" });
+      const note = await storage.getMeetingNote(noteId);
+      if (!note) return res.status(404).json({ message: "Not found" });
+      if (note.userId !== req.body.userId) return res.status(403).json({ message: "Not authorized" });
+      await storage.deleteMeetingNote(noteId);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Note template routes
+  app.get("/api/note-templates", authenticateUser, async (req, res) => {
+    try {
+      const templates = await storage.getNoteTemplates(req.body.userId);
+      return res.status(200).json(templates);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/note-templates", authenticateUser, async (req, res) => {
+    try {
+      const validatedData = insertNoteTemplateSchema.parse({ ...req.body, userId: req.body.userId });
+      const template = await storage.createNoteTemplate(validatedData);
+      return res.status(201).json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid template data", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.patch("/api/note-templates/:id", authenticateUser, async (req, res) => {
+    try {
+      const templateId = parseId(req.params.id);
+      if (!templateId) return res.status(400).json({ message: "Invalid template ID" });
+      const template = await storage.getNoteTemplate(templateId);
+      if (!template) return res.status(404).json({ message: "Not found" });
+      if (template.userId !== req.body.userId) return res.status(403).json({ message: "Not authorized" });
+      const { name, sections, isDefault } = req.body;
+      const updated = await storage.updateNoteTemplate(templateId, { name, sections, isDefault });
+      return res.status(200).json(updated);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/note-templates/:id", authenticateUser, async (req, res) => {
+    try {
+      const templateId = parseId(req.params.id);
+      if (!templateId) return res.status(400).json({ message: "Invalid template ID" });
+      const template = await storage.getNoteTemplate(templateId);
+      if (!template) return res.status(404).json({ message: "Not found" });
+      if (template.userId !== req.body.userId) return res.status(403).json({ message: "Not authorized" });
+      await storage.deleteNoteTemplate(templateId);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/alert-history", authenticateUser, async (req, res) => {
+    try {
+      const history = await storage.getAlertHistory(req.body.userId);
+      return res.status(200).json(history);
+    } catch (error) {
+      console.error("Error fetching alert history:", error);
+      return res.status(500).json({ message: "Server error" });
     }
   });
 
@@ -1015,26 +1172,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
             break;
             
           case WebSocketMessageType.ALERT:
-            // Broadcast alert to all connected clients
+            // Only authenticated clients may broadcast alerts
+            if (!clientInfo?.userId) {
+              ws.send(JSON.stringify({
+                type: WebSocketMessageType.ERROR,
+                payload: { error: 'Authentication required to send alerts' },
+                timestamp: Date.now()
+              }));
+              break;
+            }
             broadcastMessage({
               type: WebSocketMessageType.ALERT,
               payload: {
                 ...message.payload,
-                sourceSessionId: clientInfo?.sessionId,
+                sourceSessionId: clientInfo.sessionId,
                 timestamp: new Date().toISOString()
               },
               timestamp: Date.now()
             });
             break;
-            
+
           case WebSocketMessageType.NOTIFICATION:
-            // Handle notifications, potentially storing them
-            // Could add code here to save notifications to the database
+            // Only authenticated clients may broadcast notifications
+            if (!clientInfo?.userId) {
+              ws.send(JSON.stringify({
+                type: WebSocketMessageType.ERROR,
+                payload: { error: 'Authentication required to send notifications' },
+                timestamp: Date.now()
+              }));
+              break;
+            }
             broadcastMessage({
               type: WebSocketMessageType.NOTIFICATION,
               payload: {
                 ...message.payload,
-                sourceSessionId: clientInfo?.sessionId,
+                sourceSessionId: clientInfo.sessionId,
                 timestamp: new Date().toISOString()
               },
               timestamp: Date.now()
@@ -1171,24 +1343,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const enabledAlerts = alerts.filter(alert => alert.enabled);
             
             if (enabledAlerts.length === 0) continue;
-            
-            // Get current time and day
-            const now = new Date();
-            const currentDay = dayMapping[now.getDay()];
-            
+
             for (const alert of enabledAlerts) {
-              // Check if current day is in alert's days
-              if (!alert.days.includes(currentDay)) continue;
-              
-              // Get current time in alert's timezone
+              // Derive current time in the alert's own timezone (fixes UTC day-of-week bug)
               const alertTimezone = alert.timezone || 'America/New_York';
               const currentTimeInAlertTz = DateTime.now().setZone(alertTimezone);
-              const currentTimeStr = currentTimeInAlertTz.toFormat('HH:mm');
-              
+              const currentDay = currentTimeInAlertTz.weekdayLong?.toLowerCase();
+
+              // Check if current day is in alert's days
+              if (!currentDay || !alert.days.includes(currentDay)) continue;
+
               // Parse alert time
               const [alertHour, alertMinute] = alert.time.split(':').map(Number);
-              const alertTime = DateTime.now().setZone(alertTimezone).set({ 
-                hour: alertHour, 
+              const alertTime = currentTimeInAlertTz.set({
+                hour: alertHour,
                 minute: alertMinute,
                 second: 0,
                 millisecond: 0
@@ -1217,7 +1385,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
                 sendMessageToUser(user.id, alertMessage);
                 log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
+
+              // Check if current time is within the 30-second check interval of alert time
+              const timeDiff = Math.abs(currentTimeInAlertTz.diff(alertTime, 'seconds').seconds);
+
+              if (timeDiff > 30) continue;
+
+              // Deduplicate: skip if this alert already fired within the last 5 minutes
+              if (alert.lastTriggeredAt) {
+                const minutesSinceLast = DateTime.now().diff(DateTime.fromJSDate(alert.lastTriggeredAt), 'minutes').minutes;
+                if (minutesSinceLast < 5) continue;
               }
+
+              // Stamp lastTriggeredAt before sending so concurrent ticks can't double-fire
+              await storage.updateCheckInAlert(alert.id, { lastTriggeredAt: new Date() });
+
+              // Send WebSocket notification to user
+              const alertMessage: WebSocketMessage = {
+                type: WebSocketMessageType.ALERT,
+                payload: {
+                  type: 'check_in_alert',
+                  alertId: alert.id,
+                  title: alert.title,
+                  message: alert.message,
+                  timestamp: new Date().toISOString()
+                },
+                timestamp: Date.now()
+              };
+
+              sendMessageToUser(user.id, alertMessage);
+
+              // Also send web push to all subscribed browsers/devices
+              if (pushService.isWebPushConfigured) {
+                const subs = await storage.getPushSubscriptions(user.id);
+                for (const sub of subs) {
+                  const result = await pushService.sendPushToSubscription(sub, {
+                    title: alert.title,
+                    body: alert.message,
+                    url: "/check-in",
+                    tag: `alert-${alert.id}`,
+                  }).catch(() => "expired" as const);
+                  if (result === "expired") {
+                    await storage.deletePushSubscriptionByEndpoint(sub.endpoint);
+                  }
+                }
+              }
+
+              log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
+              await storage.createAlertHistory({ alertId: alert.id, userId: user.id, title: alert.title, message: alert.message });
+              storage.deleteOldAlertHistory().catch(() => {});
             }
           } catch (error) {
             log(`Error checking alerts for user ${user.id}: ${error}`);

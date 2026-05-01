@@ -27,7 +27,7 @@ if (!process.env.GOOGLE_AI_KEY) {
 }
 
 const genai = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
-const MODEL = "gemini-1.5-flash";
+const MODEL = "gemini-2.5-pro";
 
 export async function generateResponse(
   userId: number,
@@ -35,13 +35,15 @@ export async function generateResponse(
   history: ChatMessage[],
   storage: IStorage
 ): Promise<string> {
-  const ctx = await buildUserContext(userId, storage);
+  const ctx = await buildUserContext(userId, storage, userMessage);
   const systemPrompt = buildSystemPrompt(SHERPA_PERSONA, ctx);
 
-  const chatHistory = history.slice(-20).map((m) => ({
+  const mapped = history.slice(-20).map((m) => ({
     role: m.sender === "user" ? ("user" as const) : ("model" as const),
     parts: [{ text: m.message }],
   }));
+  const firstUser = mapped.findIndex((m) => m.role === "user");
+  const chatHistory = firstUser > 0 ? mapped.slice(firstUser) : mapped;
 
   return callGemini(systemPrompt, chatHistory, userMessage);
 }
