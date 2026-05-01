@@ -17,6 +17,7 @@ export const users = pgTable("users", {
   googleId: text("google_id").unique(),
   profileImage: text("profile_image"),
   authProvider: text("auth_provider").notNull().default("local"), // 'local' or 'google'
+  polarCustomerId: text("polar_customer_id").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -33,6 +34,33 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Subscriptions schema — managed by Polar.sh webhooks, not written directly by users
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(), // one active record per user
+  polarSubscriptionId: text("polar_subscription_id").unique(),
+  polarProductId: text("polar_product_id"),
+  plan: text("plan").notNull().default("free"), // 'free' | 'starter' | 'pro'
+  status: text("status").notNull().default("free"), // 'free' | 'active' | 'canceled' | 'past_due' | 'revoked' | 'unpaid'
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).pick({
+  userId: true,
+  polarSubscriptionId: true,
+  polarProductId: true,
+  plan: true,
+  status: true,
+  currentPeriodEnd: true,
+  cancelAtPeriodEnd: true,
+});
+
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
 
 // Goals schema
 export const goals = pgTable("goals", {
@@ -304,6 +332,9 @@ export type InsertCheckInAlert = z.infer<typeof insertCheckInAlertSchema>;
 export type CheckInAlert = typeof checkInAlerts.$inferSelect;
 
 // Relations
+<<<<<<< railway_polar
+export const usersRelations = relations(users, ({ many, one }) => ({
+=======
 export const userInsightsRelations = relations(userInsights, ({ one }) => ({
   user: one(users, {
     fields: [userInsights.userId],
@@ -312,16 +343,24 @@ export const userInsightsRelations = relations(userInsights, ({ one }) => ({
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
+>>>>>>> master
   goals: many(goals),
   tasks: many(tasks),
   checkIns: many(checkIns),
   timeOffs: many(timeOff),
   chatMessages: many(chatMessages),
   checkInAlerts: many(checkInAlerts),
+<<<<<<< railway_polar
+  subscription: one(subscriptions, {
+    fields: [users.id],
+    references: [subscriptions.userId],
+  }),
+=======
   pushSubscriptions: many(pushSubscriptions),
   userInsights: many(userInsights),
   meetingNotes: many(meetingNotes),
   noteTemplates: many(noteTemplates),
+>>>>>>> master
   // Team collaboration relations
   ownedTeams: many(teams, { relationName: 'TeamOwner' }),
   teamMemberships: many(teamMemberships),
@@ -430,6 +469,11 @@ export const checkInAlertsRelations = relations(checkInAlerts, ({ one }) => ({
   }),
 }));
 
+<<<<<<< railway_polar
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+=======
 // Meeting notes schema
 export const meetingNotes = pgTable("meeting_notes", {
   id: serial("id").primaryKey(),
@@ -522,6 +566,7 @@ export const meetingNotesRelations = relations(meetingNotes, ({ one }) => ({
 export const noteTemplatesRelations = relations(noteTemplates, ({ one }) => ({
   user: one(users, {
     fields: [noteTemplates.userId],
+>>>>>>> master
     references: [users.id],
   }),
 }));

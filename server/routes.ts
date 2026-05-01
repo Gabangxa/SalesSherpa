@@ -1,5 +1,10 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { createCheckoutSession, createCustomerPortalUrl } from "./billing/polarService";
+import { handlePolarWebhook } from "./billing/webhookHandler";
+import { requirePro } from "./billing/subscriptionGate";
+
+const FREE_GOAL_LIMIT = 3;
 
 let alertInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -18,14 +23,13 @@ import { maybeExtractInsights } from "./ai/insightExtractor";
 import type { FlowType } from "./ai/checkInFlow";
 import { WebSocketServer, WebSocket } from 'ws';
 import { log } from "./vite";
-import { isNatsAvailable, natsPublish, natsSubscribe } from "./nats";
-import * as pushService from "./pushService";
-import {
-  insertCheckInSchema,
-  insertTaskSchema,
-  insertGoalSchema,
-  insertTimeOffSchema,
-  insertChatMessageSchema,
+import { isNatsAvailable, natsPublish, natsSubscribe, tryClaimAlert } from "./nats";
+import { 
+  insertCheckInSchema, 
+  insertTaskSchema, 
+  insertGoalSchema, 
+  insertTimeOffSchema, 
+  insertChatMessageSchema, 
   insertCheckInAlertSchema,
   insertMeetingNoteSchema,
   insertNoteTemplateSchema,
@@ -89,10 +93,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/goals", authenticateUser, async (req, res) => {
     try {
-      // The userId is already added to req.body by the authenticateUser middleware
-      // No need to extract it separately
-      
-      // Validate the data with the schema
+      const sub = await storage.getSubscription(req.body.userId);
+      const isProUser = sub?.status === "active" && sub?.plan !== "free";
+      if (!isProUser) {
+        const existingGoals = await storage.getGoals(req.body.userId);
+        if (existingGoals.length >= FREE_GOAL_LIMIT) {
+          return res.status(403).json({
+            message: "upgrade_required",
+            details: `Free tier is limited to ${FREE_GOAL_LIMIT} goals. Upgrade to Pro for unlimited goals.`,
+          });
+        }
+      }
+
       const validatedData = insertGoalSchema.parse(req.body);
       
       // For debugging
@@ -204,7 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Team Collaboration Routes
   // Team routes
-  app.get("/api/teams/user/:userId", authenticateUser, async (req, res) => {
+  app.get("/api/teams/user/:userId", authenticateUser, requirePro, async (req, res) => {
     try {
       const userId = parseId(req.params.userId);
       if (!userId) return res.status(400).json({ message: "Invalid user ID" });
@@ -221,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/teams", authenticateUser, async (req, res) => {
+  app.post("/api/teams", authenticateUser, requirePro, async (req, res) => {
     try {
       const teamData = {
         ...req.body,
@@ -258,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/teams/join", authenticateUser, async (req, res) => {
+  app.post("/api/teams/join", authenticateUser, requirePro, async (req, res) => {
     try {
       const { inviteCode } = req.body;
       const userId = req.body.userId;
@@ -319,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Shared goals routes
-  app.post("/api/shared-goals", authenticateUser, async (req, res) => {
+  app.post("/api/shared-goals", authenticateUser, requirePro, async (req, res) => {
     try {
       const { goalId, teamId, canEdit } = req.body;
       const userId = req.body.userId;
@@ -387,7 +399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Team activity feed
-  app.get("/api/teams/:teamId/activities", authenticateUser, async (req, res) => {
+  app.get("/api/teams/:teamId/activities", authenticateUser, requirePro, async (req, res) => {
     try {
       const teamId = parseId(req.params.teamId);
       if (!teamId) return res.status(400).json({ message: "Invalid team ID" });
@@ -406,6 +418,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.get("/api/teams/:teamId", authenticateUser, requirePro, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const membership = await storage.getUserTeamMembership(req.body.userId, teamId);
+      if (!membership) {
+        return res.status(403).json({ message: "Not a member of this team" });
+      }
+      const team = await storage.getTeam(teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      return res.status(200).json(team);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.patch("/api/teams/:teamId", authenticateUser, requirePro, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const userId = req.body.userId;
+      const team = await storage.getTeam(teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      if (team.ownerId !== userId) {
+        return res.status(403).json({ message: "Only the team owner can update team settings" });
+      }
+      const { name, description } = req.body;
+      const updatedTeam = await storage.updateTeam(teamId, { name, description });
+      await storage.createTeamActivity({
+        teamId,
+        userId,
+        activityType: 'team_updated',
+        description: `Team settings were updated`,
+      });
+      const memberships = await storage.getTeamMemberships(teamId);
+      const msg: WebSocketMessage = {
+        type: WebSocketMessageType.NOTIFICATION,
+        payload: { type: 'team_updated', team: updatedTeam, timestamp: new Date().toISOString() },
+        timestamp: Date.now(),
+      };
+      for (const m of memberships) sendMessageToUser(m.userId, msg);
+      return res.status(200).json(updatedTeam);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/teams/:teamId", authenticateUser, requirePro, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const userId = req.body.userId;
+      const team = await storage.getTeam(teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      if (team.ownerId !== userId) {
+        return res.status(403).json({ message: "Only the team owner can delete the team" });
+      }
+      const memberships = await storage.getTeamMemberships(teamId);
+      const msg: WebSocketMessage = {
+        type: WebSocketMessageType.NOTIFICATION,
+        payload: { type: 'team_deleted', teamId, teamName: team.name, timestamp: new Date().toISOString() },
+        timestamp: Date.now(),
+      };
+      for (const m of memberships) {
+        if (m.userId !== userId) sendMessageToUser(m.userId, msg);
+      }
+      await storage.deleteTeam(teamId);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/teams/:teamId/leave", authenticateUser, requirePro, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const userId = req.body.userId;
+      const team = await storage.getTeam(teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      if (team.ownerId === userId) {
+        return res.status(400).json({ message: "Team owner cannot leave — delete the team instead" });
+      }
+      const membership = await storage.getUserTeamMembership(userId, teamId);
+      if (!membership) return res.status(404).json({ message: "Not a member of this team" });
+      await storage.deleteTeamMembership(membership.id);
+      const leavingUser = await storage.getUser(userId);
+      await storage.createTeamActivity({
+        teamId,
+        userId,
+        activityType: 'member_left',
+        description: `${leavingUser?.name || 'Unknown'} left the team`,
+      });
+      const remainingMemberships = await storage.getTeamMemberships(teamId);
+      const msg: WebSocketMessage = {
+        type: WebSocketMessageType.NOTIFICATION,
+        payload: {
+          type: 'member_left',
+          team,
+          user: { id: leavingUser?.id, name: leavingUser?.name },
+          timestamp: new Date().toISOString(),
+        },
+        timestamp: Date.now(),
+      };
+      for (const m of remainingMemberships) sendMessageToUser(m.userId, msg);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // Tasks routes
   app.get("/api/tasks", authenticateUser, async (req, res) => {
     try {
@@ -490,7 +609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Guided check-in flow — replaces the raw form-based check-in for chat UI
   // POST /api/check-in-flow { flowType: "morning" | "evening", message: string }
   // Call with empty message to start the flow. Keep calling with user answers until isComplete.
-  app.post("/api/check-in-flow", authenticateUser, async (req, res) => {
+  app.post("/api/check-in-flow", authenticateUser, requirePro, async (req, res) => {
     try {
       const { flowType, message = "" } = req.body as { flowType: FlowType; message?: string };
 
@@ -589,7 +708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/chat", authenticateUser, async (req, res) => {
+  app.post("/api/chat", authenticateUser, requirePro, async (req, res) => {
     try {
       const validatedData = insertChatMessageSchema.parse({
         ...req.body,
@@ -679,6 +798,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Sales metrics routes
+  app.get("/api/sales-metrics", authenticateUser, requirePro, async (req, res) => {
   // Web push routes
   app.get("/api/push/vapid-public-key", (_req, res) => {
     const { vapidPublicKey, isWebPushConfigured } = pushService;
@@ -706,6 +827,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Server error" });
     }
   });
+  
+  app.patch("/api/sales-metrics", authenticateUser, requirePro, async (req, res) => {
 
   app.delete("/api/push/subscribe", authenticateUser, async (req, res) => {
     try {
@@ -815,6 +938,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Billing routes
+  // GET /api/billing/subscription — return current user's subscription status
+  app.get("/api/billing/subscription", authenticateUser, async (req, res) => {
+    try {
+      const sub = await storage.getSubscription(req.body.userId);
+      return res.status(200).json(sub ?? { plan: "free", status: "free" });
   // Meeting notes routes
   app.get("/api/meeting-notes", authenticateUser, async (req, res) => {
     try {
@@ -825,6 +954,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/billing/checkout — create a Polar checkout session and return the URL
+  app.post("/api/billing/checkout", authenticateUser, async (req, res) => {
+    try {
+      const { plan } = req.body as { plan?: "starter" | "pro" };
+      const productId =
+        plan === "starter"
+          ? process.env.POLAR_STARTER_PRODUCT_ID
+          : process.env.POLAR_PRO_PRODUCT_ID;
+
+      if (!productId) {
+        return res.status(400).json({ message: "Invalid plan or product not configured" });
+      }
+
+      const user = await storage.getUser(req.body.userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const url = await createCheckoutSession(user.id, user.email, productId);
+      return res.status(200).json({ url });
+    } catch (error) {
+      log(`Billing checkout error: ${error instanceof Error ? error.message : String(error)}`, "billing");
+      return res.status(500).json({ message: "Could not create checkout session" });
+    }
+  });
+
+  // GET /api/billing/portal — generate a Polar customer portal URL for the current user
+  app.get("/api/billing/portal", authenticateUser, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.body.userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const url = await createCustomerPortalUrl(user.id, user.polarCustomerId);
+      return res.status(200).json({ url });
+    } catch (error) {
+      log(`Billing portal error: ${error instanceof Error ? error.message : String(error)}`, "billing");
+      return res.status(500).json({ message: "Could not create portal session" });
   app.post("/api/meeting-notes", authenticateUser, async (req, res) => {
     try {
       const { userId: _ignored, ...clientBody } = req.body;
@@ -1197,6 +1361,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 second: 0,
                 millisecond: 0
               });
+              
+              // Check if current time is within 2 minutes of alert time
+              const timeDiff = Math.abs(currentTimeInAlertTz.diff(alertTime, 'minutes').minutes);
+              
+              if (timeDiff <= 2) {
+                // Deduplicate across instances: only one instance sends per 5-min window.
+                const windowKey = Math.floor(Date.now() / (5 * 60 * 1000)).toString();
+                const claimed = await tryClaimAlert(alert.id, windowKey);
+                if (!claimed) continue;
+
+                const alertMessage: WebSocketMessage = {
+                  type: WebSocketMessageType.ALERT,
+                  payload: {
+                    type: 'check_in_alert',
+                    alertId: alert.id,
+                    title: alert.title,
+                    message: alert.message,
+                    timestamp: new Date().toISOString()
+                  },
+                  timestamp: Date.now()
+                };
+
+                sendMessageToUser(user.id, alertMessage);
+                log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
 
               // Check if current time is within the 30-second check interval of alert time
               const timeDiff = Math.abs(currentTimeInAlertTz.diff(alertTime, 'seconds').seconds);

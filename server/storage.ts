@@ -1,9 +1,13 @@
 import connectPg from "connect-pg-simple";
+<<<<<<< railway_polar
+import { eq, desc, asc, and } from "drizzle-orm";
+=======
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
 const scryptAsync = promisify(scrypt);
 import { eq, desc, asc, gt, lt } from "drizzle-orm";
+>>>>>>> master
 import {
   User,
   Goal,
@@ -11,17 +15,30 @@ import {
   CheckIn,
   TimeOff,
   ChatMessage,
+<<<<<<< railway_polar
+  SalesMetrics,
+=======
+>>>>>>> master
   CheckInAlert,
   Team,
   TeamMembership,
   SharedGoal,
   TeamActivity,
+<<<<<<< railway_polar
+  Subscription,
+  InsertSubscription,
+=======
+>>>>>>> master
   InsertUser,
   InsertGoal,
   InsertTask,
   InsertCheckIn,
   InsertTimeOff,
   InsertChatMessage,
+<<<<<<< railway_polar
+  InsertSalesMetrics,
+=======
+>>>>>>> master
   InsertCheckInAlert,
   InsertTeam,
   InsertTeamMembership,
@@ -49,9 +66,13 @@ import {
   teamMemberships,
   sharedGoals,
   teamActivities,
+<<<<<<< railway_polar
+  subscriptions
+=======
   alertHistory,
   meetingNotes,
   noteTemplates,
+>>>>>>> master
 } from "@shared/schema";
 import { db } from "./db";
 import session from "express-session";
@@ -143,6 +164,13 @@ export interface IStorage {
   getTeamActivities(teamId: number, limit?: number): Promise<TeamActivity[]>;
   createTeamActivity(activity: InsertTeamActivity): Promise<TeamActivity>;
 
+<<<<<<< railway_polar
+  // Subscription / billing operations
+  getSubscription(userId: number): Promise<Subscription | undefined>;
+  upsertSubscription(userId: number, data: Partial<InsertSubscription>): Promise<Subscription>;
+  updateUserPolarCustomerId(userId: number, polarCustomerId: string): Promise<User | undefined>;
+  getUserByPolarCustomerId(polarCustomerId: string): Promise<User | undefined>;
+=======
   // Alert history operations
   createAlertHistory(entry: { alertId?: number | null; userId: number; title: string; message: string }): Promise<AlertHistory>;
   getAlertHistory(userId: number): Promise<AlertHistory[]>;
@@ -161,6 +189,7 @@ export interface IStorage {
   createNoteTemplate(template: InsertNoteTemplate): Promise<NoteTemplate>;
   updateNoteTemplate(id: number, updates: Partial<NoteTemplate>): Promise<NoteTemplate | undefined>;
   deleteNoteTemplate(id: number): Promise<boolean>;
+>>>>>>> master
 }
 
 export class DatabaseStorage implements IStorage {
@@ -257,7 +286,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(goals)
       .where(eq(goals.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Task operations
@@ -291,7 +320,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(tasks)
       .where(eq(tasks.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Check-in operations
@@ -413,27 +442,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllUsersWithAlerts(): Promise<User[]> {
-    // Get all users who have at least one enabled check-in alert
     const usersWithAlerts = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        name: users.name,
-        role: users.role,
-        emailVerified: users.emailVerified,
-        verificationToken: users.verificationToken,
-        verificationTokenExpiry: users.verificationTokenExpiry,
-        password: users.password,
-        authProvider: users.authProvider,
-        googleId: users.googleId
-      })
+      .selectDistinct({ user: users })
       .from(users)
       .innerJoin(checkInAlerts, eq(users.id, checkInAlerts.userId))
-      .where(eq(checkInAlerts.enabled, true))
-      .groupBy(users.id);
-    
-    return usersWithAlerts;
+      .where(eq(checkInAlerts.enabled, true));
+    return usersWithAlerts.map((r) => r.user);
   }
   
   // Team collaboration operations implementation
@@ -514,8 +528,7 @@ export class DatabaseStorage implements IStorage {
     const [membership] = await db
       .select()
       .from(teamMemberships)
-      .where(eq(teamMemberships.userId, userId))
-      .where(eq(teamMemberships.teamId, teamId));
+      .where(and(eq(teamMemberships.userId, userId), eq(teamMemberships.teamId, teamId)));
     return membership || undefined;
   }
   
@@ -595,6 +608,39 @@ export class DatabaseStorage implements IStorage {
     return newActivity;
   }
 
+<<<<<<< railway_polar
+  // Subscription / billing operations
+  async getSubscription(userId: number): Promise<Subscription | undefined> {
+    const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId));
+    return sub || undefined;
+  }
+
+  async upsertSubscription(userId: number, data: Partial<InsertSubscription>): Promise<Subscription> {
+    const now = new Date();
+    const [sub] = await db
+      .insert(subscriptions)
+      .values({ userId, plan: "free", status: "free", ...data, updatedAt: now })
+      .onConflictDoUpdate({
+        target: subscriptions.userId,
+        set: { ...data, updatedAt: now },
+      })
+      .returning();
+    return sub;
+  }
+
+  async updateUserPolarCustomerId(userId: number, polarCustomerId: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ polarCustomerId })
+      .where(eq(users.id, userId))
+      .returning();
+    return user || undefined;
+  }
+
+  async getUserByPolarCustomerId(polarCustomerId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.polarCustomerId, polarCustomerId));
+    return user || undefined;
+=======
   // Alert history operations
   async createAlertHistory(entry: { alertId?: number | null; userId: number; title: string; message: string }): Promise<AlertHistory> {
     const [row] = await db.insert(alertHistory).values(entry).returning();
@@ -663,6 +709,7 @@ export class DatabaseStorage implements IStorage {
   async deleteNoteTemplate(id: number): Promise<boolean> {
     const result = await db.delete(noteTemplates).where(eq(noteTemplates.id, id));
     return (result.rowCount ?? 0) > 0;
+>>>>>>> master
   }
 
   // Setup initial demo data

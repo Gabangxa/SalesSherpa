@@ -18,10 +18,24 @@ const userSchema = z.object({
 
 type User = z.infer<typeof userSchema>;
 
+export type Subscription = {
+  id?: number;
+  userId?: number;
+  polarSubscriptionId?: string | null;
+  polarProductId?: string | null;
+  plan: string;
+  status: string;
+  currentPeriodEnd?: string | null;
+  cancelAtPeriodEnd?: boolean;
+} | null;
+
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   error: Error | null;
+  subscription: Subscription;
+  isPro: boolean;
+  isLoadingSubscription: boolean;
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<User, Error, RegisterData>;
@@ -53,10 +67,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: false, // Prevent excessive refetching
-    refetchInterval: false, // Don't auto-refetch
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
   });
+
+  const { data: subscription = null, isLoading: isLoadingSubscription } =
+    useQuery<Subscription>({
+      queryKey: ["/api/billing/subscription"],
+      queryFn: getQueryFn({ on401: "returnNull" }),
+      enabled: !!user,
+      staleTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: false,
+      retry: false,
+    });
+
+  const isPro =
+    subscription?.status === "active" && subscription?.plan !== "free";
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
@@ -201,6 +228,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: user || null,
         isLoading,
         error,
+        subscription,
+        isPro,
+        isLoadingSubscription,
         loginMutation,
         logoutMutation,
         registerMutation,

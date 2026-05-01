@@ -10,9 +10,13 @@ import SalesAssistantChat from "@/components/dashboard/SalesAssistantChat";
 import ProgressTracking from "@/components/dashboard/ProgressTracking";
 import TodosAndReminders from "@/components/dashboard/TodosAndReminders";
 import RecentCheckIns from "@/components/dashboard/RecentCheckIns";
+<<<<<<< railway_polar
+import ProGate from "@/components/billing/ProGate";
+=======
 import { CheckInDialog } from "@/components/dialogs/CheckInDialog";
 import { calculatePercentage } from "@/lib/utils";
 import { Goal } from "@shared/schema";
+>>>>>>> master
 
 interface User {
   id: number;
@@ -257,11 +261,24 @@ export default function Dashboard() {
           </button>
         </motion.div>
       </div>
+<<<<<<< railway_polar
+      {/* Main content area with improved grid layout and spacing */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left column - Sales Assistant & Check-ins (takes 2/3 on large screens) */}
+        <div className="lg:col-span-2 space-y-8">
+          <ProGate
+            feature="AI Sales Sherpa Assistant"
+            description="Chat with your AI-powered sales coach for personalized guidance and accountability."
+          >
+            <SalesAssistantChat userName={user?.name || "Jordan Doe"} />
+          </ProGate>
+=======
 
       {/* Main content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <SalesAssistantChat userName={user?.name || "there"} />
+>>>>>>> master
           <RecentCheckIns />
         </div>
         <div className="space-y-6">

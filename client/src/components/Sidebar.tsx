@@ -1,5 +1,19 @@
 import { Link } from "wouter";
+<<<<<<< railway_polar
+import {
+  Home,
+  Target,
+  CalendarCheck,
+  Swords,
+  Settings,
+  LogOut,
+  Radio,
+  CreditCard,
+  Zap,
+} from "lucide-react";
+=======
 import { BarChart3, Target, CheckSquare, Mountain, Settings, LogOut, Search, Sun, Moon, NotebookPen } from "lucide-react";
+>>>>>>> master
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "next-themes";
 import { useQuery } from "@tanstack/react-query";
@@ -27,6 +41,24 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ userData, currentPath }: SidebarProps) {
+<<<<<<< railway_polar
+  const { logoutMutation, isPro } = useAuth();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const navLinks = [
+    { name: "Dashboard", path: "/", icon: <Home className="w-5 h-5 mr-3" /> },
+    { name: "Goals & Targets", path: "/goals", icon: <Target className="w-5 h-5 mr-3" /> },
+    { name: "Check-ins", path: "/check-ins", icon: <CalendarCheck className="w-5 h-5 mr-3" /> },
+    { name: "Strategic Planning", path: "/strategy", icon: <Swords className="w-5 h-5 mr-3" /> },
+    { name: "Settings", path: "/settings", icon: <Settings className="w-5 h-5 mr-3" /> },
+    { name: "Billing", path: "/billing", icon: <CreditCard className="w-5 h-5 mr-3" /> },
+  ];
+  
+  // Development and testing links - would be removed in production
+  const devLinks = [
+    { name: "WebSocket Test", path: "/websocket-test", icon: <Radio className="w-5 h-5 mr-3" /> },
+  ];
+=======
   const { logoutMutation } = useAuth();
   const { theme, setTheme } = useTheme();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -40,6 +72,7 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
   const initials = userData?.name
     ? userData.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : "U";
+>>>>>>> master
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-moss dark:bg-dark-sidebar text-white h-full relative z-20 flex-shrink-0">
@@ -50,6 +83,50 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
         </div>
         <span className="font-bold text-xl tracking-tight">SalesSherpa</span>
       </div>
+<<<<<<< railway_polar
+      
+      <nav className="flex-1 mb-6">
+        <div className="text-xs uppercase text-muted-foreground font-semibold mb-3 ml-2">
+          Main Navigation
+        </div>
+        <ul className="space-y-1">
+          {navLinks.map((link) => (
+            <li key={link.path}>
+              <Link 
+                href={link.path} 
+                className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                  currentPath === link.path 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-foreground hover:bg-muted"
+                }`}
+              >
+                {link.icon}
+                {link.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
+        
+        {!isPro && (
+          <div className="mt-6 mx-1 rounded-lg bg-primary/10 border border-primary/20 p-3 flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-primary">
+              <Zap className="w-4 h-4" />
+              Unlock Pro
+            </div>
+            <p className="text-xs text-muted-foreground">AI chat, teams, metrics &amp; unlimited goals.</p>
+            <Link
+              href="/pricing"
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              See plans →
+            </Link>
+          </div>
+        )}
+
+        {/* Development section */}
+        <div className="text-xs uppercase text-muted-foreground font-semibold mt-6 mb-3 ml-2">
+          Development
+=======
 
       {/* Search */}
       <div className="px-6 pb-4">
@@ -60,6 +137,7 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
             placeholder="Search..."
             className="w-full bg-black/10 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none focus:border-clay/50 focus:ring-1 focus:ring-clay/50 transition-all"
           />
+>>>>>>> master
         </div>
       </div>
 
