@@ -24,6 +24,8 @@ import AuthPage from "@/pages/AuthPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import PrivacyPolicyPage from "@/pages/PrivacyPolicyPage";
 import NotFound from "@/pages/not-found";
+import PricingPage from "@/pages/PricingPage";
+import BillingPage from "@/pages/BillingPage";
 
 import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
@@ -106,6 +108,8 @@ function AppContent() {
             <ProtectedRoute path="/check-ins" component={CheckInsPage} />
             <ProtectedRoute path="/strategy" component={StrategyPage} />
             <ProtectedRoute path="/settings" component={SettingsPage} />
+            <ProtectedRoute path="/pricing" component={PricingPage} />
+            <ProtectedRoute path="/billing" component={BillingPage} />
             <ProtectedRoute path="/websocket-test" component={WebSocketTest} />
             <Route path="/auth" component={AuthPage} />
             <Route component={NotFound} />

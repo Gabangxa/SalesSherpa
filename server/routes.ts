@@ -2,6 +2,9 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { createCheckoutSession, createCustomerPortalUrl } from "./billing/polarService";
 import { handlePolarWebhook } from "./billing/webhookHandler";
+import { requirePro } from "./billing/subscriptionGate";
+
+const FREE_GOAL_LIMIT = 3;
 
 let alertInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -80,10 +83,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/goals", authenticateUser, async (req, res) => {
     try {
-      // The userId is already added to req.body by the authenticateUser middleware
-      // No need to extract it separately
-      
-      // Validate the data with the schema
+      const sub = await storage.getSubscription(req.body.userId);
+      const isProUser = sub?.status === "active" && sub?.plan !== "free";
+      if (!isProUser) {
+        const existingGoals = await storage.getGoals(req.body.userId);
+        if (existingGoals.length >= FREE_GOAL_LIMIT) {
+          return res.status(403).json({
+            message: "upgrade_required",
+            details: `Free tier is limited to ${FREE_GOAL_LIMIT} goals. Upgrade to Pro for unlimited goals.`,
+          });
+        }
+      }
+
       const validatedData = insertGoalSchema.parse(req.body);
       
       // For debugging
@@ -191,7 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Team Collaboration Routes
   // Team routes
-  app.get("/api/teams/user/:userId", authenticateUser, async (req, res) => {
+  app.get("/api/teams/user/:userId", authenticateUser, requirePro, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       
@@ -207,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/teams", authenticateUser, async (req, res) => {
+  app.post("/api/teams", authenticateUser, requirePro, async (req, res) => {
     try {
       const teamData = {
         ...req.body,
@@ -244,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/teams/join", authenticateUser, async (req, res) => {
+  app.post("/api/teams/join", authenticateUser, requirePro, async (req, res) => {
     try {
       const { inviteCode } = req.body;
       const userId = req.body.userId;
@@ -305,7 +316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Shared goals routes
-  app.post("/api/shared-goals", authenticateUser, async (req, res) => {
+  app.post("/api/shared-goals", authenticateUser, requirePro, async (req, res) => {
     try {
       const { goalId, teamId, canEdit } = req.body;
       const userId = req.body.userId;
@@ -373,7 +384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Team activity feed
-  app.get("/api/teams/:teamId/activities", authenticateUser, async (req, res) => {
+  app.get("/api/teams/:teamId/activities", authenticateUser, requirePro, async (req, res) => {
     try {
       const teamId = parseInt(req.params.teamId);
       const limit = parseInt(req.query.limit as string) || 20;
@@ -391,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/teams/:teamId", authenticateUser, async (req, res) => {
+  app.get("/api/teams/:teamId", authenticateUser, requirePro, async (req, res) => {
     try {
       const teamId = parseInt(req.params.teamId);
       const membership = await storage.getUserTeamMembership(req.body.userId, teamId);
@@ -406,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/teams/:teamId", authenticateUser, async (req, res) => {
+  app.patch("/api/teams/:teamId", authenticateUser, requirePro, async (req, res) => {
     try {
       const teamId = parseInt(req.params.teamId);
       const userId = req.body.userId;
@@ -436,7 +447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/teams/:teamId", authenticateUser, async (req, res) => {
+  app.delete("/api/teams/:teamId", authenticateUser, requirePro, async (req, res) => {
     try {
       const teamId = parseInt(req.params.teamId);
       const userId = req.body.userId;
@@ -461,7 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/teams/:teamId/leave", authenticateUser, async (req, res) => {
+  app.post("/api/teams/:teamId/leave", authenticateUser, requirePro, async (req, res) => {
     try {
       const teamId = parseInt(req.params.teamId);
       const userId = req.body.userId;
@@ -578,7 +589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Guided check-in flow — replaces the raw form-based check-in for chat UI
   // POST /api/check-in-flow { flowType: "morning" | "evening", message: string }
   // Call with empty message to start the flow. Keep calling with user answers until isComplete.
-  app.post("/api/check-in-flow", authenticateUser, async (req, res) => {
+  app.post("/api/check-in-flow", authenticateUser, requirePro, async (req, res) => {
     try {
       const { flowType, message = "" } = req.body as { flowType: FlowType; message?: string };
 
@@ -676,7 +687,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/chat", authenticateUser, async (req, res) => {
+  app.post("/api/chat", authenticateUser, requirePro, async (req, res) => {
     try {
       const validatedData = insertChatMessageSchema.parse({
         ...req.body,
@@ -763,7 +774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Sales metrics routes
-  app.get("/api/sales-metrics", authenticateUser, async (req, res) => {
+  app.get("/api/sales-metrics", authenticateUser, requirePro, async (req, res) => {
     try {
       const metrics = await storage.getSalesMetrics(req.body.userId);
       
@@ -777,7 +788,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch("/api/sales-metrics", authenticateUser, async (req, res) => {
+  app.patch("/api/sales-metrics", authenticateUser, requirePro, async (req, res) => {
     try {
       const userId = req.body.userId;
       const updates = {

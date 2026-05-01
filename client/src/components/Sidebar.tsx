@@ -1,12 +1,14 @@
 import { Link } from "wouter";
-import { 
-  Home, 
-  Target, 
-  CalendarCheck, 
-  Swords, 
+import {
+  Home,
+  Target,
+  CalendarCheck,
+  Swords,
   Settings,
   LogOut,
-  Radio
+  Radio,
+  CreditCard,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { 
@@ -27,7 +29,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ userData, currentPath }: SidebarProps) {
-  const { logoutMutation } = useAuth();
+  const { logoutMutation, isPro } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const navLinks = [
@@ -36,6 +38,7 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
     { name: "Check-ins", path: "/check-ins", icon: <CalendarCheck className="w-5 h-5 mr-3" /> },
     { name: "Strategic Planning", path: "/strategy", icon: <Swords className="w-5 h-5 mr-3" /> },
     { name: "Settings", path: "/settings", icon: <Settings className="w-5 h-5 mr-3" /> },
+    { name: "Billing", path: "/billing", icon: <CreditCard className="w-5 h-5 mr-3" /> },
   ];
   
   // Development and testing links - would be removed in production
@@ -80,6 +83,22 @@ export default function Sidebar({ userData, currentPath }: SidebarProps) {
           ))}
         </ul>
         
+        {!isPro && (
+          <div className="mt-6 mx-1 rounded-lg bg-primary/10 border border-primary/20 p-3 flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-primary">
+              <Zap className="w-4 h-4" />
+              Unlock Pro
+            </div>
+            <p className="text-xs text-muted-foreground">AI chat, teams, metrics &amp; unlimited goals.</p>
+            <Link
+              href="/pricing"
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              See plans →
+            </Link>
+          </div>
+        )}
+
         {/* Development section */}
         <div className="text-xs uppercase text-muted-foreground font-semibold mt-6 mb-3 ml-2">
           Development

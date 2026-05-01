@@ -17,7 +17,7 @@ export async function createCheckoutSession(
   const baseUrl = process.env.BASE_URL ?? "http://localhost:5000";
   const checkout = await polar.checkouts.create({
     products: [productId],
-    successUrl: `${baseUrl}/billing/success?checkout_id={CHECKOUT_ID}`,
+    successUrl: `${baseUrl}/pricing?checkout_id={CHECKOUT_ID}`,
     customerEmail: userEmail,
     externalCustomerId: String(userId),
     metadata: { userId: String(userId) },

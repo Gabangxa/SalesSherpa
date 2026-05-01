@@ -4,6 +4,7 @@ import SalesAssistantChat from "@/components/dashboard/SalesAssistantChat";
 import ProgressTracking from "@/components/dashboard/ProgressTracking";
 import TodosAndReminders from "@/components/dashboard/TodosAndReminders";
 import RecentCheckIns from "@/components/dashboard/RecentCheckIns";
+import ProGate from "@/components/billing/ProGate";
 
 interface User {
   id: number;
@@ -28,7 +29,12 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left column - Sales Assistant & Check-ins (takes 2/3 on large screens) */}
         <div className="lg:col-span-2 space-y-8">
-          <SalesAssistantChat userName={user?.name || "Jordan Doe"} />
+          <ProGate
+            feature="AI Sales Sherpa Assistant"
+            description="Chat with your AI-powered sales coach for personalized guidance and accountability."
+          >
+            <SalesAssistantChat userName={user?.name || "Jordan Doe"} />
+          </ProGate>
           <RecentCheckIns />
         </div>
         
