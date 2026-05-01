@@ -1,3 +1,6 @@
+import { StringCodec } from 'nats';
+import { getFlowKv } from '../nats';
+
 export type FlowType = "morning" | "evening";
 export type FlowStatus = "in_progress" | "complete";
 
@@ -16,25 +19,62 @@ export interface CheckInFields {
   reflection: string | null;
 }
 
-// In-memory store keyed by userId.
-// Flows expire after 2 hours to prevent unbounded growth.
-const activeFlows = new Map<number, FlowState>();
+const sc = StringCodec();
 const FLOW_TTL_MS = 2 * 60 * 60 * 1000;
 
-// Prune stale flows every 30 minutes.
+// In-memory fallback for single-instance mode.
+const activeFlows = new Map<number, FlowState>();
+
 setInterval(() => {
   const now = Date.now();
-  Array.from(activeFlows.entries()).forEach(([userId, state]) => {
-    if (now - state.startedAt.getTime() > FLOW_TTL_MS) {
-      activeFlows.delete(userId);
-    }
+  activeFlows.forEach((state, userId) => {
+    if (now - state.startedAt.getTime() > FLOW_TTL_MS) activeFlows.delete(userId);
   });
-}, 30 * 60 * 1000).unref(); // .unref() prevents keeping the process alive
+}, 30 * 60 * 1000).unref();
+
+function encodeFlow(state: FlowState): Uint8Array {
+  return sc.encode(JSON.stringify({ ...state, startedAt: state.startedAt.toISOString() }));
+}
+
+function decodeFlow(data: Uint8Array): FlowState {
+  const obj = JSON.parse(sc.decode(data));
+  return { ...obj, startedAt: new Date(obj.startedAt) };
+}
+
+async function kvGet(userId: number): Promise<FlowState | null> {
+  try {
+    const kv = await getFlowKv();
+    if (!kv) return activeFlows.get(userId) ?? null;
+    const entry = await kv.get(`flow.${userId}`);
+    if (!entry || entry.operation) return null;
+    return decodeFlow(entry.value);
+  } catch {
+    return activeFlows.get(userId) ?? null;
+  }
+}
+
+async function kvSet(userId: number, state: FlowState): Promise<void> {
+  try {
+    const kv = await getFlowKv();
+    if (!kv) { activeFlows.set(userId, state); return; }
+    await kv.put(`flow.${userId}`, encodeFlow(state));
+  } catch {
+    activeFlows.set(userId, state);
+  }
+}
+
+async function kvDelete(userId: number): Promise<void> {
+  try {
+    const kv = await getFlowKv();
+    if (!kv) { activeFlows.delete(userId); return; }
+    await kv.delete(`flow.${userId}`);
+  } catch {
+    activeFlows.delete(userId);
+  }
+}
 
 interface FlowStep {
   key: string;
-  // morningFocus is passed explicitly so the evening question can reference it
-  // without relying on in-memory state from a possibly-expired morning flow.
   question: (morningFocus?: string | null) => string;
 }
 
@@ -72,11 +112,11 @@ const FLOWS: Record<FlowType, FlowStep[]> = {
   evening: EVENING_STEPS,
 };
 
-export function startFlow(
+export async function startFlow(
   userId: number,
   flowType: FlowType,
   morningFocus?: string | null
-): string {
+): Promise<string> {
   const state: FlowState = {
     flowType,
     step: 0,
@@ -84,16 +124,15 @@ export function startFlow(
     status: "in_progress",
     startedAt: new Date(),
   };
-
-  activeFlows.set(userId, state);
+  await kvSet(userId, state);
   return FLOWS[flowType][0].question(morningFocus ?? null);
 }
 
-export function advanceFlow(
+export async function advanceFlow(
   userId: number,
   userResponse: string
-): { nextQuestion: string | null; isComplete: boolean; collectedData: FlowState["responses"] } {
-  const state = activeFlows.get(userId);
+): Promise<{ nextQuestion: string | null; isComplete: boolean; collectedData: FlowState["responses"] }> {
+  const state = await kvGet(userId);
 
   if (!state || state.status === "complete") {
     return { nextQuestion: null, isComplete: true, collectedData: {} };
@@ -107,22 +146,24 @@ export function advanceFlow(
 
   if (state.step >= steps.length) {
     state.status = "complete";
+    await kvSet(userId, state);
     return { nextQuestion: null, isComplete: true, collectedData: { ...state.responses } };
   }
 
   const morningFocus = state.responses._morningFocus ?? null;
   const nextQuestion = steps[state.step].question(morningFocus);
+  await kvSet(userId, state);
   return { nextQuestion, isComplete: false, collectedData: state.responses };
 }
 
-export function getActiveFlow(userId: number): FlowState | null {
-  const state = activeFlows.get(userId);
+export async function getActiveFlow(userId: number): Promise<FlowState | null> {
+  const state = await kvGet(userId);
   if (!state || state.status === "complete") return null;
   return state;
 }
 
-export function clearFlow(userId: number): void {
-  activeFlows.delete(userId);
+export async function clearFlow(userId: number): Promise<void> {
+  await kvDelete(userId);
 }
 
 export function morningResponsesToCheckIn(responses: FlowState["responses"]): CheckInFields {

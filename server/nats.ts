@@ -1,8 +1,11 @@
-import { connect, JSONCodec, type NatsConnection, type Subscription } from 'nats';
+import { connect, JSONCodec, StringCodec, type NatsConnection, type Subscription, type KV } from 'nats';
 import { log } from './vite';
 
 const jc = JSONCodec();
+const sc = StringCodec();
 let _nc: NatsConnection | null = null;
+let _flowKv: KV | null = null;
+let _alertKv: KV | null = null;
 
 export async function connectNats(): Promise<void> {
   const url = process.env.NATS_URL;
@@ -50,5 +53,34 @@ export async function drainNats(): Promise<void> {
   if (_nc && !_nc.isClosed()) {
     await _nc.drain();
     _nc = null;
+    _flowKv = null;
+    _alertKv = null;
+  }
+}
+
+export async function getFlowKv(): Promise<KV | null> {
+  if (!isNatsAvailable()) return null;
+  if (_flowKv) return _flowKv;
+  try {
+    const js = _nc!.jetstream();
+    _flowKv = await js.views.kv('checkin-flows', { ttl: 2 * 60 * 60 * 1000 });
+    return _flowKv;
+  } catch (err) {
+    log(`NATS: failed to open checkin-flows KV: ${err}`);
+    return null;
+  }
+}
+
+export async function tryClaimAlert(alertId: number, windowKey: string): Promise<boolean> {
+  if (!isNatsAvailable()) return true;
+  try {
+    if (!_alertKv) {
+      const js = _nc!.jetstream();
+      _alertKv = await js.views.kv('alert-dedup', { ttl: 6 * 60 * 1000 });
+    }
+    await _alertKv.create(`${alertId}-${windowKey}`, sc.encode('1'));
+    return true;
+  } catch {
+    return false;
   }
 }
