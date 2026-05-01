@@ -5,12 +5,27 @@ export default {
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        serif: ["Georgia", "Times New Roman", "serif"],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
       colors: {
+        // Brand palette
+        sage: "#606C38",
+        moss: "#283618",
+        clay: "#BC6C25",
+        earth: "#DDA15E",
+        forest: "#1A3C34",
+        cream: "#FDFCF8",
+        parchment: "#FEFAE0",
+        "dark-bg": "#101614",
+        "dark-card": "#18231E",
+        "dark-sidebar": "#0A0E0D",
+        // shadcn/ui tokens
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {

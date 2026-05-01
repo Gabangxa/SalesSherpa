@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import csrf from 'csurf';
 import rateLimit from 'express-rate-limit';
 import { JSDOM } from 'jsdom';
 import createDOMPurify from 'dompurify';
@@ -7,28 +6,6 @@ import { log } from './vite';
 
 const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
-
-/**
- * Sets up CSRF protection for the application
- * 
- * @returns CSRF middleware
- */
-export const csrfProtection = csrf({ 
-  cookie: {
-    key: '_csrf',
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-  }
-});
-
-/**
- * Middleware to provide CSRF token to the client
- */
-export function csrfTokenMiddleware(req: Request, res: Response, next: NextFunction) {
-  res.locals.csrfToken = req.csrfToken();
-  next();
-}
 
 /**
  * Rate limiter for login endpoints to prevent brute force attacks
@@ -92,13 +69,17 @@ export function sanitizeHtml(input: string): string {
   });
 }
 
+// Never sanitize password fields — DOMPurify strips characters like < > & which
+// would silently alter passwords and cause login failures.
+const SANITIZE_SKIP_KEYS = new Set(['password', 'confirmPassword', 'currentPassword', 'newPassword']);
+
 /**
  * Middleware to sanitize request bodies
  */
 export function sanitizeRequestBody(req: Request, res: Response, next: NextFunction) {
   if (req.body && typeof req.body === 'object') {
     Object.keys(req.body).forEach(key => {
-      if (typeof req.body[key] === 'string') {
+      if (typeof req.body[key] === 'string' && !SANITIZE_SKIP_KEYS.has(key)) {
         req.body[key] = sanitizeInput(req.body[key]);
       }
     });

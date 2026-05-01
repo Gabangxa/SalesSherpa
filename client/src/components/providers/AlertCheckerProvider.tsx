@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CheckInAlert } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { webSocketService, WebSocketMessageType } from '@/lib/websocketService';
+import { getBrowserTimezone, getCurrentTimeInTimezone } from '@/lib/luxonTimezoneUtils';
 
 // Day of week mapping
 const dayMapping: { [key: number]: string } = {
