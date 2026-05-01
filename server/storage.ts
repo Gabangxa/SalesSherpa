@@ -1,13 +1,9 @@
 import connectPg from "connect-pg-simple";
-<<<<<<< railway_polar
-import { eq, desc, asc, and } from "drizzle-orm";
-=======
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
 const scryptAsync = promisify(scrypt);
-import { eq, desc, asc, gt, lt } from "drizzle-orm";
->>>>>>> master
+import { eq, desc, asc, and, gt, lt } from "drizzle-orm";
 import {
   User,
   Goal,
@@ -15,30 +11,19 @@ import {
   CheckIn,
   TimeOff,
   ChatMessage,
-<<<<<<< railway_polar
-  SalesMetrics,
-=======
->>>>>>> master
   CheckInAlert,
   Team,
   TeamMembership,
   SharedGoal,
   TeamActivity,
-<<<<<<< railway_polar
   Subscription,
   InsertSubscription,
-=======
->>>>>>> master
   InsertUser,
   InsertGoal,
   InsertTask,
   InsertCheckIn,
   InsertTimeOff,
   InsertChatMessage,
-<<<<<<< railway_polar
-  InsertSalesMetrics,
-=======
->>>>>>> master
   InsertCheckInAlert,
   InsertTeam,
   InsertTeamMembership,
@@ -66,13 +51,10 @@ import {
   teamMemberships,
   sharedGoals,
   teamActivities,
-<<<<<<< railway_polar
-  subscriptions
-=======
+  subscriptions,
   alertHistory,
   meetingNotes,
   noteTemplates,
->>>>>>> master
 } from "@shared/schema";
 import { db } from "./db";
 import session from "express-session";
@@ -164,13 +146,12 @@ export interface IStorage {
   getTeamActivities(teamId: number, limit?: number): Promise<TeamActivity[]>;
   createTeamActivity(activity: InsertTeamActivity): Promise<TeamActivity>;
 
-<<<<<<< railway_polar
   // Subscription / billing operations
   getSubscription(userId: number): Promise<Subscription | undefined>;
   upsertSubscription(userId: number, data: Partial<InsertSubscription>): Promise<Subscription>;
   updateUserPolarCustomerId(userId: number, polarCustomerId: string): Promise<User | undefined>;
   getUserByPolarCustomerId(polarCustomerId: string): Promise<User | undefined>;
-=======
+
   // Alert history operations
   createAlertHistory(entry: { alertId?: number | null; userId: number; title: string; message: string }): Promise<AlertHistory>;
   getAlertHistory(userId: number): Promise<AlertHistory[]>;
@@ -189,7 +170,6 @@ export interface IStorage {
   createNoteTemplate(template: InsertNoteTemplate): Promise<NoteTemplate>;
   updateNoteTemplate(id: number, updates: Partial<NoteTemplate>): Promise<NoteTemplate | undefined>;
   deleteNoteTemplate(id: number): Promise<boolean>;
->>>>>>> master
 }
 
 export class DatabaseStorage implements IStorage {
@@ -608,7 +588,6 @@ export class DatabaseStorage implements IStorage {
     return newActivity;
   }
 
-<<<<<<< railway_polar
   // Subscription / billing operations
   async getSubscription(userId: number): Promise<Subscription | undefined> {
     const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId));
@@ -640,7 +619,8 @@ export class DatabaseStorage implements IStorage {
   async getUserByPolarCustomerId(polarCustomerId: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.polarCustomerId, polarCustomerId));
     return user || undefined;
-=======
+  }
+
   // Alert history operations
   async createAlertHistory(entry: { alertId?: number | null; userId: number; title: string; message: string }): Promise<AlertHistory> {
     const [row] = await db.insert(alertHistory).values(entry).returning();
@@ -709,7 +689,6 @@ export class DatabaseStorage implements IStorage {
   async deleteNoteTemplate(id: number): Promise<boolean> {
     const result = await db.delete(noteTemplates).where(eq(noteTemplates.id, id));
     return (result.rowCount ?? 0) > 0;
->>>>>>> master
   }
 
   // Setup initial demo data

@@ -799,7 +799,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Sales metrics routes
-  app.get("/api/sales-metrics", authenticateUser, requirePro, async (req, res) => {
+  app.get("/api/sales-metrics", authenticateUser, requirePro, async (_req, res) => {
+    return res.status(200).json([]);
+  });
+
   // Web push routes
   app.get("/api/push/vapid-public-key", (_req, res) => {
     const { vapidPublicKey, isWebPushConfigured } = pushService;
@@ -828,7 +831,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch("/api/sales-metrics", authenticateUser, requirePro, async (req, res) => {
+  app.patch("/api/sales-metrics", authenticateUser, requirePro, async (_req, res) => {
+    return res.status(200).json({});
+  });
 
   app.delete("/api/push/subscribe", authenticateUser, async (req, res) => {
     try {
@@ -944,6 +949,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const sub = await storage.getSubscription(req.body.userId);
       return res.status(200).json(sub ?? { plan: "free", status: "free" });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // Meeting notes routes
   app.get("/api/meeting-notes", authenticateUser, async (req, res) => {
     try {
@@ -989,6 +999,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       log(`Billing portal error: ${error instanceof Error ? error.message : String(error)}`, "billing");
       return res.status(500).json({ message: "Could not create portal session" });
+    }
+  });
+
   app.post("/api/meeting-notes", authenticateUser, async (req, res) => {
     try {
       const { userId: _ignored, ...clientBody } = req.body;
@@ -1384,56 +1397,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 };
 
                 sendMessageToUser(user.id, alertMessage);
-                log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
 
-              // Check if current time is within the 30-second check interval of alert time
-              const timeDiff = Math.abs(currentTimeInAlertTz.diff(alertTime, 'seconds').seconds);
-
-              if (timeDiff > 30) continue;
-
-              // Deduplicate: skip if this alert already fired within the last 5 minutes
-              if (alert.lastTriggeredAt) {
-                const minutesSinceLast = DateTime.now().diff(DateTime.fromJSDate(alert.lastTriggeredAt), 'minutes').minutes;
-                if (minutesSinceLast < 5) continue;
-              }
-
-              // Stamp lastTriggeredAt before sending so concurrent ticks can't double-fire
-              await storage.updateCheckInAlert(alert.id, { lastTriggeredAt: new Date() });
-
-              // Send WebSocket notification to user
-              const alertMessage: WebSocketMessage = {
-                type: WebSocketMessageType.ALERT,
-                payload: {
-                  type: 'check_in_alert',
-                  alertId: alert.id,
-                  title: alert.title,
-                  message: alert.message,
-                  timestamp: new Date().toISOString()
-                },
-                timestamp: Date.now()
-              };
-
-              sendMessageToUser(user.id, alertMessage);
-
-              // Also send web push to all subscribed browsers/devices
-              if (pushService.isWebPushConfigured) {
-                const subs = await storage.getPushSubscriptions(user.id);
-                for (const sub of subs) {
-                  const result = await pushService.sendPushToSubscription(sub, {
-                    title: alert.title,
-                    body: alert.message,
-                    url: "/check-in",
-                    tag: `alert-${alert.id}`,
-                  }).catch(() => "expired" as const);
-                  if (result === "expired") {
-                    await storage.deletePushSubscriptionByEndpoint(sub.endpoint);
+                // Also send web push to all subscribed browsers/devices
+                if (pushService.isWebPushConfigured) {
+                  const subs = await storage.getPushSubscriptions(user.id);
+                  for (const sub of subs) {
+                    const result = await pushService.sendPushToSubscription(sub, {
+                      title: alert.title,
+                      body: alert.message,
+                      url: "/check-in",
+                      tag: `alert-${alert.id}`,
+                    }).catch(() => "expired" as const);
+                    if (result === "expired") {
+                      await storage.deletePushSubscriptionByEndpoint(sub.endpoint);
+                    }
                   }
                 }
-              }
 
-              log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
-              await storage.createAlertHistory({ alertId: alert.id, userId: user.id, title: alert.title, message: alert.message });
-              storage.deleteOldAlertHistory().catch(() => {});
+                log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
+                await storage.createAlertHistory({ alertId: alert.id, userId: user.id, title: alert.title, message: alert.message });
+                storage.deleteOldAlertHistory().catch(() => {});
+              }
             }
           } catch (error) {
             log(`Error checking alerts for user ${user.id}: ${error}`);

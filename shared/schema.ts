@@ -332,9 +332,6 @@ export type InsertCheckInAlert = z.infer<typeof insertCheckInAlertSchema>;
 export type CheckInAlert = typeof checkInAlerts.$inferSelect;
 
 // Relations
-<<<<<<< railway_polar
-export const usersRelations = relations(users, ({ many, one }) => ({
-=======
 export const userInsightsRelations = relations(userInsights, ({ one }) => ({
   user: one(users, {
     fields: [userInsights.userId],
@@ -342,25 +339,21 @@ export const userInsightsRelations = relations(userInsights, ({ one }) => ({
   }),
 }));
 
-export const usersRelations = relations(users, ({ many }) => ({
->>>>>>> master
+export const usersRelations = relations(users, ({ many, one }) => ({
   goals: many(goals),
   tasks: many(tasks),
   checkIns: many(checkIns),
   timeOffs: many(timeOff),
   chatMessages: many(chatMessages),
   checkInAlerts: many(checkInAlerts),
-<<<<<<< railway_polar
   subscription: one(subscriptions, {
     fields: [users.id],
     references: [subscriptions.userId],
   }),
-=======
   pushSubscriptions: many(pushSubscriptions),
   userInsights: many(userInsights),
   meetingNotes: many(meetingNotes),
   noteTemplates: many(noteTemplates),
->>>>>>> master
   // Team collaboration relations
   ownedTeams: many(teams, { relationName: 'TeamOwner' }),
   teamMemberships: many(teamMemberships),
@@ -469,11 +462,13 @@ export const checkInAlertsRelations = relations(checkInAlerts, ({ one }) => ({
   }),
 }));
 
-<<<<<<< railway_polar
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
   user: one(users, {
     fields: [subscriptions.userId],
-=======
+    references: [users.id],
+  }),
+}));
+
 // Meeting notes schema
 export const meetingNotes = pgTable("meeting_notes", {
   id: serial("id").primaryKey(),
@@ -566,7 +561,6 @@ export const meetingNotesRelations = relations(meetingNotes, ({ one }) => ({
 export const noteTemplatesRelations = relations(noteTemplates, ({ one }) => ({
   user: one(users, {
     fields: [noteTemplates.userId],
->>>>>>> master
     references: [users.id],
   }),
 }));
