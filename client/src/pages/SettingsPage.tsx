@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Loader2, Check, Info, CheckCircle2, Bell } from "lucide-react";
 import CheckInAlerts from "@/components/settings/CheckInAlerts";
+import ProGate from "@/components/billing/ProGate";
 
 import {
   Form,
@@ -72,16 +73,17 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, isPro } = useAuth();
   const { toast } = useToast();
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<FormValues | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Fetch current sales metrics
+  // Only fetch sales metrics for Pro users — free users see the ProGate upsell instead
   const { data: metrics, isLoading } = useQuery<SalesMetrics>({
     queryKey: ["/api/sales-metrics"],
-    retry: 1,
+    enabled: isPro,
+    retry: false,
   });
 
   // Setup form with current values or defaults
@@ -166,6 +168,10 @@ export default function SettingsPage() {
 
       <div className="grid gap-8 grid-cols-1 lg:grid-cols-3">
         <div className="lg:col-span-2">
+          <ProGate
+            feature="Sales Performance Metrics"
+            description="Track prospect engagements, client meetings, and field trips against your monthly targets."
+          >
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Performance Metrics</CardTitle>
@@ -323,7 +329,8 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           )}
-          
+          </ProGate>
+
           {/* Check-in Alerts Management */}
           <CheckInAlerts />
         </div>
