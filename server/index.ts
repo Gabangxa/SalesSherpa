@@ -5,16 +5,17 @@ import { startAiWorker } from "./aiWorker";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage, DatabaseStorage } from "./storage";
 import { pool } from "./db";
-import { 
-  apiRateLimiter, 
-  loginRateLimiter, 
-  sanitizeRequestBody, 
-  securityHeaders, 
+import {
+  apiRateLimiter,
+  loginRateLimiter,
+  sanitizeRequestBody,
+  securityHeaders,
   csrfProtection,
   csrfTokenMiddleware
 } from "./security";
 import session from 'express-session';
 import { setupAuth } from "./auth";
+import { handlePolarWebhook } from "./billing/webhookHandler";
 
 // Initialize Express app
 const app = express();
@@ -27,6 +28,9 @@ app.use('/api', apiRateLimiter);
 
 // Apply specific rate limit to authentication endpoints
 app.use('/api/auth/login', loginRateLimiter);
+
+// Webhook route must use raw body BEFORE express.json() parses it
+app.post("/webhooks/polar", express.raw({ type: "application/json" }), handlePolarWebhook);
 
 // Basic middleware
 app.use(express.json());

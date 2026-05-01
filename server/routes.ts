@@ -1,5 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { createCheckoutSession, createCustomerPortalUrl } from "./billing/polarService";
+import { handlePolarWebhook } from "./billing/webhookHandler";
 
 let alertInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -17,7 +19,7 @@ import { generateResponse, handleCheckInFlow } from "./ai/index";
 import type { FlowType } from "./ai/checkInFlow";
 import { WebSocketServer, WebSocket } from 'ws';
 import { log } from "./vite";
-import { isNatsAvailable, natsPublish, natsSubscribe } from "./nats";
+import { isNatsAvailable, natsPublish, natsSubscribe, tryClaimAlert } from "./nats";
 import { 
   insertCheckInSchema, 
   insertTaskSchema, 
@@ -389,6 +391,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.get("/api/teams/:teamId", authenticateUser, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const membership = await storage.getUserTeamMembership(req.body.userId, teamId);
+      if (!membership) {
+        return res.status(403).json({ message: "Not a member of this team" });
+      }
+      const team = await storage.getTeam(teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      return res.status(200).json(team);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.patch("/api/teams/:teamId", authenticateUser, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const userId = req.body.userId;
+      const team = await storage.getTeam(teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      if (team.ownerId !== userId) {
+        return res.status(403).json({ message: "Only the team owner can update team settings" });
+      }
+      const { name, description } = req.body;
+      const updatedTeam = await storage.updateTeam(teamId, { name, description });
+      await storage.createTeamActivity({
+        teamId,
+        userId,
+        activityType: 'team_updated',
+        description: `Team settings were updated`,
+      });
+      const memberships = await storage.getTeamMemberships(teamId);
+      const msg: WebSocketMessage = {
+        type: WebSocketMessageType.NOTIFICATION,
+        payload: { type: 'team_updated', team: updatedTeam, timestamp: new Date().toISOString() },
+        timestamp: Date.now(),
+      };
+      for (const m of memberships) sendMessageToUser(m.userId, msg);
+      return res.status(200).json(updatedTeam);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/teams/:teamId", authenticateUser, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const userId = req.body.userId;
+      const team = await storage.getTeam(teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      if (team.ownerId !== userId) {
+        return res.status(403).json({ message: "Only the team owner can delete the team" });
+      }
+      const memberships = await storage.getTeamMemberships(teamId);
+      const msg: WebSocketMessage = {
+        type: WebSocketMessageType.NOTIFICATION,
+        payload: { type: 'team_deleted', teamId, teamName: team.name, timestamp: new Date().toISOString() },
+        timestamp: Date.now(),
+      };
+      for (const m of memberships) {
+        if (m.userId !== userId) sendMessageToUser(m.userId, msg);
+      }
+      await storage.deleteTeam(teamId);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/teams/:teamId/leave", authenticateUser, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const userId = req.body.userId;
+      const team = await storage.getTeam(teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      if (team.ownerId === userId) {
+        return res.status(400).json({ message: "Team owner cannot leave — delete the team instead" });
+      }
+      const membership = await storage.getUserTeamMembership(userId, teamId);
+      if (!membership) return res.status(404).json({ message: "Not a member of this team" });
+      await storage.deleteTeamMembership(membership.id);
+      const leavingUser = await storage.getUser(userId);
+      await storage.createTeamActivity({
+        teamId,
+        userId,
+        activityType: 'member_left',
+        description: `${leavingUser?.name || 'Unknown'} left the team`,
+      });
+      const remainingMemberships = await storage.getTeamMemberships(teamId);
+      const msg: WebSocketMessage = {
+        type: WebSocketMessageType.NOTIFICATION,
+        payload: {
+          type: 'member_left',
+          team,
+          user: { id: leavingUser?.id, name: leavingUser?.name },
+          timestamp: new Date().toISOString(),
+        },
+        timestamp: Date.now(),
+      };
+      for (const m of remainingMemberships) sendMessageToUser(m.userId, msg);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // Tasks routes
   app.get("/api/tasks", authenticateUser, async (req, res) => {
     try {
@@ -781,6 +890,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Billing routes
+  // GET /api/billing/subscription — return current user's subscription status
+  app.get("/api/billing/subscription", authenticateUser, async (req, res) => {
+    try {
+      const sub = await storage.getSubscription(req.body.userId);
+      return res.status(200).json(sub ?? { plan: "free", status: "free" });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // POST /api/billing/checkout — create a Polar checkout session and return the URL
+  app.post("/api/billing/checkout", authenticateUser, async (req, res) => {
+    try {
+      const { plan } = req.body as { plan?: "starter" | "pro" };
+      const productId =
+        plan === "starter"
+          ? process.env.POLAR_STARTER_PRODUCT_ID
+          : process.env.POLAR_PRO_PRODUCT_ID;
+
+      if (!productId) {
+        return res.status(400).json({ message: "Invalid plan or product not configured" });
+      }
+
+      const user = await storage.getUser(req.body.userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const url = await createCheckoutSession(user.id, user.email, productId);
+      return res.status(200).json({ url });
+    } catch (error) {
+      log(`Billing checkout error: ${error instanceof Error ? error.message : String(error)}`, "billing");
+      return res.status(500).json({ message: "Could not create checkout session" });
+    }
+  });
+
+  // GET /api/billing/portal — generate a Polar customer portal URL for the current user
+  app.get("/api/billing/portal", authenticateUser, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.body.userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const url = await createCustomerPortalUrl(user.id, user.polarCustomerId);
+      return res.status(200).json({ url });
+    } catch (error) {
+      log(`Billing portal error: ${error instanceof Error ? error.message : String(error)}`, "billing");
+      return res.status(500).json({ message: "Could not create portal session" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Set up WebSocket server on a distinct path so it doesn't conflict with Vite's HMR
@@ -1029,7 +1187,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const timeDiff = Math.abs(currentTimeInAlertTz.diff(alertTime, 'minutes').minutes);
               
               if (timeDiff <= 2) {
-                // Send WebSocket notification to user
+                // Deduplicate across instances: only one instance sends per 5-min window.
+                const windowKey = Math.floor(Date.now() / (5 * 60 * 1000)).toString();
+                const claimed = await tryClaimAlert(alert.id, windowKey);
+                if (!claimed) continue;
+
                 const alertMessage: WebSocketMessage = {
                   type: WebSocketMessageType.ALERT,
                   payload: {
@@ -1041,7 +1203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   },
                   timestamp: Date.now()
                 };
-                
+
                 sendMessageToUser(user.id, alertMessage);
                 log(`Sent check-in alert to user ${user.id}: ${alert.title}`);
               }
