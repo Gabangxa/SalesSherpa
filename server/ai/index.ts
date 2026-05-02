@@ -125,7 +125,7 @@ async function callGemini(
     const model = genai.getGenerativeModel({
       model: MODEL,
       systemInstruction: systemPrompt,
-      generationConfig: { temperature, maxOutputTokens: 1024 },
+      generationConfig: { temperature, maxOutputTokens: 2048 },
     });
 
     const chat = model.startChat({ history });
