@@ -4,6 +4,10 @@ if (!process.env.POLAR_ACCESS_TOKEN) {
   console.warn("[billing] POLAR_ACCESS_TOKEN not set — billing features disabled");
 }
 
+export function isBillingConfigured(): boolean {
+  return !!process.env.POLAR_ACCESS_TOKEN;
+}
+
 export const polar = new Polar({
   accessToken: process.env.POLAR_ACCESS_TOKEN ?? "",
   server: (process.env.POLAR_SERVER as "sandbox" | "production") ?? "sandbox",

@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { createCheckoutSession, createCustomerPortalUrl } from "./billing/polarService";
+import { createCheckoutSession, createCustomerPortalUrl, isBillingConfigured } from "./billing/polarService";
 import { handlePolarWebhook } from "./billing/webhookHandler";
 import { requirePro } from "./billing/subscriptionGate";
 
@@ -966,6 +966,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/billing/checkout — create a Polar checkout session and return the URL
   app.post("/api/billing/checkout", authenticateUser, async (req, res) => {
+    if (!isBillingConfigured()) {
+      return res.status(503).json({ message: "Billing not configured — POLAR_ACCESS_TOKEN missing" });
+    }
+
     try {
       const { plan } = req.body as { plan?: "starter" | "pro" };
       const productId =
@@ -974,7 +978,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : process.env.POLAR_PRO_PRODUCT_ID;
 
       if (!productId) {
-        return res.status(400).json({ message: "Invalid plan or product not configured" });
+        return res.status(400).json({ message: `POLAR_${(plan ?? "pro").toUpperCase()}_PRODUCT_ID not configured` });
       }
 
       const user = await storage.getUser(req.body.userId);
@@ -983,8 +987,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const url = await createCheckoutSession(user.id, user.email, productId);
       return res.status(200).json({ url });
     } catch (error) {
-      log(`Billing checkout error: ${error instanceof Error ? error.message : String(error)}`, "billing");
-      return res.status(500).json({ message: "Could not create checkout session" });
+      const detail = error instanceof Error ? error.message : String(error);
+      log(`Billing checkout error: ${detail}`, "billing");
+      return res.status(500).json({ message: `Could not create checkout session: ${detail}` });
     }
   });
 
