@@ -69,7 +69,7 @@ async function extractInsights(
   const model = genai.getGenerativeModel({
     model: "gemini-2.5-pro",
     systemInstruction: SYSTEM_PROMPT,
-    generationConfig: { temperature: 0, maxOutputTokens: 200 },
+    generationConfig: { temperature: 0, maxOutputTokens: 500 },
   });
 
   const result = await model.generateContent(buildUserPrompt(window, existingTexts));

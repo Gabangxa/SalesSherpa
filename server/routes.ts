@@ -736,7 +736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const aiResponse = await generateResponse(
               req.body.userId,
               validatedData.message,
-              recentMessages.slice(-10),
+              recentMessages.slice(-20),
               storage
             );
 

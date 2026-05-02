@@ -18,7 +18,7 @@ export function startAiWorker(): void {
       const aiResponse = await generateResponse(
         userId,
         message,
-        recentMessages.slice(-10),
+        recentMessages.slice(-20),
         storage
       );
 
