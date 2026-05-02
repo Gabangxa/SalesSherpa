@@ -950,6 +950,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sub = await storage.getSubscription(req.body.userId);
       return res.status(200).json(sub ?? { plan: "free", status: "free" });
     } catch (error) {
+      log(`Subscription fetch error: ${error instanceof Error ? error.message : String(error)}`, "billing");
       return res.status(500).json({ message: "Server error" });
     }
   });

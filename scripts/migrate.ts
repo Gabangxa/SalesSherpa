@@ -84,6 +84,35 @@ const migrations: { description: string; sql: string }[] = [
       ADD COLUMN IF NOT EXISTS polar_customer_id TEXT UNIQUE
     `,
   },
+  {
+    description: 'create subscriptions table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL UNIQUE,
+        polar_subscription_id TEXT UNIQUE,
+        polar_product_id TEXT,
+        plan TEXT NOT NULL DEFAULT 'free',
+        status TEXT NOT NULL DEFAULT 'free',
+        current_period_end TIMESTAMP,
+        cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `,
+  },
+  {
+    description: 'create user_insights table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS user_insights (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        insight TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        expires_at TIMESTAMP NOT NULL
+      )
+    `,
+  },
 ];
 
 async function run() {
