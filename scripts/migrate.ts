@@ -77,6 +77,13 @@ const migrations: { description: string; sql: string }[] = [
       )
     `,
   },
+  {
+    description: 'add polar_customer_id to users',
+    sql: `
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS polar_customer_id TEXT UNIQUE
+    `,
+  },
 ];
 
 async function run() {
