@@ -91,11 +91,22 @@ export function sanitizeRequestBody(req: Request, res: Response, next: NextFunct
  * Security headers middleware
  */
 export function securityHeaders(req: Request, res: Response, next: NextFunction) {
-  // Set security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'same-origin');
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",   // unsafe-inline needed for Vite-built React bundles
+    "style-src 'self' 'unsafe-inline'",    // inline styles used by Radix/shadcn components
+    "img-src 'self' data: https:",         // data: for base64 avatars, https: for Google profile pics
+    "connect-src 'self' wss: https://api.polar.sh https://sandbox-api.polar.sh",
+    "font-src 'self'",
+    "frame-src 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; '));
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
