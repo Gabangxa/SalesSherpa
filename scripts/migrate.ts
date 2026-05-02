@@ -102,6 +102,14 @@ const migrations: { description: string; sql: string }[] = [
     `,
   },
   {
+    description: 'add magic link token columns to users',
+    sql: `
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS magic_link_token TEXT UNIQUE,
+      ADD COLUMN IF NOT EXISTS magic_link_token_expiry TIMESTAMP
+    `,
+  },
+  {
     description: 'create user_insights table',
     sql: `
       CREATE TABLE IF NOT EXISTS user_insights (

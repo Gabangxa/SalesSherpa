@@ -14,6 +14,8 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   verificationToken: text("verification_token"),
   verificationTokenExpiry: timestamp("verification_token_expiry"),
+  magicLinkToken: text("magic_link_token").unique(),
+  magicLinkTokenExpiry: timestamp("magic_link_token_expiry"),
   googleId: text("google_id").unique(),
   profileImage: text("profile_image"),
   authProvider: text("auth_provider").notNull().default("local"), // 'local' or 'google'

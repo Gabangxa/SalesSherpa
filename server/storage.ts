@@ -75,6 +75,9 @@ export interface IStorage {
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
   getUserByVerificationToken(token: string): Promise<User | undefined>;
   updateUserVerification(id: number, updates: { emailVerified?: boolean; verificationToken?: string | null; verificationTokenExpiry?: Date | null }): Promise<User | undefined>;
+  setMagicLinkToken(userId: number, token: string, expiry: Date): Promise<void>;
+  getUserByMagicLinkToken(token: string): Promise<User | undefined>;
+  clearMagicLinkToken(userId: number): Promise<void>;
   
   // Goal operations
   getGoals(userId: number): Promise<Goal[]>;
@@ -233,6 +236,19 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return updatedUser || undefined;
+  }
+
+  async setMagicLinkToken(userId: number, token: string, expiry: Date): Promise<void> {
+    await db.update(users).set({ magicLinkToken: token, magicLinkTokenExpiry: expiry }).where(eq(users.id, userId));
+  }
+
+  async getUserByMagicLinkToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.magicLinkToken, token));
+    return user || undefined;
+  }
+
+  async clearMagicLinkToken(userId: number): Promise<void> {
+    await db.update(users).set({ magicLinkToken: null, magicLinkTokenExpiry: null }).where(eq(users.id, userId));
   }
 
   // Goal operations

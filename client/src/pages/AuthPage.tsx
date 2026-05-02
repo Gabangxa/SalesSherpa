@@ -14,24 +14,23 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Mountain, CheckCircle2 } from "lucide-react";
+import { Mountain, CheckCircle2, Mail } from "lucide-react";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
-const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+const magicLinkSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
 });
 
-const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+const registerMagicSchema = z.object({
   name: z.string().min(2, "Name is required"),
+  email: z.string().email("Please enter a valid email address"),
   role: z.string().min(2, "Role is required"),
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
-type RegisterFormValues = z.infer<typeof registerSchema>;
+type MagicLinkValues = z.infer<typeof magicLinkSchema>;
+type RegisterMagicValues = z.infer<typeof registerMagicSchema>;
 
 const FEATURES = [
   "Daily check-ins to stay on top of your pipeline",
@@ -42,31 +41,27 @@ const FEATURES = [
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  const { user, loginMutation, registerMutation } = useAuth();
+  const [emailSent, setEmailSent] = useState(false);
+  const { user } = useAuth();
   const [, navigate] = useLocation();
 
-  if (user) {
-    navigate("/");
-    return null;
-  }
+  if (user) { navigate("/"); return null; }
 
-  const loginForm = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { username: "", password: "" },
+  const magicLinkMutation = useMutation({
+    mutationFn: (data: MagicLinkValues | RegisterMagicValues) =>
+      apiRequest("POST", "/api/auth/magic-link", data),
+    onSuccess: () => setEmailSent(true),
   });
 
-  const registerForm = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { username: "", email: "", password: "", name: "", role: "" },
+  const loginForm = useForm<MagicLinkValues>({
+    resolver: zodResolver(magicLinkSchema),
+    defaultValues: { email: "" },
   });
 
-  function onLoginSubmit(values: LoginFormValues) {
-    loginMutation.mutate(values);
-  }
-
-  function onRegisterSubmit(values: RegisterFormValues) {
-    registerMutation.mutate(values);
-  }
+  const registerForm = useForm<RegisterMagicValues>({
+    resolver: zodResolver(registerMagicSchema),
+    defaultValues: { name: "", email: "", role: "" },
+  });
 
   return (
     <div className="min-h-screen flex bg-cream dark:bg-dark-bg">
@@ -116,31 +111,50 @@ export default function AuthPage() {
           {/* Card */}
           <div className="bg-white dark:bg-dark-card rounded-3xl border border-earth/20 dark:border-earth/10 shadow-sm p-7">
 
-            {activeTab === "login" ? (
+            {emailSent ? (
+              <div className="text-center space-y-4 py-4">
+                <div className="w-14 h-14 bg-clay/10 rounded-full flex items-center justify-center mx-auto">
+                  <Mail className="w-7 h-7 text-clay" />
+                </div>
+                <h3 className="font-semibold text-forest dark:text-parchment text-lg">Check your email</h3>
+                <p className="text-sm text-forest/60 dark:text-parchment/55 leading-relaxed">
+                  We sent a sign-in link to your email. It expires in 15 minutes.
+                </p>
+                <button
+                  onClick={() => { setEmailSent(false); loginForm.reset(); registerForm.reset(); }}
+                  className="text-sm text-clay hover:text-clay/80 transition-colors font-medium"
+                >
+                  Use a different email
+                </button>
+              </div>
+            ) : activeTab === "login" ? (
               <div className="space-y-5">
                 <GoogleSignInButton />
-
                 <div className="flex items-center gap-3 my-2">
                   <div className="flex-1 h-px bg-earth/20 dark:bg-earth/10" />
                   <span className="text-xs text-forest/40 dark:text-parchment/40 uppercase tracking-widest">or</span>
                   <div className="flex-1 h-px bg-earth/20 dark:bg-earth/10" />
                 </div>
-
-                <div className="rounded-2xl border border-dashed border-earth/30 dark:border-earth/15 bg-earth/5 dark:bg-earth/5 px-4 py-3 text-center">
-                  <p className="text-sm text-forest/60 dark:text-parchment/50">
-                    Email / password login is temporarily unavailable.
-                  </p>
-                  <p className="text-xs text-forest/40 dark:text-parchment/35 mt-1">
-                    Please use Google Sign-In above.
-                  </p>
-                </div>
-
+                <form onSubmit={loginForm.handleSubmit((v) => magicLinkMutation.mutate(v))} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-forest/70 dark:text-parchment/70 mb-1">Email address</label>
+                    <input
+                      type="email"
+                      {...loginForm.register("email")}
+                      placeholder="you@example.com"
+                      className="w-full px-4 py-2.5 rounded-xl border border-earth/25 dark:border-earth/15 bg-earth/5 dark:bg-earth/5 text-forest dark:text-parchment placeholder:text-forest/35 dark:placeholder:text-parchment/35 focus:outline-none focus:ring-2 focus:ring-clay/40 text-sm"
+                    />
+                    {loginForm.formState.errors.email && (
+                      <p className="text-xs text-red-500 mt-1">{loginForm.formState.errors.email.message}</p>
+                    )}
+                  </div>
+                  <Button type="submit" className="w-full" disabled={magicLinkMutation.isPending}>
+                    {magicLinkMutation.isPending ? "Sending…" : "Send sign-in link"}
+                  </Button>
+                </form>
                 <p className="text-center text-sm text-forest/55 dark:text-parchment/55">
                   No account yet?{" "}
-                  <button
-                    onClick={() => setActiveTab("register")}
-                    className="font-semibold text-clay hover:text-clay/80 transition-colors"
-                  >
+                  <button onClick={() => setActiveTab("register")} className="font-semibold text-clay hover:text-clay/80 transition-colors">
                     Register
                   </button>
                 </p>
@@ -148,39 +162,38 @@ export default function AuthPage() {
             ) : (
               <div className="space-y-5">
                 <GoogleSignInButton text="Sign up with Google" />
-
                 <div className="flex items-center gap-3 my-2">
                   <div className="flex-1 h-px bg-earth/20 dark:bg-earth/10" />
                   <span className="text-xs text-forest/40 dark:text-parchment/40 uppercase tracking-widest">or</span>
                   <div className="flex-1 h-px bg-earth/20 dark:bg-earth/10" />
                 </div>
-
-                <div className="rounded-2xl border border-dashed border-earth/30 dark:border-earth/15 bg-earth/5 dark:bg-earth/5 px-4 py-3 text-center">
-                  <p className="text-sm text-forest/60 dark:text-parchment/50">
-                    Email / password registration is temporarily unavailable.
-                  </p>
-                  <p className="text-xs text-forest/40 dark:text-parchment/35 mt-1">
-                    Please use Google Sign-Up above.
-                  </p>
-                </div>
-
+                <form onSubmit={registerForm.handleSubmit((v) => magicLinkMutation.mutate(v))} className="space-y-3">
+                  {(["name", "email", "role"] as const).map((field) => (
+                    <div key={field}>
+                      <label className="block text-sm font-medium text-forest/70 dark:text-parchment/70 mb-1 capitalize">{field}</label>
+                      <input
+                        {...registerForm.register(field)}
+                        placeholder={field === "email" ? "you@example.com" : field === "role" ? "e.g. Account Executive" : "Your name"}
+                        className="w-full px-4 py-2.5 rounded-xl border border-earth/25 dark:border-earth/15 bg-earth/5 dark:bg-earth/5 text-forest dark:text-parchment placeholder:text-forest/35 dark:placeholder:text-parchment/35 focus:outline-none focus:ring-2 focus:ring-clay/40 text-sm"
+                      />
+                      {registerForm.formState.errors[field] && (
+                        <p className="text-xs text-red-500 mt-1">{registerForm.formState.errors[field]?.message}</p>
+                      )}
+                    </div>
+                  ))}
+                  <Button type="submit" className="w-full mt-1" disabled={magicLinkMutation.isPending}>
+                    {magicLinkMutation.isPending ? "Sending…" : "Create account & send link"}
+                  </Button>
+                </form>
                 <p className="text-center text-xs text-forest/45 dark:text-parchment/40 leading-relaxed">
                   By creating an account you agree to our{" "}
-                  <button
-                    onClick={() => window.location.href = "/privacy-policy"}
-                    className="underline hover:text-clay transition-colors"
-                  >
+                  <button onClick={() => window.location.href = "/privacy-policy"} className="underline hover:text-clay transition-colors">
                     Privacy Policy
-                  </button>
-                  .
+                  </button>.
                 </p>
-
                 <p className="text-center text-sm text-forest/55 dark:text-parchment/55">
                   Already have an account?{" "}
-                  <button
-                    onClick={() => setActiveTab("login")}
-                    className="font-semibold text-clay hover:text-clay/80 transition-colors"
-                  >
+                  <button onClick={() => setActiveTab("login")} className="font-semibold text-clay hover:text-clay/80 transition-colors">
                     Sign In
                   </button>
                 </p>

@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { sendEmail, generateVerificationToken, generateVerificationEmail } from "./emailService";
+import { sendEmail, generateVerificationToken, generateVerificationEmail, generateMagicLinkEmail } from "./emailService";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -249,6 +249,64 @@ export function setupAuth(app: Express) {
     } catch (error) {
       console.error('Email verification error:', error);
       res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Magic link — request
+  app.post("/api/auth/magic-link", async (req, res) => {
+    try {
+      const { email, name, role } = req.body;
+      if (!email) return res.status(400).json({ message: "Email is required" });
+
+      const token = randomBytes(32).toString("hex");
+      const expiry = new Date(Date.now() + 15 * 60 * 1000);
+      const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
+
+      let user = await storage.getUserByEmail(email);
+
+      if (!user) {
+        if (name && role) {
+          user = await storage.createUser({ email, name, role, emailVerified: false, authProvider: "magic" });
+        } else {
+          // Don't reveal whether email exists — return success silently
+          return res.json({ sent: true });
+        }
+      }
+
+      await storage.setMagicLinkToken(user.id, token, expiry);
+      const emailContent = generateMagicLinkEmail(user.name, token, baseUrl);
+      emailContent.to = email;
+      await sendEmail(emailContent);
+
+      return res.json({ sent: true });
+    } catch (err) {
+      console.error("Magic link error:", err);
+      return res.status(500).json({ message: "Failed to send magic link" });
+    }
+  });
+
+  // Magic link — verify
+  app.get("/api/auth/magic-link/verify", async (req, res) => {
+    try {
+      const { token } = req.query;
+      if (!token || typeof token !== "string") return res.redirect("/auth?error=invalid_link");
+
+      const user = await storage.getUserByMagicLinkToken(token);
+      if (!user || !user.magicLinkTokenExpiry || new Date() > user.magicLinkTokenExpiry) {
+        if (user) await storage.clearMagicLinkToken(user.id);
+        return res.redirect("/auth?error=link_expired");
+      }
+
+      await storage.updateUserVerification(user.id, { emailVerified: true });
+      await storage.clearMagicLinkToken(user.id);
+
+      req.login(user, (err) => {
+        if (err) return res.redirect("/auth?error=login_failed");
+        return res.redirect("/");
+      });
+    } catch (err) {
+      console.error("Magic link verify error:", err);
+      return res.redirect("/auth?error=server_error");
     }
   });
 
