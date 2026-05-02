@@ -10,8 +10,6 @@ import {
   loginRateLimiter,
   sanitizeRequestBody,
   securityHeaders,
-  csrfProtection,
-  csrfTokenMiddleware
 } from "./security";
 import session from 'express-session';
 import { setupAuth } from "./auth";
@@ -99,14 +97,6 @@ app.use((req, res, next) => {
 
   startAiWorker();
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
@@ -115,6 +105,16 @@ app.use((req, res, next) => {
   } else {
     serveStatic(app);
   }
+
+  // Error handler must be last — after static serving — so it catches
+  // errors from all middleware including the catch-all route.
+  // Do NOT rethrow: Express error handlers must not throw, as it causes
+  // an uncaught exception that crashes the process.
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message });
+  });
 
   const port = parseInt(process.env.PORT || '5000', 10);
   server.listen({
