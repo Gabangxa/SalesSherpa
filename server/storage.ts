@@ -369,8 +369,7 @@ export class DatabaseStorage implements IStorage {
     return db
       .select()
       .from(userInsights)
-      .where(eq(userInsights.userId, userId))
-      .where(gt(userInsights.expiresAt, new Date()))
+      .where(and(eq(userInsights.userId, userId), gt(userInsights.expiresAt, new Date())))
       .orderBy(desc(userInsights.createdAt));
   }
 

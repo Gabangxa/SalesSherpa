@@ -24,6 +24,7 @@ import type { FlowType } from "./ai/checkInFlow";
 import { WebSocketServer, WebSocket } from 'ws';
 import { log } from "./vite";
 import { isNatsAvailable, natsPublish, natsSubscribe, tryClaimAlert } from "./nats";
+import * as pushService from "./pushService";
 import { 
   insertCheckInSchema, 
   insertTaskSchema, 
@@ -1191,7 +1192,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             break;
             
           case WebSocketMessageType.ALERT:
-            // Only authenticated clients may broadcast alerts
+            // Authenticated clients can only deliver alerts to their own
+            // connections — broadcasting to everyone made the channel abusable.
             if (!clientInfo?.userId) {
               ws.send(JSON.stringify({
                 type: WebSocketMessageType.ERROR,
@@ -1200,7 +1202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }));
               break;
             }
-            broadcastMessage({
+            deliverToUser(clientInfo.userId, {
               type: WebSocketMessageType.ALERT,
               payload: {
                 ...message.payload,
@@ -1212,7 +1214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             break;
 
           case WebSocketMessageType.NOTIFICATION:
-            // Only authenticated clients may broadcast notifications
+            // Same — scope client-originated notifications to the sender's user.
             if (!clientInfo?.userId) {
               ws.send(JSON.stringify({
                 type: WebSocketMessageType.ERROR,
@@ -1221,7 +1223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }));
               break;
             }
-            broadcastMessage({
+            deliverToUser(clientInfo.userId, {
               type: WebSocketMessageType.NOTIFICATION,
               payload: {
                 ...message.payload,
