@@ -10,10 +10,12 @@ import { useToast } from "@/hooks/use-toast";
 
 const userSchema = z.object({
   id: z.number(),
-  username: z.string(),
+  username: z.string().nullable().optional(),
   email: z.string(),
   name: z.string(),
-  role: z.string()
+  role: z.string(),
+  profileImage: z.string().nullable().optional(),
+  authProvider: z.string().optional(),
 });
 
 type User = z.infer<typeof userSchema>;

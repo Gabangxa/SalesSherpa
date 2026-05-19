@@ -32,18 +32,16 @@ export function useApiQuery<T>(
     retry?: number | boolean;
     retryDelay?: number;
     keepPreviousData?: boolean;
-    suspense?: boolean;
   } = {}
 ): UseQueryResult<T, Error> {
-  const { 
-    enabled = true, 
-    refetchInterval, 
+  const {
+    enabled = true,
+    refetchInterval,
     staleTime,
     queryKey = [],
     retry = 3,
     retryDelay = 1000,
     keepPreviousData = false,
-    suspense = false,
   } = options;
 
   // Use the full endpoint as the first part of the query key
@@ -70,7 +68,6 @@ export function useApiQuery<T>(
     staleTime,
     retry,
     retryDelay,
-    suspense,
   };
 
   // React Query v5 removed keepPreviousData, we need to conditionally add it to avoid type errors

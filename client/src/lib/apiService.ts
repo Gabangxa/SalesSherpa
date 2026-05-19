@@ -10,7 +10,7 @@ import { processError, ErrorType, handleApiError } from './errorService';
 const DEFAULT_TIMEOUT = 10000;
 
 // Default headers for API requests
-const DEFAULT_HEADERS = {
+const DEFAULT_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
 };
@@ -263,7 +263,7 @@ export const apiService = {
     try {
       // For file uploads, don't set Content-Type (browser sets it with boundary)
       const headers: Record<string, string> = {
-        ...(config?.headers || {}),
+        ...((config?.headers as Record<string, string> | undefined) ?? {}),
       };
       delete headers['Content-Type'];
       

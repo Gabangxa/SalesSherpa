@@ -407,7 +407,7 @@ export function formatDateInTimezone(
       if (!dt.isValid) return 'Invalid date';
       return dt.toLocaleString(
         format === 'full' ? DateTime.DATETIME_FULL :
-        format === 'long' ? DateTime.DATETIME_LONG :
+        format === 'long' ? DateTime.DATETIME_HUGE :
         format === 'medium' ? DateTime.DATETIME_MED :
         DateTime.DATETIME_SHORT
       );
@@ -421,13 +421,13 @@ export function formatDateInTimezone(
     
     return dt.toLocaleString(
       format === 'full' ? DateTime.DATETIME_FULL :
-      format === 'long' ? DateTime.DATETIME_LONG :
+      format === 'long' ? DateTime.DATETIME_HUGE :
       format === 'medium' ? DateTime.DATETIME_MED :
       DateTime.DATETIME_SHORT
     );
   } catch (error) {
     console.error('Error formatting date in timezone:', error);
-    return date.toLocaleString();
+    return date ? date.toLocaleString() : 'Invalid date';
   }
 }
 

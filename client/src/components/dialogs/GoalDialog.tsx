@@ -8,17 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { GoalForm } from "@/components/forms/GoalForm";
 import { ReactNode } from "react";
-
-interface Goal {
-  id: number;
-  title: string;
-  targetAmount: number;
-  currentAmount: number;
-  startingAmount?: number;
-  deadline: string;
-  category: string;
-  valueType?: string;
-}
+import { Goal } from "@shared/schema";
 
 interface GoalDialogProps {
   trigger: ReactNode;

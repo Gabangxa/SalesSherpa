@@ -37,9 +37,9 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     });
     
     // Register the service worker
-    swRegistration = await workbox.register();
+    swRegistration = (await workbox.register()) ?? null;
     console.log('Service Worker registered successfully', swRegistration);
-    
+
     return swRegistration;
   } catch (error) {
     console.error('Service Worker registration failed:', error);
