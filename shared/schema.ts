@@ -23,6 +23,10 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Client-facing validation schema — only user-supplied fields. Verification
+// state, magic-link tokens, and other server-managed columns are intentionally
+// excluded so a registration payload can never set emailVerified: true and
+// bypass the email-verification flow.
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   email: true,
@@ -32,14 +36,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
   googleId: true,
   profileImage: true,
   authProvider: true,
-  emailVerified: true,
-  verificationToken: true,
-  verificationTokenExpiry: true,
-  magicLinkToken: true,
-  magicLinkTokenExpiry: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+// Server-side row type — accepts every column the table supports, including
+// server-managed fields like emailVerified and verification tokens. Use this
+// at the storage boundary; never accept it from untrusted input.
+export type InsertUserRow = typeof users.$inferInsert;
+
 export type User = typeof users.$inferSelect;
 
 // Subscriptions schema — managed by Polar.sh webhooks, not written directly by users

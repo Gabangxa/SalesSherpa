@@ -18,7 +18,7 @@ import {
   TeamActivity,
   Subscription,
   InsertSubscription,
-  InsertUser,
+  InsertUserRow,
   InsertGoal,
   InsertTask,
   InsertCheckIn,
@@ -71,7 +71,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: InsertUserRow): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
   getUserByVerificationToken(token: string): Promise<User | undefined>;
   updateUserVerification(id: number, updates: { emailVerified?: boolean; verificationToken?: string | null; verificationTokenExpiry?: Date | null }): Promise<User | undefined>;
@@ -207,7 +207,7 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(insertUser: InsertUserRow): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(insertUser)
